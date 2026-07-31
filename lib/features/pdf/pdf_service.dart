@@ -1,0 +1,430 @@
+import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
+import 'package:pdf/pdf.dart' as pdf;
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdfrx/pdfrx.dart' as pdfrx;
+import 'package:printing/printing.dart';
+
+import '../../data/models/content_models.dart';
+import '../../data/models/notebook.dart';
+import '../../data/repositories/notebook_repository.dart';
+import '../../shared/utils/file_store.dart';
+import '../../shared/utils/page_size.dart';
+import '../editor/domain/ink_models.dart';
+
+class PdfService {
+  PdfService(this._repository);
+
+  final NotebookRepository _repository;
+  final FileStore _files = createFileStore();
+
+  Future<List<NotePage>> importPdfAsPages({required String notebookId}) async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return [];
+
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) return [];
+    return importPdfFromBytes(notebookId: notebookId, bytes: bytes);
+  }
+
+  Future<List<NotePage>> importPdfFromBytes({
+    required String notebookId,
+    required Uint8List bytes,
+  }) async {
+    await pdfrx.pdfrxFlutterInitialize();
+
+    final notebook = await _repository.getNotebook(notebookId);
+    final paperFormat = notebook?.defaultPaperFormat ?? PaperFormat.a4;
+    final orientation =
+        notebook?.defaultOrientation ?? PageOrientation.portrait;
+    final pageSize = NotePageSize.resolve(paperFormat, orientation);
+    final doc = await pdfrx.PdfDocument.openData(bytes);
+    final filesDir = await _repository.resolveFilesDir();
+    final created = <NotePage>[];
+
+    try {
+      for (var i = 0; i < doc.pages.length; i++) {
+        final pdfPage = doc.pages[i];
+        String? imagePath;
+
+        try {
+          final rendered = await pdfPage.render(
+            fullWidth: pageSize.width * 2,
+            fullHeight: pageSize.height * 2,
+          );
+          if (rendered != null) {
+            final dartImage = rendered.createImageNF(pixelSizeThreshold: 1600);
+            final pngBytes = Uint8List.fromList(img.encodePng(dartImage));
+            rendered.dispose();
+
+            if (kIsWeb) {
+              imagePath = 'memory:${base64Encode(pngBytes)}';
+            } else {
+              final outPath = p.join(
+                filesDir,
+                '${notebookId}_pdf_${DateTime.now().microsecondsSinceEpoch}_${i + 1}.png',
+              );
+              await _files.writeBytes(outPath, pngBytes);
+              imagePath = outPath;
+            }
+          }
+        } catch (_) {
+          // Keep importing remaining pages.
+        }
+
+        final notePage = await _repository.addPage(
+          notebookId: notebookId,
+          template: PageTemplate.blank,
+          backgroundPdfPath: imagePath,
+          paperFormat: paperFormat,
+          orientation: orientation,
+        );
+        created.add(notePage);
+      }
+    } finally {
+      await doc.dispose();
+    }
+
+    return created;
+  }
+
+  Future<Uint8List> buildNotebookPdfBytes(
+    Notebook notebook,
+    List<NotePage> pages, {
+    int? onlyPageIndex,
+  }) async {
+    final doc = pw.Document();
+    final selected = onlyPageIndex == null
+        ? pages
+        : [pages[onlyPageIndex.clamp(0, pages.length - 1)]];
+
+    for (final page in selected) {
+      final pageSize = NotePageSize.resolve(page.paperFormat, page.orientation);
+      final pageFormat = pdf.PdfPageFormat(pageSize.width, pageSize.height);
+      pw.MemoryImage? bg;
+      if (page.backgroundPdfPath != null) {
+        try {
+          final path = page.backgroundPdfPath!;
+          if (path.startsWith('memory:')) {
+            bg = pw.MemoryImage(base64Decode(path.substring(7)));
+          } else if (!kIsWeb) {
+            bg = pw.MemoryImage(await _files.readBytes(path));
+          }
+        } catch (_) {}
+      }
+
+      final imageWidgets = <pw.Widget>[];
+      for (final image in page.images) {
+        try {
+          late Uint8List bytes;
+          if (image.localPath.startsWith('memory:')) {
+            bytes = base64Decode(image.localPath.substring(7));
+          } else if (!kIsWeb) {
+            bytes = await _files.readBytes(image.localPath);
+          } else {
+            continue;
+          }
+          imageWidgets.add(
+            pw.Positioned(
+              left: image.x,
+              top: image.y,
+              child: pw.SizedBox(
+                width: image.width,
+                height: image.height,
+                child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.cover),
+              ),
+            ),
+          );
+        } catch (_) {}
+      }
+
+      doc.addPage(
+        pw.Page(
+          pageFormat: pageFormat,
+          margin: pw.EdgeInsets.zero,
+          build: (context) {
+            return pw.Stack(
+              children: [
+                if (bg != null)
+                  pw.Positioned.fill(child: pw.Image(bg, fit: pw.BoxFit.fill))
+                else
+                  pw.Container(
+                    color: pdf.PdfColor.fromInt(
+                      page.customPaper?.backgroundColor ?? 0xFFFFFBF5,
+                    ),
+                  ),
+                pw.CustomPaint(
+                  size: pdf.PdfPoint(pageSize.width, pageSize.height),
+                  painter: (canvas, size) {
+                    _paintTemplate(canvas, size, page);
+                    for (final shape in page.shapes) {
+                      _paintShape(canvas, shape);
+                    }
+                    for (final stroke in page.strokes) {
+                      _paintStroke(canvas, stroke);
+                    }
+                  },
+                ),
+                ...imageWidgets,
+                for (final block in page.textBlocks)
+                  pw.Positioned(
+                    left: block.x,
+                    top: block.y,
+                    child: pw.SizedBox(
+                      width: block.width,
+                      child: pw.Text(
+                        block.plainText,
+                        style: pw.TextStyle(
+                          fontSize: block.spans.isEmpty
+                              ? 16
+                              : block.spans.first.fontSize,
+                          color: pdf.PdfColor.fromInt(
+                            block.spans.isEmpty
+                                ? 0xFF1A1A1A
+                                : block.spans.first.colorValue,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      );
+    }
+
+    return doc.save();
+  }
+
+  Future<void> printNotebook(Notebook notebook, List<NotePage> pages) async {
+    final bytes = await buildNotebookPdfBytes(notebook, pages);
+    await Printing.layoutPdf(
+      onLayout: (_) async => bytes,
+      name: '${notebook.title}.pdf',
+    );
+  }
+
+  Future<void> shareNotebookPdf(Notebook notebook, List<NotePage> pages) async {
+    final bytes = await buildNotebookPdfBytes(notebook, pages);
+    await Printing.sharePdf(bytes: bytes, filename: '${notebook.title}.pdf');
+  }
+
+  Future<void> shareCurrentPagePdf(
+    Notebook notebook,
+    List<NotePage> pages,
+    int pageIndex,
+  ) async {
+    final bytes = await buildNotebookPdfBytes(
+      notebook,
+      pages,
+      onlyPageIndex: pageIndex,
+    );
+    final n = pageIndex + 1;
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: '${notebook.title}_page_$n.pdf',
+    );
+  }
+
+  /// Legacy entry used by older call sites.
+  Future<void> exportNotebook(Notebook notebook, List<NotePage> pages) {
+    return printNotebook(notebook, pages);
+  }
+
+  Future<ui.Image?> loadBackgroundImage(String? path) async {
+    if (path == null || path.isEmpty) return null;
+    try {
+      late Uint8List bytes;
+      if (path.startsWith('memory:')) {
+        bytes = base64Decode(path.substring(7));
+      } else if (!kIsWeb) {
+        bytes = await _files.readBytes(path);
+      } else {
+        return null;
+      }
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _paintTemplate(
+    pdf.PdfGraphics canvas,
+    pdf.PdfPoint size,
+    NotePage page,
+  ) {
+    final paper = page.customPaper;
+    final line = pdf.PdfColor.fromInt(paper?.lineColor ?? 0xFFD7D2C8);
+    final style = paper?.style ?? page.template.name;
+    switch (style) {
+      case 'blank':
+        return;
+      case 'grid':
+        final spacing = paper?.gridSize ?? 24.0;
+        final margin = paper?.marginTop ?? 36.0;
+        for (var x = margin; x < size.x - 24; x += spacing) {
+          canvas
+            ..setStrokeColor(line)
+            ..setLineWidth(0.8)
+            ..drawLine(x, margin, x, size.y - margin)
+            ..strokePath();
+        }
+        for (var y = margin; y < size.y - 24; y += spacing) {
+          canvas
+            ..setStrokeColor(line)
+            ..setLineWidth(0.8)
+            ..drawLine(margin, y, size.x - margin, y)
+            ..strokePath();
+        }
+      default:
+        final spacing = paper?.lineSpacing ?? 28.0;
+        final marginTop = paper?.marginTop ?? 48.0;
+        final marginLeft = paper?.marginLeft ?? 72.0;
+        for (var y = marginTop; y < size.y - 24; y += spacing) {
+          canvas
+            ..setStrokeColor(line)
+            ..setLineWidth(0.8)
+            ..drawLine(36, y, size.x - 36, y)
+            ..strokePath();
+        }
+        canvas
+          ..setStrokeColor(pdf.PdfColor.fromInt(0xFFE8A0A0))
+          ..setLineWidth(1)
+          ..drawLine(marginLeft, 24, marginLeft, size.y - 24)
+          ..strokePath();
+    }
+  }
+
+  void _paintShape(pdf.PdfGraphics canvas, ShapeElement shape) {
+    canvas
+      ..setStrokeColor(pdf.PdfColor.fromInt(shape.colorValue))
+      ..setLineWidth(shape.strokeWidth)
+      ..setLineCap(pdf.PdfLineCap.round)
+      ..setLineJoin(pdf.PdfLineJoin.round);
+
+    switch (shape.kind) {
+      case ShapeKind.line:
+      case ShapeKind.arrow:
+        canvas
+          ..moveTo(shape.x1, shape.y1)
+          ..lineTo(shape.x2, shape.y2)
+          ..strokePath();
+        if (shape.kind == ShapeKind.arrow) {
+          final dx = shape.x2 - shape.x1;
+          final dy = shape.y2 - shape.y1;
+          final len = (dx * dx + dy * dy);
+          if (len > 1) {
+            final inv = 1 / math.sqrt(len);
+            final ux = dx * inv;
+            final uy = dy * inv;
+            final lx = -uy;
+            final ly = ux;
+            final bx = shape.x2 - ux * 12;
+            final by = shape.y2 - uy * 12;
+            canvas
+              ..moveTo(shape.x2, shape.y2)
+              ..lineTo(bx + lx * 7, by + ly * 7)
+              ..lineTo(bx - lx * 7, by - ly * 7)
+              ..closePath()
+              ..setFillColor(pdf.PdfColor.fromInt(shape.colorValue))
+              ..fillPath();
+          }
+        }
+      case ShapeKind.rect:
+        final left = shape.x1 < shape.x2 ? shape.x1 : shape.x2;
+        final top = shape.y1 < shape.y2 ? shape.y1 : shape.y2;
+        final w = (shape.x2 - shape.x1).abs();
+        final h = (shape.y2 - shape.y1).abs();
+        canvas
+          ..drawRect(left, top, w, h)
+          ..strokePath();
+      case ShapeKind.ellipse:
+        final left = shape.x1 < shape.x2 ? shape.x1 : shape.x2;
+        final top = shape.y1 < shape.y2 ? shape.y1 : shape.y2;
+        final w = (shape.x2 - shape.x1).abs();
+        final h = (shape.y2 - shape.y1).abs();
+        canvas
+          ..drawEllipse(left + w / 2, top + h / 2, w / 2, h / 2)
+          ..strokePath();
+      case ShapeKind.circle:
+        final radius = math.sqrt(
+          math.pow(shape.x2 - shape.x1, 2) + math.pow(shape.y2 - shape.y1, 2),
+        );
+        canvas
+          ..drawEllipse(shape.x1, shape.y1, radius, radius)
+          ..strokePath();
+    }
+  }
+
+  void _paintStroke(pdf.PdfGraphics canvas, InkStroke stroke) {
+    if (stroke.points.isEmpty) return;
+    final base = pdf.PdfColor.fromInt(stroke.colorValue);
+
+    if (stroke.isFountain || stroke.isPencil) {
+      for (var i = 1; i < stroke.points.length; i++) {
+        final a = stroke.points[i - 1];
+        final b = stroke.points[i];
+        final pressure = ((a.pressure + b.pressure) / 2).clamp(0.05, 1.0);
+        final width = stroke.isFountain
+            ? stroke.width * (0.35 + pressure * 1.10)
+            : stroke.width;
+        final alpha = stroke.isPencil
+            ? (0.12 + pressure * 0.82).clamp(0.08, 0.95)
+            : 1.0;
+        canvas
+          ..setStrokeColor(pdf.PdfColor(base.red, base.green, base.blue, alpha))
+          ..setLineWidth(width)
+          ..setLineCap(pdf.PdfLineCap.round)
+          ..moveTo(a.x, a.y)
+          ..lineTo(b.x, b.y)
+          ..strokePath();
+      }
+      if (stroke.points.length == 1) {
+        final p = stroke.points.first;
+        final pressure = p.pressure.clamp(0.05, 1.0);
+        final width = stroke.isFountain
+            ? stroke.width * (0.35 + pressure * 1.10)
+            : stroke.width;
+        final alpha = stroke.isPencil
+            ? (0.12 + pressure * 0.82).clamp(0.08, 0.95)
+            : 1.0;
+        canvas
+          ..setFillColor(pdf.PdfColor(base.red, base.green, base.blue, alpha))
+          ..drawEllipse(p.x, p.y, width / 2, width / 2)
+          ..fillPath();
+      }
+      return;
+    }
+
+    canvas
+      ..setStrokeColor(
+        stroke.isMarker
+            ? pdf.PdfColor(base.red, base.green, base.blue, 0.35)
+            : base,
+      )
+      ..setLineWidth(stroke.width)
+      ..setLineCap(pdf.PdfLineCap.round)
+      ..setLineJoin(pdf.PdfLineJoin.round);
+
+    final first = stroke.points.first;
+    canvas.moveTo(first.x, first.y);
+    for (final point in stroke.points.skip(1)) {
+      canvas.lineTo(point.x, point.y);
+    }
+    canvas.strokePath();
+  }
+}

@@ -1,0 +1,1079 @@
+{
+  "@@locale": "en",
+  "appTitle": "BetterNotes",
+  "newNotebook": "New notebook",
+  "untitledNotebook": "Untitled Notebook",
+  "title": "Title",
+  "cover": "Cover",
+  "template": "Template",
+  "blank": "Blank",
+  "lined": "Lined",
+  "grid": "Grid",
+  "cancel": "Cancel",
+  "create": "Create",
+  "save": "Save",
+  "delete": "Delete",
+  "rename": "Rename",
+  "settings": "Settings",
+  "searchNotebooks": "Search notebooks",
+  "globalSearch": "Global search",
+  "noNotebooksYet": "No notebooks yet",
+  "noNotebooksHint": "Create one and start writing with your stylus.",
+  "deleteNotebookTitle": "Delete notebook?",
+  "deleteNotebookBody": "\"{title}\" will be removed permanently.",
+  "@deleteNotebookBody": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "pageCount": "{count, plural, =1{1 page} other{{count} pages}}",
+  "@pageCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "outline": "Outline",
+  "outlineEmpty": "Add chapters and subsections for deep structure.",
+  "pages": "Pages",
+  "addPage": "Add page",
+  "addSection": "Add section",
+  "addSubchapter": "Add subchapter",
+  "addParentChapter": "Add higher-level chapter",
+  "nameChapterHint": "Name this chapter…",
+  "nameSubchapterHint": "Name this subchapter…",
+  "schoolClass": "Class",
+  "schoolClassHint": "Which class are you in?",
+  "schoolClassNone": "Not set",
+  "schoolClassValue": "Grade {n}",
+  "@schoolClassValue": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importFromPreviousClass": "Import from previous class",
+  "importFromClass": "Import from grade {n}",
+  "@importFromClass": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importChapterHint": "Tap a chapter to add it here.",
+  "newSchoolYearNotebook": "Create notebook for this school year",
+  "importChaptersTitle": "Import chapters",
+  "importChaptersBody": "Which chapters from “{title}” should carry over to grade {n}?",
+  "@importChaptersBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importChaptersEmpty": "The previous notebook has no chapters yet.",
+  "selectAll": "All",
+  "selectNone": "None",
+  "dismiss": "Dismiss",
+  "tapToContinue": "Tap to continue",
+  "pen": "Pen",
+  "ballpointPen": "Ballpoint",
+  "pencil": "Pencil",
+  "fountainPen": "Fountain pen",
+  "pressureSensitivity": "Pressure",
+  "marker": "Marker",
+  "textTool": "Text",
+  "eraser": "Eraser",
+  "lasso": "Lasso",
+  "addTextBox": "Add text box",
+  "paperCreator": "Paper creator",
+  "undo": "Undo",
+  "redo": "Redo",
+  "deleteSelection": "Delete selection",
+  "writing": "Writing",
+  "fingerPanZoom": "Stylus only (finger pans)",
+  "fingerPanZoomHint": "On: stylus draws, finger pans.",
+  "defaultTemplate": "Default template",
+  "language": "Language",
+  "german": "German",
+  "english": "English",
+  "systemLanguage": "System",
+  "sync": "Sync",
+  "syncUpToDate": "Up to date",
+  "syncQueueEmpty": "Queue empty · offline-first local sync",
+  "syncPending": "{count} pending ops",
+  "@syncPending": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "flushSync": "Flush sync queue",
+  "about": "About",
+  "aboutBody": "BetterNotes — Smart Text, Custom Paper, Deep Outline, global search, and offline-first sync queue.",
+  "searchHint": "Search notebooks, text, outline, tags…",
+  "searchEmpty": "Type to search across all notes.",
+  "crossLink": "Cross-link",
+  "linkToNotebook": "Link to notebook",
+  "crossLinkCreated": "Cross-link created",
+  "needAnotherNotebook": "Create another notebook to link.",
+  "importPdf": "Import PDF",
+  "exportPdf": "Export PDF",
+  "pageOf": "Page {current}/{total}",
+  "@pageOf": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "infiniteCanvas": "Infinite canvas",
+  "pageMode": "Page mode",
+  "addTag": "Add tag",
+  "add": "Add",
+  "formatText": "Format text",
+  "bold": "Bold",
+  "italic": "Italic",
+  "free": "Free",
+  "close": "Close",
+  "apply": "Apply",
+  "renameSection": "Rename section",
+  "indent": "Indent",
+  "outdent": "Outdent",
+  "chapter": "Chapter {n}",
+  "@chapter": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "section": "Section",
+  "newText": "New text",
+  "style": "Style",
+  "background": "Background",
+  "lineSpacing": "Line spacing",
+  "gridSize": "Grid size",
+  "leftMargin": "Left margin",
+  "topMargin": "Top margin",
+  "myPaper": "My paper",
+  "shapes": "Shapes",
+  "ruler": "Ruler",
+  "compass": "Compass",
+  "rulerHint": "Drag for a straight line (snaps every 15°)",
+  "compassHint": "Center → drag for radius",
+  "shapeLine": "Line",
+  "shapeRect": "Rectangle",
+  "shapeEllipse": "Ellipse",
+  "shapeArrow": "Arrow",
+  "insertImage": "Insert image",
+  "readMode": "Read mode",
+  "editMode": "Edit mode",
+  "libraryHome": "Library",
+  "freeTextBox": "Free box",
+  "pageText": "Page text",
+  "newFolder": "New folder",
+  "folder": "Folder",
+  "folderName": "Folder name",
+  "folders": "Folders",
+  "notebooks": "Notebooks",
+  "chapters": "Chapters",
+  "entries": "Entries",
+  "flashcards": "Flashcards",
+  "newFlashcardDeck": "New flashcard deck",
+  "untitledDeck": "Untitled deck",
+  "newFlashcard": "New flashcard",
+  "flashcardFront": "Front",
+  "flashcardBack": "Back",
+  "noFlashcardsYet": "No flashcards yet",
+  "tapToFlip": "Tap to flip",
+  "searchEverything": "Search folders, notebooks, chapters…",
+  "shareExport": "Share & export",
+  "printPdf": "Print / PDF preview",
+  "printPdfHint": "Open the system print dialog",
+  "sharePdf": "Share notebook as PDF",
+  "sharePdfHint": "Entire notebook",
+  "shareCurrentPage": "Share current page",
+  "shareCurrentPageHint": "Only this page as PDF",
+  "documentType": "Document type",
+  "paperSize": "Paper size",
+  "pageOrientation": "Orientation",
+  "portrait": "Portrait",
+  "landscape": "Landscape",
+  "paperLetter": "Letter",
+  "paperLegal": "Legal",
+  "paperTabloid": "Tabloid",
+  "newPagesOnlyHint": "Only applies to pages added from now on.",
+  "choosePastEvent": "Choose a past event",
+  "repeatEvent": "Repeat event",
+  "repeatFrequency": "Repeat",
+  "repeatDaily": "Daily",
+  "repeatWeekly": "Weekly",
+  "repeatMonthly": "Monthly",
+  "repeatUntil": "Repeat until",
+  "repeatInterval": "Interval",
+  "repeatEvery": "Every {count}",
+  "@repeatEvery": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "weekdayMon": "Mon",
+  "weekdayTue": "Tue",
+  "weekdayWed": "Wed",
+  "weekdayThu": "Thu",
+  "weekdayFri": "Fri",
+  "weekdaySat": "Sat",
+  "weekdaySun": "Sun",
+  "importedPageTemplateTitle": "Imported template",
+  "importedPageTemplateBody": "The previous page uses an image or PDF background. Which template should the new page use?",
+  "keepCurrentTemplate": "Keep current template",
+  "useNotebookDefault": "Use notebook default",
+  "documentTypeFixedHint": "Chosen when the document is created and stays that way",
+  "infiniteDocument": "Infinite document",
+  "infiniteDocumentHint": "One large canvas with free zoom. Only the visible area is rendered.",
+  "eraserStroke": "Stroke",
+  "eraserSection": "Section",
+  "eraserPrecise": "Precise",
+  "editWidth": "Adjust stroke width",
+  "editWidthHint": "Tap to select · Long-press to edit",
+  "addColor": "Add color",
+  "removeColor": "Remove color",
+  "hue": "Hue",
+  "saturation": "Saturation",
+  "brightness": "Brightness",
+  "colorPickerTitle": "Pick a color",
+  "opacity": "Opacity",
+  "recentColors": "Recently used",
+  "presetColors": "Suggestions",
+  "customColor": "Custom color",
+  "editColorHint": "Tap: select · Hold: edit",
+  "appearance": "Appearance",
+  "appearanceHint": "Look and light/dark mode of the app",
+  "lookStudio": "Studio",
+  "lookStudioHint": "Graphite with an indigo accent",
+  "lookPaper": "Paper",
+  "lookPaperHint": "Cream, deep green, serif",
+  "lookFresh": "Fresh",
+  "lookFreshHint": "White, teal, airy",
+  "lookMono": "Mono",
+  "lookMonoHint": "Black and white, minimal",
+  "themeModeSystem": "System",
+  "themeModeLight": "Light",
+  "themeModeDark": "Dark",
+  "moreOptions": "More options",
+  "menuPageGroup": "Page",
+  "menuViewGroup": "View",
+  "menuDocumentGroup": "Document",
+  "menuPaperGroup": "Paper of this page",
+  "paperPresets": "Templates",
+  "paperPresetsHint": "Tap to apply · Long-press custom templates to delete",
+  "paperPreview": "Preview",
+  "paperColor": "Paper color",
+  "lineColor": "Line color",
+  "applyPaper": "Apply to page",
+  "resetDefaults": "Reset",
+  "blankPaperHint": "Blank paper — adjust color and name only.",
+  "editingBuiltinHint": "Built-in template — saving creates your own copy.",
+  "collegeRuled": "College",
+  "narrowRuled": "Narrow ruled",
+  "dotGrid": "Fine grid",
+  "pageBrowseMode": "Page browsing",
+  "pageBrowseModeHint": "Swipe: page by page left/right. Scroll: all pages in one vertical stack.",
+  "browseSwipe": "Swipe",
+  "browseScroll": "Scroll",
+  "savePageAsTemplate": "Save page as template",
+  "savePageAsTemplateHint": "Save a reusable page design — with or without lines.",
+  "lineLayout": "Lines",
+  "noLines": "None",
+  "fromPage": "From page",
+  "customLines": "Custom",
+  "customLinesHint": "Tap to add/remove lines. Tap left area to set the margin.",
+  "fillRuled": "Fill ruled",
+  "clearLines": "Clear lines",
+  "templateSaved": "Template saved",
+  "timetable": "Timetable",
+  "timetableHint": "Tap a cell to fill lessons. Tap times on the left (scroll wheels). Blocks can be full or split. Link subjects to folders.",
+  "timetableEmptyToday": "Nothing for today yet — tap to fill in",
+  "timetableTodayPreview": "Today: {preview}",
+  "@timetableTodayPreview": {
+    "placeholders": {
+      "preview": {"type": "String"}
+    }
+  },
+  "subject": "Subject",
+  "subjectHint": "e.g. English",
+  "room": "Room",
+  "roomHint": "e.g. R204",
+  "color": "Color",
+  "clear": "Clear",
+  "editPeriod": "Edit period",
+  "periodLabel": "Label",
+  "periodStart": "Start",
+  "periodEnd": "End",
+  "addPeriod": "Add period",
+  "removePeriod": "Remove last period",
+  "mondayShort": "Mon",
+  "tuesdayShort": "Tue",
+  "wednesdayShort": "Wed",
+  "thursdayShort": "Thu",
+  "fridayShort": "Fri",
+  "lastSync": "Last sync: {time}",
+  "@lastSync": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "blockMode": "Block",
+  "fullBlock": "Full block",
+  "splitBlock": "Split",
+  "fullBlockHint": "One subject for the whole block ({minutes} min).",
+  "@fullBlockHint": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "splitBlockHint": "Split: {first} · then {second}",
+  "@splitBlockHint": {
+    "placeholders": {
+      "first": {"type": "String"},
+      "second": {"type": "String"}
+    }
+  },
+  "firstHalf": "1st half",
+  "secondHalf": "2nd half",
+  "linkFolder": "Link to folder",
+  "noFolderLink": "No folder",
+  "blockDuration": "{minutes} minutes",
+  "@blockDuration": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "nowOn": "Now",
+  "nowLesson": "Now: {subject} ({when})",
+  "@nowLesson": {
+    "placeholders": {
+      "subject": {"type": "String"},
+      "when": {"type": "String"}
+    }
+  },
+  "nowLessonShort": "Now: {subject}",
+  "@nowLessonShort": {
+    "placeholders": {
+      "subject": {"type": "String"}
+    }
+  },
+  "newInfiniteDocument": "Endless document",
+  "untitledInfinite": "Endless canvas",
+  "pageModeHint": "Classic pages you can flip through",
+  "infiniteDocumentShortHint": "Huge board, extreme zoom in and out",
+  "markFavorite": "Mark as favorite",
+  "editFolder": "Edit folder",
+  "deleteFolderTitle": "Delete folder?",
+  "deleteFolderBody": "\"{name}\" will be removed. Notebooks inside stay available in the library root.",
+  "@deleteFolderBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "folderActions": "Folder",
+  "folderIcon": "Icon",
+  "newFolderHint": "Pick a color and icon",
+  "newNotebookHint": "Paged notebook with cover and template",
+  "newDeckHint": "Flashcards with a custom color",
+  "planner": "Grades & calendar",
+  "plannerEmptyHint": "Add appointments and grades",
+  "calendar": "Calendar",
+  "grades": "Grades",
+  "addAppointment": "Event",
+  "editAppointment": "Edit event",
+  "addGrade": "Grade",
+  "editGrade": "Edit grade",
+  "appointmentsOnDay": "Events on {day}",
+  "@appointmentsOnDay": {
+    "placeholders": {
+      "day": {"type": "String"}
+    }
+  },
+  "noAppointmentsYet": "No events on this day yet.",
+  "noGradesYet": "No grades yet — pick a subject and add one.",
+  "gradeAverage": "Average (weighted)",
+  "gradeAverageShort": "Avg {value}",
+  "@gradeAverageShort": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "gradeTitle": "Title",
+  "gradeTitleHint": "e.g. Midterm 2",
+  "gradeValue": "Grade / value",
+  "gradeWeight": "Weight",
+  "scaleGerman": "1–6",
+  "scalePercent": "%",
+  "scalePoints": "Points",
+  "kindAppointment": "Event",
+  "kindExam": "Exam",
+  "kindHomework": "Homework",
+  "startsAt": "Starts",
+  "endsAt": "Ends",
+  "optional": "Optional",
+  "noteOptional": "Note (optional)",
+  "saturdayShort": "Sat",
+  "sundayShort": "Sun",
+  "shareAppointment": "Forward appointment",
+  "shareAppointmentHint": "Copy text into chat or mail. ICS works with calendar apps.",
+  "copyForForward": "Copy text",
+  "copiedForForward": "Copied — ready to forward",
+  "copyIcs": "Copy as calendar (.ics)",
+  "icsCopied": "ICS text copied",
+  "schoolSection": "School & studies",
+  "educationLevel": "Education level",
+  "educationLevelHint": "Grade scale and labels.",
+  "eduSek1": "Lower sec.",
+  "eduSek2": "Upper sec.",
+  "eduUniversity": "University",
+  "eduScaleGradesHint": "Calculated with grades (1–6).",
+  "eduScalePointsHint": "Calculated with points.",
+  "eduScaleSek1Hint": "Grades 1–6 · half-years · written/oral weighting.",
+  "eduScaleSek2Hint": "0–15 points · Q1–Q4 + exams · 900-point projection.",
+  "eduScaleUniHint": "Grades 1.0–5.0 · ECTS-weighted GPA.",
+  "gradeKindWritten": "Written",
+  "gradeKindOral": "Oral",
+  "gradeKindOtherParticipation": "Other participation",
+  "gradeKindKlassenarbeit": "Class test",
+  "periodH1": "1st half-year",
+  "periodH2": "2nd half-year",
+  "periodQ1": "Q1",
+  "periodQ2": "Q2",
+  "periodQ3": "Q3",
+  "periodQ4": "Q4",
+  "periodAbiExam": "Final exams",
+  "periodSemester": "Semester",
+  "abiPrognosisTitle": "Abitur projection",
+  "abiProjectedPoints": "Projection: {points} / 900",
+  "@abiProjectedPoints": {
+    "placeholders": { "points": {"type": "String"} }
+  },
+  "abiProjectedNote": "Projected grade: {note}",
+  "@abiProjectedNote": {
+    "placeholders": { "note": {"type": "String"} }
+  },
+  "abiMinPassProgress": "Minimum points: {have} / {need}",
+  "@abiMinPassProgress": {
+    "placeholders": {
+      "have": {"type": "String"},
+      "need": {"type": "String"}
+    }
+  },
+  "abiBlockProgress": "After {blocks}/5 blocks · avg {avg} points",
+  "@abiBlockProgress": {
+    "placeholders": {
+      "blocks": {"type": "int"},
+      "avg": {"type": "String"}
+    }
+  },
+  "uniPrognosisTitle": "Study progress",
+  "uniGpa": "ECTS GPA: {gpa}",
+  "@uniGpa": {
+    "placeholders": { "gpa": {"type": "String"} }
+  },
+  "uniEctsProgress": "{have} / {need} ECTS",
+  "@uniEctsProgress": {
+    "placeholders": {
+      "have": {"type": "String"},
+      "need": {"type": "String"}
+    }
+  },
+  "ectsLabel": "ECTS",
+  "semesterLabelField": "Semester (e.g. WiSe 25/26)",
+  "markAbiSubject": "Abitur subject (for exam projection)",
+  "targetEcts": "Target ECTS",
+  "targetEctsHint": "Credit points required for graduation.",
+  "abiProjectionSettings": "Abitur projection",
+  "abiProjectionHint": "Course count (block I) and exams (block II).",
+  "abiCourseCount": "Courses in block I",
+  "abiExams4": "4 exams",
+  "abiExams5": "5 exams",
+  "roundedPoints": "Rounded: {points} pts",
+  "@roundedPoints": {
+    "placeholders": { "points": {"type": "String"} }
+  },
+  "gradeValueUni": "Grade (1.0–5.0)",
+  "gradeValuePoints15": "Points (0–15)",
+  "gradeTendency": "Tendency",
+  "gradeTendencyNone": "plain",
+  "selectedGrade": "Selected: {grade}",
+  "@selectedGrade": {
+    "placeholders": { "grade": {"type": "String"} }
+  },
+  "archivedGradesTitle": "Other levels (archive)",
+  "archivedGradesHint": "Grades from lower/upper secondary or uni stay saved — listed here.",
+  "editingArchivedGrade": "Archived grade ({level})",
+  "@editingArchivedGrade": {
+    "placeholders": { "level": {"type": "String"} }
+  },
+  "scanAttachment": "Scan worksheet",
+  "scanAttachmentHint": "Attach a photo/scan of a test or exam to this grade.",
+  "scanAdd": "Add scan",
+  "scanWithCamera": "Camera",
+  "scanFromGallery": "Gallery / file",
+  "scanPage": "Scan {n}",
+  "@scanPage": {
+    "placeholders": { "n": {"type": "int"} }
+  },
+  "scanCount": "{count} scans",
+  "@scanCount": {
+    "placeholders": { "count": {"type": "int"} }
+  },
+  "gradesSectionsHint": "Grades stay when you switch levels.",
+  "schoolYear": "School year",
+  "previousSchoolYear": "Previous year",
+  "nextSchoolYear": "Next year",
+  "gradesEmptyYear": "No grades in {year} yet.",
+  "@gradesEmptyYear": {
+    "placeholders": {
+      "year": {"type": "String"}
+    }
+  },
+  "gradeDetails": "Grade",
+  "viewMode": "View",
+  "noScansAttached": "No scan attached.",
+  "semesterShort": "Semester",
+  "federalState": "Federal state",
+  "federalStateHint": "Used to show school holidays in the calendar.",
+  "stateBw": "Baden-Württemberg",
+  "stateBy": "Bavaria",
+  "stateBe": "Berlin",
+  "stateBb": "Brandenburg",
+  "stateHb": "Bremen",
+  "stateHh": "Hamburg",
+  "stateHe": "Hesse",
+  "stateMv": "Mecklenburg-Western Pomerania",
+  "stateNi": "Lower Saxony",
+  "stateNw": "North Rhine-Westphalia",
+  "stateRp": "Rhineland-Palatinate",
+  "stateSl": "Saarland",
+  "stateSn": "Saxony",
+  "stateSt": "Saxony-Anhalt",
+  "stateSh": "Schleswig-Holstein",
+  "stateTh": "Thuringia",
+  "holidayAutumn": "Autumn break",
+  "holidayChristmas": "Christmas break",
+  "holidayWinter": "Winter break",
+  "holidayEaster": "Easter break",
+  "holidayPentecost": "Pentecost break",
+  "holidaySummer": "Summer break",
+  "holidaysForState": "Holidays: {state}",
+  "@holidaysForState": {
+    "placeholders": {
+      "state": {"type": "String"}
+    }
+  },
+  "holidayBanner": "Holiday: {name}",
+  "@holidayBanner": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "gradeKindKlassenarbeit": "Class test",
+  "gradeKindKlausur": "Exam",
+  "gradeKindTest": "Test",
+  "gradeKindUniExam": "Exam",
+  "gradeKindHomework": "Coursework",
+  "subjectFromTimetableDay": "Subject from timetable (this weekday)",
+  "subjectFromTimetableWeekend": "Weekend — no timetable day",
+  "noSubjectsThatDay": "No subjects on the timetable for this day.",
+  "gradesNeedTimetable": "Add subjects in the timetable first.",
+  "weightForSubject": "Weighting: {subject}",
+  "@weightForSubject": {
+    "placeholders": {
+      "subject": {"type": "String"}
+    }
+  },
+  "weightHint": "Set {major} vs {minor} once — Notan-style.",
+  "@weightHint": {
+    "placeholders": {
+      "major": {"type": "String"},
+      "minor": {"type": "String"}
+    }
+  },
+  "weightSummary": "{major} {majorPct}% · {minor} {minorPct}%",
+  "@weightSummary": {
+    "placeholders": {
+      "major": {"type": "String"},
+      "majorPct": {"type": "int"},
+      "minor": {"type": "String"},
+      "minorPct": {"type": "int"}
+    }
+  },
+  "setWeight": "Weighting",
+  "gradeCount": "{count} grades",
+  "@gradeCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "gradeValuePoints": "Points",
+  "sectionGeneral": "General",
+  "sectionSubscription": "Plan & coins",
+  "sectionSupport": "Support",
+  "sectionSyncPreview": "Sync (preview)",
+  "localTierHint": "Local testing only — no real purchases.",
+  "tierFree": "Free",
+  "tierPro": "Pro",
+  "tierProPlus": "Pro+",
+  "tierTeacher": "Teacher",
+  "coinsBalance": "{count} coins",
+  "@coinsBalance": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "watchAdForCoins": "Watch ad",
+  "watchRewardedAd": "Watch short video",
+  "rewardedAdDemoBadge": "Demo — not a real ad",
+  "rewardedAdTitle": "Unlock reward",
+  "rewardedAdCoinsBody": "After the demo clip you’ll get {count} coins.",
+  "@rewardedAdCoinsBody": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "rewardedAdFeatureBody": "After the demo clip this feature will unlock.",
+  "adPrivacyOptions": "Ad settings",
+  "adPrivacyOptionsHint": "Change your consent for personalised ads",
+  "rewardedAdLoading": "Loading ad …",
+  "rewardedAdNotFinished": "Video was not watched to the end — no reward.",
+  "featureUnlocked": "Feature unlocked",
+  "collaborationSignInRequired": "Sign in for cloud collaboration.",
+  "collaborationUpgradeRequired": "Cloud collaboration requires an eligible plan.",
+  "collabLocalTitle": "Nearby (no account)",
+  "collabLocalBody": "Share this notebook over Wi‑Fi or a hotspot. Works completely offline — no sign-in needed.",
+  "collabCloudTitle": "Cloud collaboration",
+  "collabCloudBody": "Invite someone by Firebase UID. Role controls whether they can edit or only read.",
+  "collabMemberUid": "Firebase UID",
+  "collabRole": "Role",
+  "collabSaveInvite": "Save invitation",
+  "collabMembers": "Members",
+  "collabStartLive": "Start live session",
+  "collabLiveStarted": "Live session started: {id}",
+  "@collabLiveStarted": {
+    "placeholders": {
+      "id": { "type": "String" }
+    }
+  },
+  "collabComments": "Comments",
+  "collabLeaveComment": "Leave a comment",
+  "signIn": "Sign in",
+  "coinsEarned": "+{count} coins",
+  "@coinsEarned": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "notEnoughCoins": "Not enough coins",
+  "unlockWithCoins": "Unlock with {count} coins",
+  "@unlockWithCoins": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "featureAvailable": "Unlocked",
+  "featurePremiumPaper": "Premium paper",
+  "featurePremiumCover": "Premium cover",
+  "featureAudioTranscription": "Audio transcription",
+  "featurePdfCompress": "Compress PDF",
+  "featureHandwritingOcr": "Handwriting OCR",
+  "featureNoForcedAds": "No forced ads",
+  "featureSessionCollab": "Session collab",
+  "featureAsyncCollab": "Cloud collab",
+  "featureWhiteboard": "Teacher whiteboard",
+  "supportBody": "BetterNotes stays usable offline. A coffee helps cover future server costs.",
+  "supportBuyCoffee": "Buy a coffee",
+  "supportLinkCopied": "Support link copied",
+  "serverCostsLabel": "Server costs (placeholder): €{euro} / month",
+  "@serverCostsLabel": {
+    "placeholders": {
+      "euro": {"type": "int"}
+    }
+  },
+  "serverCostsCovered": "Covered so far: €{euro}",
+  "@serverCostsCovered": {
+    "placeholders": {
+      "euro": {"type": "int"}
+    }
+  },
+  "syncPreviewHint": "Preview — real cloud sync comes later.",
+  "upcomingNext": "Up next",
+  "createGradeFromExam": "Add a grade?",
+  "createGradeFromExamBody": "Save the exam and prepare a grade with subject and date filled in.",
+  "deviceCalendarComingSoon": "Device calendar sync is coming later.",
+  "sectionNotebooks": "Notebooks",
+  "exportExtras": "Export extras",
+  "comingSoonGate": "Coming later — unlockable locally for now",
+  "firebaseSetupRequired": "Firebase has not been configured yet. Local data remains available.",
+  "cloudAccount": "Cloud account",
+  "signedInAs": "Signed in as {name}",
+  "@signedInAs": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "signInGoogle": "Sign in with Google",
+  "signInApple": "Sign in with Apple",
+  "signOut": "Sign out",
+  "cloudSyncOffline": "Offline-first: without signing in, data stays on this device.",
+  "cloudSyncError": "Sign-in failed: {message}",
+  "@cloudSyncError": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+  "developerTools": "Developer tools",
+  "developerTierHint": "For local testing only — does not replace a store purchase.",
+  "editSupportDetails": "Edit support details",
+  "supportUrl": "Support link",
+  "serverCosts": "Monthly server costs",
+  "amountCovered": "Covered so far",
+  "syncStatusIdle": "Ready",
+  "syncStatusUpToDate": "Up to date",
+  "syncStatusSyncing": "Syncing",
+  "syncStatusSynced": "Synced",
+  "syncStatusFirebaseNotConfigured": "Firebase is not configured",
+  "syncStatusAuthenticationRequired": "Sign-in required",
+  "syncStatusPreparingCloud": "Preparing cloud data",
+  "syncStatusPaused": "Sync paused",
+  "lockPage": "Lock page",
+  "unlockPage": "Unlock page",
+  "pageLocked": "Page locked",
+  "presentView": "Present",
+  "exitPresentView": "Exit presentation",
+  "exitPresentViewHint": "Double tap to exit the presentation",
+  "dragToAddPage": "Drag to add a page",
+  "zoomIn": "Zoom in",
+  "zoomOut": "Zoom out",
+  "fitPage": "Fit page",
+  "deselectTool": "Deselect tool",
+  "pageSidebar": "Page overview",
+  "duplicatePage": "Duplicate page",
+  "deletePage": "Delete page",
+  "lastPageHint": "A notebook needs at least one page.",
+  "collaborate": "Collaborate",
+  "scrollDirection": "Scrolling direction",
+  "bold": "Bold",
+  "italic": "Italic",
+  "underline": "Underline",
+  "strikethrough": "Strikethrough",
+  "increaseFontSize": "Increase font size",
+  "decreaseFontSize": "Decrease font size",
+  "alignLeft": "Align left",
+  "alignCenter": "Align center",
+  "alignRight": "Align right",
+  "alignJustify": "Justify",
+  "deleteTextBlock": "Delete text box",
+  "moveTextBlock": "Move text box",
+  "studyMode": "Study",
+  "studyModeHint": "Ink is hidden — double-tap or use Reveal to show it",
+  "exitStudyMode": "Exit study mode",
+  "revealInk": "Reveal ink",
+  "hideInk": "Hide ink",
+  "saveSnapshot": "Save snapshot",
+  "restoreSnapshot": "Restore snapshot",
+  "snapshotSaved": "Snapshot saved",
+  "snapshotRestored": "Snapshot restored",
+  "noSnapshotsYet": "No snapshots for this page yet",
+  "snapshotLabel": "Version {time}",
+  "@snapshotLabel": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "deleteSnapshot": "Delete snapshot",
+  "confirmRestoreSnapshot": "Restore this snapshot? Current page content will be replaced.",
+  "nearbySyncTitle": "Nearby sync",
+  "nearbySyncIntro": "Share this notebook over the same Wi‑Fi or a phone hotspot. The first transfer sends the whole notebook; afterwards only changes are exchanged — no internet required.",
+  "nearbySyncDeviceName": "Device name",
+  "nearbySyncHostSection": "Host this notebook",
+  "nearbySyncHostHint": "Start hosting, then tell the other device your IP address and session code. Both devices must be on the same network or hotspot.",
+  "nearbySyncStartHost": "Start nearby session",
+  "nearbySyncJoinSection": "Join a session",
+  "nearbySyncJoinHint": "Enter the host IP and the 6-character code shown on the other device.",
+  "nearbySyncHostAddress": "Host IP address",
+  "nearbySyncCode": "Session code",
+  "nearbySyncJoin": "Join",
+  "nearbySyncStop": "Stop session",
+  "nearbySyncCopy": "Copy",
+  "nearbySyncCopied": "Copied",
+  "nearbySyncPort": "Port {port}",
+  "@nearbySyncPort": {
+    "placeholders": {
+      "port": { "type": "int" }
+    }
+  },
+  "nearbySyncNoAddress": "No local IP found yet. Connect to Wi‑Fi or enable a hotspot, then reopen this screen.",
+  "nearbySyncStatusIdle": "No nearby session",
+  "nearbySyncStatusHosting": "Waiting for devices…",
+  "nearbySyncStatusConnecting": "Connecting…",
+  "nearbySyncStatusSyncing": "Transferring notebook…",
+  "nearbySyncStatusConnected": "Nearby sync active",
+  "nearbySyncStatusError": "Nearby sync error",
+  "nearbySyncPeer": "Peer: {name}",
+  "@nearbySyncPeer": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "nearbySyncPeers": "{count} connected",
+  "@nearbySyncPeers": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "nearbySyncSnapshotReceived": "Notebook received — opening…",
+  "nearbySyncWebUnsupported": "Nearby sync needs the Android or iOS app.",
+  "nearbySyncDisconnected": "The other device disconnected.",
+  "nearbySyncInvalidCode": "Wrong session code.",
+  "nearbySyncError": "Nearby sync failed",
+  "nearbySyncBinaryNote": "PDF backgrounds and inserted images are transferred over the air with the notebook. Both devices must stay on the same Wi‑Fi or hotspot.",
+  "nearbySyncDiscoverHint": "Devices hosting a nearby session appear automatically. Tap one to join.",
+  "nearbySyncSearching": "Searching on this network…",
+  "nearbySyncSearchStopped": "Search paused",
+  "nearbySyncStartSearch": "Search",
+  "nearbySyncStopSearch": "Pause",
+  "nearbySyncNoDevices": "No nearby hosts found yet. Ask the other device to start hosting.",
+  "nearbySyncManualJoin": "Join manually (IP + code)",
+  "nearbySyncJoinManual": "Join with IP",
+  "privacyPolicy": "Privacy policy",
+  "termsOfService": "Terms of service",
+  "impressum": "Legal notice",
+  "legalSection": "Legal",
+  "openLicenses": "Open-source licenses",
+  "appVersion": "Version {version} ({build})",
+  "@appVersion": {
+    "placeholders": {
+      "version": { "type": "String" },
+      "build": { "type": "String" }
+    }
+  },
+  "flashcardAgain": "Again",
+  "flashcardHard": "Hard",
+  "flashcardGood": "Good",
+  "flashcardEasy": "Easy",
+  "flashcardStudy": "Study due cards",
+  "flashcardBrowse": "Browse deck",
+  "flashcardSessionDone": "You're caught up for now",
+  "flashcardReviewedCount": "{count} cards reviewed",
+  "@flashcardReviewedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "flashcardStudyAll": "Study all cards",
+  "flashcardDueProgress": "{current} / {remaining} left · {due} due today",
+  "@flashcardDueProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "remaining": { "type": "int" },
+      "due": { "type": "int" }
+    }
+  },
+  "flashcardFlipToRate": "Flip the card to rate how well you knew it",
+  "importIntoNotebook": "Import into notebook",
+  "importPickNotebookHint": "Choose where the shared file should be added as new page(s).",
+  "importCreateNotebook": "Create new notebook",
+  "importNewNotebookTitle": "Imported",
+  "importAddFiles": "Add files",
+  "importAddFilesHint": "Pick PDF, images, Office, GoodNotes, or ZIP files",
+  "importNoFilesYet": "No files ready to import",
+  "importExistingNotebooks": "Existing notebooks",
+  "importingFiles": "Importing…",
+  "importAnyFile": "Import file",
+  "exportPageAsImage": "Export page as image",
+  "exportPdfForGoodNotes": "PDF for GoodNotes",
+  "exportPdfForGoodNotesHint": "Import this PDF in GoodNotes",
+  "backupSection": "Backup & restore",
+  "backupSectionHint": "Export a ZIP of notebooks, pages, flashcards, grades, and timetable — or restore from a previous backup.",
+  "backupExport": "Export backup ZIP",
+  "backupExportHint": "Share or save a full backup",
+  "backupRestore": "Restore from ZIP",
+  "backupRestoreHint": "Merge into or replace local data",
+  "backupRestoreMergeQuestion": "Merge into existing data, or replace notebooks and decks?",
+  "backupMerge": "Merge",
+  "backupReplace": "Replace",
+  "backupRestored": "Restored {count} notebooks",
+  "@backupRestored": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "noteToFlashcard": "Make flashcard",
+  "flashcardCreated": "Flashcard saved",
+  "pomodoroFocus": "Focus",
+  "pomodoroBreak": "Break",
+  "pomodoroStart": "Start timer",
+  "pomodoroPause": "Pause timer",
+  "pomodoroReset": "Reset timer",
+  "notebookSubject": "Subject",
+  "notebookSubjectHint": "Links to timetable & grades",
+  "openLinkedNotebook": "Open notebook",
+  "createNotebookForSubjectHint": "No notebook is linked to this subject yet. Create one?",
+  "csvExportFlashcards": "Export CSV",
+  "csvImportFlashcards": "Import CSV",
+  "csvExportGrades": "Export grades CSV",
+  "csvImportGrades": "Import grades CSV",
+  "csvImportedCards": "Imported {count} cards",
+  "@csvImportedCards": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "csvImportedGrades": "Imported {count} grades",
+  "@csvImportedGrades": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "start": "Start",
+  "name": "Name",
+  "homework": "Homework",
+  "share": "Share",
+  "roleWelcomeTitle": "How do you use BetterNotes?",
+  "roleWelcomeBody": "Choose your role. Students get the existing study workspace; teachers also get classroom and material tools.",
+  "roleStudent": "Student",
+  "roleTeacher": "Teacher",
+  "roleStudentHint": "Notebooks, timetable, grades, flashcards, and study mode.",
+  "roleTeacherHint": "Everything in the student workspace plus live classes, lesson planning, materials, and grade reports.",
+  "roleChooseStudent": "Start as student",
+  "roleChooseTeacher": "Start as teacher",
+  "roleCanChangeLater": "You can change the role later in Settings.",
+  "roleSection": "Role",
+  "roleSectionHint": "Your role controls which workspaces and options are shown.",
+  "teacherWorkspace": "Teacher workspace",
+  "teacherOverview": "Overview",
+  "teacherOverviewTitle": "Prepare and run lessons efficiently",
+  "teacherOverviewHint": "Live sessions, lesson calendar, materials, and audio explanations in one place.",
+  "teacherLiveClass": "Live class",
+  "teacherLiveClassHint": "Start a host-controlled session and manage writing, hands, focus, and progress.",
+  "teacherLessonJournal": "Lesson journal",
+  "teacherMaterials": "Materials",
+  "teacherGradeReport": "Grade report",
+  "teacherProfile": "Teacher profile",
+  "teacherAudio": "Audio explanations",
+  "teacherAudioHint": "Record explanations locally, transcribe them, and share selectively.",
+  "teacherTrainee": "Teacher trainee special",
+  "teacherTraineeHint": "Submit proof and request extended material access.",
+  "teacherSessionActive": "Session {code} is active",
+  "@teacherSessionActive": { "placeholders": { "code": { "type": "String" } } },
+  "teacherLessonCount": "{count} lesson plan entries",
+  "@teacherLessonCount": { "placeholders": { "count": { "type": "int" } } },
+  "teacherMaterialCount": "{count} materials in your library",
+  "@teacherMaterialCount": { "placeholders": { "count": { "type": "int" } } },
+  "teacherNewLesson": "New lesson",
+  "teacherStartSession": "Start session",
+  "teacherWhiteboardNotebook": "Whiteboard notebook",
+  "teacherAddParticipant": "Add participant",
+  "teacherNoActiveSession": "No active class session",
+  "teacherJoinCode": "Join code: {code}",
+  "@teacherJoinCode": { "placeholders": { "code": { "type": "String" } } },
+  "teacherEndSession": "End session",
+  "teacherParticipants": "Participants",
+  "teacherAverageProgress": "Average progress",
+  "teacherFocusCheck": "Focus check",
+  "teacherFocusCheckPrivacy": "Only reports whether BetterNotes is in the foreground during the session — never other apps or their content.",
+  "teacherWaitingParticipants": "Waiting for participants on the local network. You can add participants manually for testing.",
+  "teacherFocused": "Active in BetterNotes",
+  "teacherLeftApp": "Left BetterNotes",
+  "teacherAllowWriting": "Toggle writing permission",
+  "teacherMute": "Toggle mute",
+  "teacherAddLesson": "Add lesson",
+  "teacherNoLessons": "No lessons in the sequence yet.",
+  "teacherCancelAndShift": "Cancel + shift",
+  "teacherAddMaterial": "Add material",
+  "teacherDurationMinutes": "Work time (minutes)",
+  "teacherMaterialSearch": "Filter by subject, grade, or title",
+  "teacherHybridDistribution": "Hybrid cloud distribution",
+  "teacherHybridDistributionHint": "Local files remain local. With configured cloud storage, only a small download command is sent to students.",
+  "teacherNoMaterials": "No materials yet. Add PDF, Office, or image files.",
+  "teacherDistribute": "Distribute to class",
+  "teacherDistributionQueued": "Distribution queued. Cloud download commands require a configured backend.",
+  "teacherGradeReportHint": "Entered grades automatically produce a count, average, and distribution.",
+  "teacherGradedCount": "Graded work",
+  "teacherClassAverage": "Class average",
+  "teacherNoGrades": "No graded work available yet.",
+  "teacherVerificationNone": "Not requested",
+  "teacherVerificationPending": "Review pending",
+  "teacherVerificationVerified": "Verified",
+  "teacherVerificationRejected": "Proof rejected",
+  "teacherVerificationStatus": "Status",
+  "teacherSubmitProof": "Submit proof",
+  "teacherVerificationPrivacy": "Proof may only be uploaded after explicit consent and with a defined deletion period to a contracted review service. Currently only the local status is stored.",
+  "teacherMicrophonePermission": "Microphone access is required to record.",
+  "teacherNewExplanation": "New explanation",
+  "teacherSaveRecording": "Save recording",
+  "teacherTranscript": "Transcript",
+  "teacherTranscriptHint": "Paste or correct the transcript. Automatic AI transcription requires a configured privacy-compliant service.",
+  "teacherAudioPrivacy": "Recordings initially remain local on this device.",
+  "teacherStopRecording": "Stop recording",
+  "teacherStartRecording": "Record explanation",
+  "teacherRecordings": "Recordings",
+  "teacherNoRecordings": "No explanations recorded yet.",
+  "teacherTranscriptPending": "Transcript pending — tap to edit",
+  "teacherWaitingForWritePermission": "View only — teacher controls writing",
+  "teacherWritingAllowed": "You may write on the whiteboard",
+  "teacherWritingBlocked": "The teacher has disabled writing for you.",
+  "teacherSubmitOer": "Submit to the community as OER",
+  "teacherSubmitOerHint": "The item becomes public only after review.",
+  "teacherOerSubmitted": "Material submitted for review.",
+  "teacherOerSignInRequired": "Sign in to submit community material.",
+  "teacherOerUploadUnavailable": "The file could not be read for upload.",
+  "teacherStartClassBeforeDistribute": "Start a live class session first.",
+  "teacherDistributionSent": "Download command sent to the class.",
+  "teacherAllowFocusCheck": "Allow focus check",
+  "description": "Description",
+  "teacherLessonCalendar": "Calendar",
+  "teacherLessonCalendarHint": "Tap a day to record title, description, and attachments for each lesson from the timetable.",
+  "teacherNoSchoolDay": "There is no class in the timetable on this day.",
+  "teacherNoLessonsForDay": "No lessons are scheduled for this day.",
+  "teacherPeriod": "Period {n}",
+  "@teacherPeriod": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "teacherLessonAttachments": "Attachments",
+  "teacherAttachmentCount": "{count} attachments",
+  "@teacherAttachmentCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "teacherOpenWhiteboard": "Open board",
+  "teacherSaveLessonMaterials": "Save materials",
+  "teacherWhiteboardFinal": "Final whiteboard",
+  "teacherNoWhiteboardToSave": "No whiteboard available to save.",
+  "teacherSavedMaterialsLabel": "Materials {time}",
+  "@teacherSavedMaterialsLabel": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "teacherMaterialsSavedToLesson": "Materials attached to the current lesson.",
+  "notNow": "Not now",
+  "enable": "Enable",
+  "teacherSubjectOrRoomRequired": "Enter at least a subject or a room.",
+  "classroomAutoConnectTitle": "Connect automatically next time?",
+  "classroomAutoConnectBody": "BetterNotes can look for “{criteria}” during the next lesson. It connects only when the subject or room matches. The teacher verifies these criteria again during the handshake.",
+  "@classroomAutoConnectBody": {
+    "placeholders": {
+      "criteria": { "type": "String" }
+    }
+  },
+  "classroomAutoConnectSetting": "Automatically connect to class",
+  "classroomAutoConnectSettingHint": "Connects only when at least the saved subject or room matches the teacher session.",
+  "classroomAutoConnectMismatch": "Automatic connection rejected: neither subject nor room matches."
+}

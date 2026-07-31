@@ -1,0 +1,1053 @@
+{
+  "@@locale": "de",
+  "appTitle": "BetterNotes",
+  "newNotebook": "Neues Notizbuch",
+  "untitledNotebook": "Unbenanntes Notizbuch",
+  "title": "Titel",
+  "cover": "Cover",
+  "template": "Vorlage",
+  "blank": "Leer",
+  "lined": "Liniert",
+  "grid": "Kariert",
+  "cancel": "Abbrechen",
+  "create": "Erstellen",
+  "save": "Speichern",
+  "delete": "Löschen",
+  "rename": "Umbenennen",
+  "settings": "Einstellungen",
+  "searchNotebooks": "Notizbücher suchen",
+  "globalSearch": "Globale Suche",
+  "noNotebooksYet": "Noch keine Notizbücher",
+  "noNotebooksHint": "Erstelle eines und starte mit dem Stift.",
+  "deleteNotebookTitle": "Notizbuch löschen?",
+  "deleteNotebookBody": "\"{title}\" wird dauerhaft entfernt.",
+  "pageCount": "{count, plural, =1{1 Seite} other{{count} Seiten}}",
+  "outline": "Gliederung",
+  "outlineEmpty": "Kapitel und Unterkapitel für eine klare Struktur hinzufügen.",
+  "pages": "Seiten",
+  "addPage": "Seite hinzufügen",
+  "addSection": "Abschnitt hinzufügen",
+  "addSubchapter": "Unterkapitel hinzufügen",
+  "addParentChapter": "Übergeordnetes Kapitel",
+  "nameChapterHint": "Kapitel benennen…",
+  "nameSubchapterHint": "Unterkapitel benennen…",
+  "schoolClass": "Klasse",
+  "schoolClassHint": "In welcher Klasse bist du?",
+  "schoolClassNone": "Keine Angabe",
+  "schoolClassValue": "Klasse {n}",
+  "@schoolClassValue": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importFromPreviousClass": "Aus letzter Klasse übernehmen",
+  "importFromClass": "Aus Klasse {n} übernehmen",
+  "@importFromClass": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importChapterHint": "Tippe ein Kapitel an, um es zu übernehmen.",
+  "newSchoolYearNotebook": "Neues Notizbuch für dieses Schuljahr erstellen",
+  "importChaptersTitle": "Kapitel übernehmen",
+  "importChaptersBody": "Welche Kapitel aus „{title}“ sollen in Klasse {n} mitkommen?",
+  "@importChaptersBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importChaptersEmpty": "Im letzten Notizbuch gibt es noch keine Kapitel.",
+  "selectAll": "Alle",
+  "selectNone": "Keine",
+  "dismiss": "Ausblenden",
+  "tapToContinue": "Tippen zum Fortfahren",
+  "pen": "Stift",
+  "ballpointPen": "Kugelschreiber",
+  "pencil": "Bleistift",
+  "fountainPen": "Füller",
+  "pressureSensitivity": "Druck",
+  "marker": "Marker",
+  "textTool": "Text",
+  "eraser": "Radierer",
+  "lasso": "Lasso",
+  "addTextBox": "Textfeld hinzufügen",
+  "paperCreator": "Papier-Editor",
+  "undo": "Rückgängig",
+  "redo": "Wiederholen",
+  "deleteSelection": "Auswahl löschen",
+  "writing": "Schreiben",
+  "fingerPanZoom": "Nur Stift malt (Finger schiebt)",
+  "fingerPanZoomHint": "An: nur Stift malt, Finger schiebt.",
+  "defaultTemplate": "Standardvorlage",
+  "language": "Sprache",
+  "german": "Deutsch",
+  "english": "Englisch",
+  "systemLanguage": "System",
+  "sync": "Sync",
+  "syncUpToDate": "Aktuell",
+  "syncQueueEmpty": "Warteschlange leer · Offline-First Sync",
+  "syncPending": "{count} ausstehende Änderungen",
+  "flushSync": "Sync-Warteschlange leeren",
+  "about": "Über",
+  "aboutBody": "BetterNotes — Smart Text, Papier-Editor, Gliederung, globale Suche und Offline-First Sync.",
+  "searchHint": "Notizbücher, Text, Gliederung, Tags suchen…",
+  "searchEmpty": "Tippe, um in allen Notizen zu suchen.",
+  "crossLink": "Querverweis",
+  "linkToNotebook": "Mit Notizbuch verknüpfen",
+  "crossLinkCreated": "Querverweis erstellt",
+  "needAnotherNotebook": "Erstelle ein weiteres Notizbuch zum Verknüpfen.",
+  "importPdf": "PDF importieren",
+  "exportPdf": "PDF exportieren",
+  "pageOf": "Seite {current}/{total}",
+  "infiniteCanvas": "Endlose Leinwand",
+  "pageMode": "Seitenmodus",
+  "addTag": "Tag hinzufügen",
+  "add": "Hinzufügen",
+  "formatText": "Text formatieren",
+  "bold": "Fett",
+  "italic": "Kursiv",
+  "free": "Frei",
+  "close": "Schließen",
+  "apply": "Übernehmen",
+  "renameSection": "Abschnitt umbenennen",
+  "indent": "Einrücken",
+  "outdent": "Ausrücken",
+  "chapter": "Kapitel {n}",
+  "section": "Abschnitt",
+  "newText": "Neuer Text",
+  "style": "Stil",
+  "background": "Hintergrund",
+  "lineSpacing": "Linienabstand",
+  "gridSize": "Karogröße",
+  "leftMargin": "Linker Rand",
+  "topMargin": "Oberer Rand",
+  "myPaper": "Mein Papier",
+  "shapes": "Formen",
+  "ruler": "Lineal",
+  "compass": "Zirkel",
+  "rulerHint": "Ziehen für eine Gerade (rastet alle 15°)",
+  "compassHint": "Mittelpunkt → Radius ziehen",
+  "shapeLine": "Linie",
+  "shapeRect": "Rechteck",
+  "shapeEllipse": "Ellipse",
+  "shapeArrow": "Pfeil",
+  "insertImage": "Bild einfügen",
+  "readMode": "Lesemodus",
+  "editMode": "Bearbeiten",
+  "libraryHome": "Bibliothek",
+  "freeTextBox": "Freie Box",
+  "pageText": "SeitenText",
+  "newFolder": "Neuer Ordner",
+  "folder": "Ordner",
+  "folderName": "Ordnername",
+  "folders": "Ordner",
+  "notebooks": "Notizbücher",
+  "chapters": "Kapitel",
+  "entries": "Einträge",
+  "flashcards": "Karteikarten",
+  "newFlashcardDeck": "Neues Karteikarten-Set",
+  "untitledDeck": "Unbenanntes Set",
+  "newFlashcard": "Neue Karteikarte",
+  "flashcardFront": "Vorderseite",
+  "flashcardBack": "Rückseite",
+  "noFlashcardsYet": "Noch keine Karteikarten",
+  "tapToFlip": "Tippen zum Umdrehen",
+  "searchEverything": "Ordner, Notizbücher, Kapitel suchen…",
+  "shareExport": "Teilen & exportieren",
+  "printPdf": "Drucken / PDF-Vorschau",
+  "printPdfHint": "System-Druckdialog öffnen",
+  "sharePdf": "Notizbuch als PDF teilen",
+  "sharePdfHint": "Gesamtes Notizbuch",
+  "shareCurrentPage": "Aktuelle Seite teilen",
+  "shareCurrentPageHint": "Nur diese Seite als PDF",
+  "documentType": "Dokumenttyp",
+  "paperSize": "Papierformat",
+  "pageOrientation": "Ausrichtung",
+  "portrait": "Hochformat",
+  "landscape": "Querformat",
+  "paperLetter": "Brief (Letter)",
+  "paperLegal": "Legal",
+  "paperTabloid": "Tabloid",
+  "newPagesOnlyHint": "Gilt nur für neu hinzugefügte Seiten.",
+  "choosePastEvent": "Vergangenen Termin auswählen",
+  "repeatEvent": "Termin wiederholen",
+  "repeatFrequency": "Wiederholung",
+  "repeatDaily": "Täglich",
+  "repeatWeekly": "Wöchentlich",
+  "repeatMonthly": "Monatlich",
+  "repeatUntil": "Wiederholen bis",
+  "repeatInterval": "Intervall",
+  "repeatEvery": "Alle {count}",
+  "@repeatEvery": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "weekdayMon": "Mo",
+  "weekdayTue": "Di",
+  "weekdayWed": "Mi",
+  "weekdayThu": "Do",
+  "weekdayFri": "Fr",
+  "weekdaySat": "Sa",
+  "weekdaySun": "So",
+  "importedPageTemplateTitle": "Importierte Vorlage",
+  "importedPageTemplateBody": "Die vorherige Seite nutzt ein Bild oder PDF als Hintergrund. Welche Vorlage soll die neue Seite verwenden?",
+  "keepCurrentTemplate": "Aktuelle Vorlage behalten",
+  "useNotebookDefault": "Notizbuch-Standard verwenden",
+  "documentTypeFixedHint": "Wird beim Anlegen festgelegt und bleibt so",
+  "infiniteDocument": "Unendliches Dokument",
+  "infiniteDocumentHint": "Eine große Leinwand mit freiem Zoom. Nur der sichtbare Bereich wird gezeichnet.",
+  "eraserStroke": "Strich",
+  "eraserSection": "Abschnitt",
+  "eraserPrecise": "Genau",
+  "editWidth": "Strichstärke anpassen",
+  "editWidthHint": "Tippen: wählen · Halten: anpassen",
+  "addColor": "Farbe hinzufügen",
+  "removeColor": "Farbe entfernen",
+  "hue": "Farbton",
+  "saturation": "Sättigung",
+  "brightness": "Helligkeit",
+  "colorPickerTitle": "Farbe wählen",
+  "opacity": "Deckkraft",
+  "recentColors": "Zuletzt genutzt",
+  "presetColors": "Vorschläge",
+  "customColor": "Eigene Farbe",
+  "editColorHint": "Tippen: wählen · Halten: bearbeiten",
+  "appearance": "Aussehen",
+  "appearanceHint": "Look und Hell-/Dunkelmodus der App",
+  "lookStudio": "Studio",
+  "lookStudioHint": "Graphit mit Indigo-Akzent",
+  "lookPaper": "Papier",
+  "lookPaperHint": "Creme, Tiefgrün, Serifen",
+  "lookFresh": "Frisch",
+  "lookFreshHint": "Weiß, Türkis, viel Luft",
+  "lookMono": "Monochrom",
+  "lookMonoHint": "Schwarz-Weiß, reduziert",
+  "themeModeSystem": "System",
+  "themeModeLight": "Hell",
+  "themeModeDark": "Dunkel",
+  "moreOptions": "Weitere Optionen",
+  "menuPageGroup": "Seite",
+  "menuViewGroup": "Ansicht",
+  "menuDocumentGroup": "Dokument",
+  "menuPaperGroup": "Papier dieser Seite",
+  "paperPresets": "Vorlagen",
+  "paperPresetsHint": "Tipp zum Übernehmen · Eigene Vorlagen lange drücken zum Löschen",
+  "paperPreview": "Vorschau",
+  "paperColor": "Papierfarbe",
+  "lineColor": "Linienfarbe",
+  "applyPaper": "Auf Seite anwenden",
+  "resetDefaults": "Zurücksetzen",
+  "blankPaperHint": "Leeres Papier — nur Farbe und Name anpassen.",
+  "editingBuiltinHint": "Builtin-Vorlage als Vorlage — Speichern legt eine eigene Kopie an.",
+  "collegeRuled": "College",
+  "narrowRuled": "Eng liniert",
+  "dotGrid": "Feines Raster",
+  "pageBrowseMode": "Seiten blättern",
+  "pageBrowseModeHint": "Wischen: Seite für Seite links/rechts. Scrollen: alle Seiten untereinander.",
+  "browseSwipe": "Wischen",
+  "browseScroll": "Durchscrollen",
+  "savePageAsTemplate": "Seite als Vorlage",
+  "savePageAsTemplateHint": "Eigenes Seitendesign speichern — mit oder ohne Linien.",
+  "lineLayout": "Linien",
+  "noLines": "Keine",
+  "fromPage": "Von Seite",
+  "customLines": "Eigene",
+  "customLinesHint": "Tippen setzt/entfernt Linien. Links tippen setzt den Rand.",
+  "fillRuled": "Liniert füllen",
+  "clearLines": "Linien löschen",
+  "templateSaved": "Vorlage gespeichert",
+  "timetable": "Stundenplan",
+  "timetableHint": "Tippe eine Zelle zum Eintragen. Zeiten links tippen (Scroll-Räder). Blöcke können ganz oder geteilt sein. Fächer mit Ordnern verknüpfen.",
+  "timetableEmptyToday": "Noch nichts für heute — tippen zum Eintragen",
+  "timetableTodayPreview": "Heute: {preview}",
+  "@timetableTodayPreview": {
+    "placeholders": {
+      "preview": {"type": "String"}
+    }
+  },
+  "subject": "Fach",
+  "subjectHint": "z. B. Englisch",
+  "room": "Raum",
+  "roomHint": "z. B. R204",
+  "color": "Farbe",
+  "clear": "Leeren",
+  "editPeriod": "Stunde anpassen",
+  "periodLabel": "Bezeichnung",
+  "periodStart": "Beginn",
+  "periodEnd": "Ende",
+  "addPeriod": "Stunde hinzufügen",
+  "removePeriod": "Letzte Stunde entfernen",
+  "mondayShort": "Mo",
+  "tuesdayShort": "Di",
+  "wednesdayShort": "Mi",
+  "thursdayShort": "Do",
+  "fridayShort": "Fr",
+  "lastSync": "Zuletzt synchronisiert: {time}",
+  "@lastSync": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "blockMode": "Block",
+  "fullBlock": "Ganzer Block",
+  "splitBlock": "Geteilt",
+  "fullBlockHint": "Ein Fach für den gesamten Block ({minutes} Min).",
+  "@fullBlockHint": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "splitBlockHint": "Geteilt: {first} · dann {second}",
+  "@splitBlockHint": {
+    "placeholders": {
+      "first": {"type": "String"},
+      "second": {"type": "String"}
+    }
+  },
+  "firstHalf": "1. Hälfte",
+  "secondHalf": "2. Hälfte",
+  "linkFolder": "Mit Ordner verknüpfen",
+  "noFolderLink": "Kein Ordner",
+  "blockDuration": "{minutes} Minuten",
+  "@blockDuration": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "nowOn": "Jetzt dran",
+  "nowLesson": "Jetzt: {subject} ({when})",
+  "@nowLesson": {
+    "placeholders": {
+      "subject": {"type": "String"},
+      "when": {"type": "String"}
+    }
+  },
+  "nowLessonShort": "Jetzt: {subject}",
+  "@nowLessonShort": {
+    "placeholders": {
+      "subject": {"type": "String"}
+    }
+  },
+  "newInfiniteDocument": "Endloses Dokument",
+  "untitledInfinite": "Endlose Leinwand",
+  "pageModeHint": "Klassische Seiten zum Blättern",
+  "infiniteDocumentShortHint": "Riesige Fläche, extrem rein- und rauszoomen",
+  "markFavorite": "Als Favorit markieren",
+  "editFolder": "Ordner bearbeiten",
+  "deleteFolderTitle": "Ordner löschen?",
+  "deleteFolderBody": "\"{name}\" wird entfernt. Enthaltene Notizbücher bleiben erhalten und landen im Hauptordner.",
+  "@deleteFolderBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "folderActions": "Ordner",
+  "folderIcon": "Symbol",
+  "newFolderHint": "Farbe und Symbol wählen",
+  "newNotebookHint": "Seitennotizbuch mit Cover und Vorlage",
+  "newDeckHint": "Karteikarten mit eigener Farbe",
+  "planner": "Noten & Kalender",
+  "plannerEmptyHint": "Termine und Noten eintragen",
+  "calendar": "Kalender",
+  "grades": "Noten",
+  "addAppointment": "Termin",
+  "editAppointment": "Termin bearbeiten",
+  "addGrade": "Note",
+  "editGrade": "Note bearbeiten",
+  "appointmentsOnDay": "Termine am {day}",
+  "@appointmentsOnDay": {
+    "placeholders": {
+      "day": {"type": "String"}
+    }
+  },
+  "noAppointmentsYet": "Noch keine Termine an diesem Tag.",
+  "noGradesYet": "Noch keine Noten — Fach wählen und eintragen.",
+  "gradeAverage": "Schnitt (gewichtet)",
+  "gradeAverageShort": "Schnitt {value}",
+  "@gradeAverageShort": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "gradeTitle": "Bezeichnung",
+  "gradeTitleHint": "z. B. Klassenarbeit 2",
+  "gradeValue": "Note / Wert",
+  "gradeWeight": "Gewicht",
+  "scaleGerman": "1–6",
+  "scalePercent": "%",
+  "scalePoints": "Punkte",
+  "kindAppointment": "Termin",
+  "kindExam": "Klausur",
+  "kindHomework": "Hausaufgabe",
+  "startsAt": "Beginn",
+  "endsAt": "Ende",
+  "optional": "Optional",
+  "noteOptional": "Notiz (optional)",
+  "saturdayShort": "Sa",
+  "sundayShort": "So",
+  "shareAppointment": "Termin weiterleiten",
+  "shareAppointmentHint": "Text kopieren und z. B. in Chat oder Mail einfügen. ICS für Kalender-Apps.",
+  "copyForForward": "Text kopieren",
+  "copiedForForward": "Kopiert — bereit zum Weiterleiten",
+  "copyIcs": "Als Kalender (.ics) kopieren",
+  "icsCopied": "ICS-Text kopiert",
+  "schoolSection": "Schule & Studium",
+  "educationLevel": "Bildungsstufe",
+  "educationLevelHint": "Notenskala und Begriffe.",
+  "eduSek1": "Sek I",
+  "eduSek2": "Sek II",
+  "eduUniversity": "Studium",
+  "eduScaleGradesHint": "Rechnung in Noten (1–6).",
+  "eduScalePointsHint": "Rechnung in Punkten.",
+  "eduScaleSek1Hint": "Noten 1–6 · Halbjahre · schriftlich/mündlich gewichtet.",
+  "eduScaleSek2Hint": "0–15 Punkte · Q1–Q4 + Abitur · Prognose auf 900 Punkte.",
+  "eduScaleUniHint": "Noten 1,0–5,0 · ECTS-gewichteter Schnitt.",
+  "gradeKindWritten": "Schriftlich",
+  "gradeKindOral": "Mündlich",
+  "gradeKindOtherParticipation": "Sonstige Mitarbeit",
+  "gradeKindKlassenarbeit": "Klassenarbeit",
+  "periodH1": "1. Halbjahr",
+  "periodH2": "2. Halbjahr",
+  "periodQ1": "Q1",
+  "periodQ2": "Q2",
+  "periodQ3": "Q3",
+  "periodQ4": "Q4",
+  "periodAbiExam": "Abitur",
+  "periodSemester": "Semester",
+  "abiPrognosisTitle": "Abitur-Prognose",
+  "abiProjectedPoints": "Hochrechnung: {points} / 900",
+  "@abiProjectedPoints": {
+    "placeholders": { "points": {"type": "String"} }
+  },
+  "abiProjectedNote": "Voraussichtliche Note: {note}",
+  "@abiProjectedNote": {
+    "placeholders": { "note": {"type": "String"} }
+  },
+  "abiMinPassProgress": "Mindestpunkte: {have} / {need}",
+  "@abiMinPassProgress": {
+    "placeholders": {
+      "have": {"type": "String"},
+      "need": {"type": "String"}
+    }
+  },
+  "abiBlockProgress": "Nach {blocks}/5 Blöcken · Ø {avg} Punkte",
+  "@abiBlockProgress": {
+    "placeholders": {
+      "blocks": {"type": "int"},
+      "avg": {"type": "String"}
+    }
+  },
+  "uniPrognosisTitle": "Studienfortschritt",
+  "uniGpa": "ECTS-Schnitt: {gpa}",
+  "@uniGpa": {
+    "placeholders": { "gpa": {"type": "String"} }
+  },
+  "uniEctsProgress": "{have} / {need} ECTS",
+  "@uniEctsProgress": {
+    "placeholders": {
+      "have": {"type": "String"},
+      "need": {"type": "String"}
+    }
+  },
+  "ectsLabel": "ECTS",
+  "semesterLabelField": "Semester (z. B. WiSe 25/26)",
+  "markAbiSubject": "Abiturfach (für Prüfungs-Prognose)",
+  "targetEcts": "Ziel-ECTS",
+  "targetEctsHint": "Benötigte Credit Points für den Abschluss.",
+  "abiProjectionSettings": "Abitur-Hochrechnung",
+  "abiProjectionHint": "Anzahl Kurse (Block I) und Prüfungen (Block II).",
+  "abiCourseCount": "Kurse in Block I",
+  "abiExams4": "4 Prüfungen",
+  "abiExams5": "5 Prüfungen",
+  "roundedPoints": "Gerundet: {points} P",
+  "@roundedPoints": {
+    "placeholders": { "points": {"type": "String"} }
+  },
+  "gradeValueUni": "Note (1,0–5,0)",
+  "gradeValuePoints15": "Punkte (0–15)",
+  "gradeTendency": "Tendenz",
+  "gradeTendencyNone": "ohne",
+  "selectedGrade": "Auswahl: {grade}",
+  "@selectedGrade": {
+    "placeholders": { "grade": {"type": "String"} }
+  },
+  "archivedGradesTitle": "Andere Stufen (Archiv)",
+  "archivedGradesHint": "Noten aus Sek I / Sek II / Studium bleiben erhalten — hier nur abgelegt.",
+  "editingArchivedGrade": "Archiv-Note ({level})",
+  "@editingArchivedGrade": {
+    "placeholders": { "level": {"type": "String"} }
+  },
+  "scanAttachment": "Arbeit einscannen",
+  "scanAttachmentHint": "Foto oder Scan von Test, Klassenarbeit, Klausur … an die Note hängen.",
+  "scanAdd": "Scan hinzufügen",
+  "scanWithCamera": "Kamera",
+  "scanFromGallery": "Galerie / Datei",
+  "scanPage": "Scan {n}",
+  "@scanPage": {
+    "placeholders": { "n": {"type": "int"} }
+  },
+  "scanCount": "{count} Scans",
+  "@scanCount": {
+    "placeholders": { "count": {"type": "int"} }
+  },
+  "gradesSectionsHint": "Noten bleiben beim Stufenwechsel erhalten.",
+  "schoolYear": "Schuljahr",
+  "previousSchoolYear": "Vorheriges Jahr",
+  "nextSchoolYear": "Nächstes Jahr",
+  "gradesEmptyYear": "Noch keine Noten in {year}.",
+  "@gradesEmptyYear": {
+    "placeholders": {
+      "year": {"type": "String"}
+    }
+  },
+  "gradeDetails": "Note",
+  "viewMode": "Ansehen",
+  "noScansAttached": "Kein Scan hinterlegt.",
+  "semesterShort": "Semester",
+  "federalState": "Bundesland",
+  "federalStateHint": "Für die Anzeige der Schulferien im Kalender.",
+  "stateBw": "Baden-Württemberg",
+  "stateBy": "Bayern",
+  "stateBe": "Berlin",
+  "stateBb": "Brandenburg",
+  "stateHb": "Bremen",
+  "stateHh": "Hamburg",
+  "stateHe": "Hessen",
+  "stateMv": "Mecklenburg-Vorpommern",
+  "stateNi": "Niedersachsen",
+  "stateNw": "Nordrhein-Westfalen",
+  "stateRp": "Rheinland-Pfalz",
+  "stateSl": "Saarland",
+  "stateSn": "Sachsen",
+  "stateSt": "Sachsen-Anhalt",
+  "stateSh": "Schleswig-Holstein",
+  "stateTh": "Thüringen",
+  "holidayAutumn": "Herbstferien",
+  "holidayChristmas": "Weihnachtsferien",
+  "holidayWinter": "Winterferien",
+  "holidayEaster": "Osterferien",
+  "holidayPentecost": "Pfingstferien",
+  "holidaySummer": "Sommerferien",
+  "holidaysForState": "Ferien: {state}",
+  "@holidaysForState": {
+    "placeholders": {
+      "state": {"type": "String"}
+    }
+  },
+  "holidayBanner": "Ferien: {name}",
+  "@holidayBanner": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "gradeKindKlassenarbeit": "Klassenarbeit",
+  "gradeKindKlausur": "Klausur",
+  "gradeKindTest": "Test",
+  "gradeKindUniExam": "Klausur",
+  "gradeKindHomework": "Hausarbeit",
+  "subjectFromTimetableDay": "Fach aus dem Stundenplan (dieser Wochentag)",
+  "subjectFromTimetableWeekend": "Wochenende — kein Stundenplan-Tag",
+  "noSubjectsThatDay": "An diesem Tag stehen keine Fächer im Stundenplan.",
+  "gradesNeedTimetable": "Trage zuerst Fächer im Stundenplan ein.",
+  "weightForSubject": "Gewichtung: {subject}",
+  "@weightForSubject": {
+    "placeholders": {
+      "subject": {"type": "String"}
+    }
+  },
+  "weightHint": "{major} und {minor} einmal festlegen — wie in Notan.",
+  "@weightHint": {
+    "placeholders": {
+      "major": {"type": "String"},
+      "minor": {"type": "String"}
+    }
+  },
+  "weightSummary": "{major} {majorPct}% · {minor} {minorPct}%",
+  "@weightSummary": {
+    "placeholders": {
+      "major": {"type": "String"},
+      "majorPct": {"type": "int"},
+      "minor": {"type": "String"},
+      "minorPct": {"type": "int"}
+    }
+  },
+  "setWeight": "Gewichtung",
+  "gradeCount": "{count} Noten",
+  "@gradeCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "gradeValuePoints": "Punkte",
+  "sectionGeneral": "Allgemein",
+  "sectionSubscription": "Abo & Coins",
+  "sectionSupport": "Unterstützung",
+  "sectionSyncPreview": "Sync (Vorschau)",
+  "localTierHint": "Lokal zum Testen — keine echten Käufe.",
+  "tierFree": "Free",
+  "tierPro": "Pro",
+  "tierProPlus": "Pro+",
+  "tierTeacher": "Lehrer",
+  "coinsBalance": "{count} Coins",
+  "@coinsBalance": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "watchAdForCoins": "Werbung ansehen",
+  "watchRewardedAd": "Kurzes Video ansehen",
+  "rewardedAdDemoBadge": "Demo — kein echtes Werbevideo",
+  "rewardedAdTitle": "Belohnung freischalten",
+  "rewardedAdCoinsBody": "Nach dem Demo-Schritt erhältst du {count} Coins.",
+  "@rewardedAdCoinsBody": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "rewardedAdFeatureBody": "Nach dem Demo-Schritt wird dieses Feature freigeschaltet.",
+  "adPrivacyOptions": "Werbe-Einstellungen",
+  "adPrivacyOptionsHint": "Einwilligung für personalisierte Werbung ändern",
+  "rewardedAdLoading": "Werbung wird geladen …",
+  "rewardedAdNotFinished": "Video nicht vollständig angesehen — keine Belohnung.",
+  "featureUnlocked": "Feature freigeschaltet",
+  "collaborationSignInRequired": "Melde dich an für Cloud-Zusammenarbeit.",
+  "collaborationUpgradeRequired": "Für Cloud-Zusammenarbeit benötigst du einen passenden Plan.",
+  "collabLocalTitle": "In der Nähe (ohne Konto)",
+  "collabLocalBody": "Teile dieses Notizbuch über WLAN oder Hotspot. Funktioniert komplett offline — keine Anmeldung nötig.",
+  "collabCloudTitle": "Cloud-Zusammenarbeit",
+  "collabCloudBody": "Lade jemanden per Firebase-UID ein. Die Rolle steuert, ob bearbeitet oder nur gelesen werden darf.",
+  "collabMemberUid": "Firebase-UID",
+  "collabRole": "Rolle",
+  "collabSaveInvite": "Einladung speichern",
+  "collabMembers": "Mitglieder",
+  "collabStartLive": "Live-Session starten",
+  "collabLiveStarted": "Live-Session gestartet: {id}",
+  "@collabLiveStarted": {
+    "placeholders": {
+      "id": { "type": "String" }
+    }
+  },
+  "collabComments": "Kommentare",
+  "collabLeaveComment": "Kommentar hinterlassen",
+  "signIn": "Anmelden",
+  "coinsEarned": "+{count} Coins",
+  "@coinsEarned": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "notEnoughCoins": "Nicht genug Coins",
+  "unlockWithCoins": "Mit {count} Coins freischalten",
+  "@unlockWithCoins": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "featureAvailable": "Freigeschaltet",
+  "featurePremiumPaper": "Premium-Papier",
+  "featurePremiumCover": "Premium-Cover",
+  "featureAudioTranscription": "Audio-Transkription",
+  "featurePdfCompress": "PDF komprimieren",
+  "featureHandwritingOcr": "Handschrift-OCR",
+  "featureNoForcedAds": "Keine Zwangswerbung",
+  "featureSessionCollab": "Session-Zusammenarbeit",
+  "featureAsyncCollab": "Cloud-Zusammenarbeit",
+  "featureWhiteboard": "Lehrer-Whiteboard",
+  "supportBody": "BetterNotes bleibt lokal nutzbar. Mit einem Kaffee hilfst du bei Serverkosten späterer Features.",
+  "supportBuyCoffee": "Kaffee ausgeben",
+  "supportLinkCopied": "Unterstützungs-Link kopiert",
+  "serverCostsLabel": "Serverkosten (Platzhalter): {euro} € / Monat",
+  "@serverCostsLabel": {
+    "placeholders": {
+      "euro": {"type": "int"}
+    }
+  },
+  "serverCostsCovered": "Bisher gedeckt: {euro} €",
+  "@serverCostsCovered": {
+    "placeholders": {
+      "euro": {"type": "int"}
+    }
+  },
+  "syncPreviewHint": "Vorschau — echte Cloud-Sync kommt später.",
+  "upcomingNext": "Als Nächstes",
+  "createGradeFromExam": "Note dazu anlegen?",
+  "createGradeFromExamBody": "Klausur/Test speichern und gleich eine Note mit Fach und Datum vorbereiten.",
+  "deviceCalendarComingSoon": "Geräte-Kalender-Sync kommt später.",
+  "sectionNotebooks": "Notizbücher",
+  "exportExtras": "Export-Extras",
+  "comingSoonGate": "Kommt später — jetzt lokal freischaltbar",
+  "firebaseSetupRequired": "Firebase ist noch nicht eingerichtet. Lokale Daten bleiben verfügbar.",
+  "cloudAccount": "Cloud-Konto",
+  "signedInAs": "Angemeldet als {name}",
+  "@signedInAs": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "signInGoogle": "Mit Google anmelden",
+  "signInApple": "Mit Apple anmelden",
+  "signOut": "Abmelden",
+  "cloudSyncOffline": "Offline-first: Ohne Anmeldung bleiben Daten nur auf diesem Gerät.",
+  "cloudSyncError": "Anmeldung fehlgeschlagen: {message}",
+  "@cloudSyncError": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+  "developerTools": "Entwicklungswerkzeuge",
+  "developerTierHint": "Nur für lokale Tests – ersetzt keinen Store-Kauf.",
+  "editSupportDetails": "Unterstützungsdaten bearbeiten",
+  "supportUrl": "Unterstützungs-Link",
+  "serverCosts": "Serverkosten pro Monat",
+  "amountCovered": "Bisher gedeckt",
+  "syncStatusIdle": "Bereit",
+  "syncStatusUpToDate": "Aktuell",
+  "syncStatusSyncing": "Wird synchronisiert",
+  "syncStatusSynced": "Synchronisiert",
+  "syncStatusFirebaseNotConfigured": "Firebase nicht eingerichtet",
+  "syncStatusAuthenticationRequired": "Anmeldung erforderlich",
+  "syncStatusPreparingCloud": "Cloud-Daten werden vorbereitet",
+  "syncStatusPaused": "Synchronisierung pausiert",
+  "lockPage": "Seite sperren",
+  "unlockPage": "Seite entsperren",
+  "pageLocked": "Seite gesperrt",
+  "presentView": "Präsentieren",
+  "exitPresentView": "Präsentation beenden",
+  "exitPresentViewHint": "Doppeltippen beendet die Präsentation",
+  "dragToAddPage": "Ziehen, um Seite hinzuzufügen",
+  "zoomIn": "Vergrößern",
+  "zoomOut": "Verkleinern",
+  "fitPage": "Seite einpassen",
+  "deselectTool": "Werkzeug abwählen",
+  "pageSidebar": "Seitenübersicht",
+  "duplicatePage": "Seite duplizieren",
+  "deletePage": "Seite löschen",
+  "lastPageHint": "Ein Notizbuch benötigt mindestens eine Seite.",
+  "collaborate": "Zusammenarbeiten",
+  "scrollDirection": "Scrollrichtung",
+  "bold": "Fett",
+  "italic": "Kursiv",
+  "underline": "Unterstrichen",
+  "strikethrough": "Durchgestrichen",
+  "increaseFontSize": "Schrift größer",
+  "decreaseFontSize": "Schrift kleiner",
+  "alignLeft": "Linksbündig",
+  "alignCenter": "Zentriert",
+  "alignRight": "Rechtsbündig",
+  "alignJustify": "Blocksatz",
+  "deleteTextBlock": "Textfeld löschen",
+  "moveTextBlock": "Textfeld verschieben",
+  "studyMode": "Lernen",
+  "studyModeHint": "Tinte ausgeblendet — doppeltippen oder „Tinte zeigen“",
+  "exitStudyMode": "Lernmodus beenden",
+  "revealInk": "Tinte zeigen",
+  "hideInk": "Tinte verstecken",
+  "saveSnapshot": "Snapshot speichern",
+  "restoreSnapshot": "Snapshot wiederherstellen",
+  "snapshotSaved": "Snapshot gespeichert",
+  "snapshotRestored": "Snapshot wiederhergestellt",
+  "noSnapshotsYet": "Noch keine Snapshots für diese Seite",
+  "snapshotLabel": "Version {time}",
+  "@snapshotLabel": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "deleteSnapshot": "Snapshot löschen",
+  "confirmRestoreSnapshot": "Diesen Snapshot wiederherstellen? Der aktuelle Seiteninhalt wird ersetzt.",
+  "nearbySyncTitle": "Nahe Sync",
+  "nearbySyncIntro": "Teile dieses Notizbuch über dasselbe WLAN oder einen Hotspot. Beim ersten Mal wird das ganze Notizbuch übertragen, danach nur noch Änderungen — ohne Internet.",
+  "nearbySyncDeviceName": "Gerätename",
+  "nearbySyncHostSection": "Dieses Notizbuch hosten",
+  "nearbySyncHostHint": "Starte die Session und gib dem anderen Gerät deine IP-Adresse und den Code. Beide müssen im selben Netz oder Hotspot sein.",
+  "nearbySyncStartHost": "Nahe-Session starten",
+  "nearbySyncJoinSection": "Session beitreten",
+  "nearbySyncJoinHint": "IP des Hosts und den 6-stelligen Code vom anderen Gerät eingeben.",
+  "nearbySyncHostAddress": "Host-IP-Adresse",
+  "nearbySyncCode": "Session-Code",
+  "nearbySyncJoin": "Beitreten",
+  "nearbySyncStop": "Session beenden",
+  "nearbySyncCopy": "Kopieren",
+  "nearbySyncCopied": "Kopiert",
+  "nearbySyncPort": "Port {port}",
+  "@nearbySyncPort": {
+    "placeholders": {
+      "port": { "type": "int" }
+    }
+  },
+  "nearbySyncNoAddress": "Noch keine lokale IP gefunden. Mit WLAN verbinden oder Hotspot starten, dann diesen Bildschirm erneut öffnen.",
+  "nearbySyncStatusIdle": "Keine Nahe-Session",
+  "nearbySyncStatusHosting": "Warte auf Geräte…",
+  "nearbySyncStatusConnecting": "Verbinden…",
+  "nearbySyncStatusSyncing": "Notizbuch wird übertragen…",
+  "nearbySyncStatusConnected": "Nahe Sync aktiv",
+  "nearbySyncStatusError": "Nahe-Sync-Fehler",
+  "nearbySyncPeer": "Gerät: {name}",
+  "@nearbySyncPeer": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "nearbySyncPeers": "{count} verbunden",
+  "@nearbySyncPeers": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "nearbySyncSnapshotReceived": "Notizbuch empfangen — wird geöffnet…",
+  "nearbySyncWebUnsupported": "Nahe Sync braucht die Android- oder iOS-App.",
+  "nearbySyncDisconnected": "Das andere Gerät hat die Verbindung getrennt.",
+  "nearbySyncInvalidCode": "Falscher Session-Code.",
+  "nearbySyncError": "Nahe Sync fehlgeschlagen",
+  "nearbySyncBinaryNote": "PDF-Hintergründe und eingefügte Bilder werden mit dem Notizbuch übertragen. Beide Geräte müssen im selben WLAN oder Hotspot sein.",
+  "nearbySyncDiscoverHint": "Geräte mit laufender Session erscheinen automatisch. Tippe zum Beitreten.",
+  "nearbySyncSearching": "Suche im Netzwerk…",
+  "nearbySyncSearchStopped": "Suche pausiert",
+  "nearbySyncStartSearch": "Suchen",
+  "nearbySyncStopSearch": "Pause",
+  "nearbySyncNoDevices": "Noch keine Hosts gefunden. Das andere Gerät muss die Session starten.",
+  "nearbySyncManualJoin": "Manuell beitreten (IP + Code)",
+  "nearbySyncJoinManual": "Mit IP beitreten",
+  "privacyPolicy": "Datenschutzerklärung",
+  "termsOfService": "AGB",
+  "impressum": "Impressum",
+  "legalSection": "Rechtliches",
+  "openLicenses": "Open-Source-Lizenzen",
+  "appVersion": "Version {version} ({build})",
+  "@appVersion": {
+    "placeholders": {
+      "version": { "type": "String" },
+      "build": { "type": "String" }
+    }
+  },
+  "flashcardAgain": "Nochmal",
+  "flashcardHard": "Schwer",
+  "flashcardGood": "Gut",
+  "flashcardEasy": "Leicht",
+  "flashcardStudy": "Fällige lernen",
+  "flashcardBrowse": "Deck durchblättern",
+  "flashcardSessionDone": "Für heute bist du durch",
+  "flashcardReviewedCount": "{count} Karten wiederholt",
+  "@flashcardReviewedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "flashcardStudyAll": "Alle Karten lernen",
+  "flashcardDueProgress": "{current} / {remaining} übrig · {due} fällig",
+  "@flashcardDueProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "remaining": { "type": "int" },
+      "due": { "type": "int" }
+    }
+  },
+  "flashcardFlipToRate": "Karte umdrehen, um zu bewerten, wie gut du sie kanntest",
+  "importIntoNotebook": "In Notizbuch importieren",
+  "importPickNotebookHint": "Wähle, wohin die geteilte Datei als neue Seite(n) soll.",
+  "importCreateNotebook": "Neues Notizbuch",
+  "importNewNotebookTitle": "Import",
+  "importAddFiles": "Dateien hinzufügen",
+  "importAddFilesHint": "PDF, Bilder, Office, GoodNotes oder ZIP wählen",
+  "importNoFilesYet": "Noch keine Dateien zum Import",
+  "importExistingNotebooks": "Vorhandene Notizbücher",
+  "importingFiles": "Importiere…",
+  "importAnyFile": "Datei importieren",
+  "exportPageAsImage": "Seite als Bild",
+  "exportPdfForGoodNotes": "PDF für GoodNotes",
+  "exportPdfForGoodNotesHint": "Dieses PDF in GoodNotes importieren",
+  "backupSection": "Backup & Wiederherstellen",
+  "backupSectionHint": "ZIP mit Notizbüchern, Seiten, Karteikarten, Noten und Stundenplan exportieren — oder aus einem Backup wiederherstellen.",
+  "backupExport": "Backup-ZIP exportieren",
+  "backupExportHint": "Vollständiges Backup teilen oder speichern",
+  "backupRestore": "Aus ZIP wiederherstellen",
+  "backupRestoreHint": "Zusammenführen oder lokale Daten ersetzen",
+  "backupRestoreMergeQuestion": "In vorhandene Daten mergen oder Notizbücher und Decks ersetzen?",
+  "backupMerge": "Zusammenführen",
+  "backupReplace": "Ersetzen",
+  "backupRestored": "{count} Notizbücher wiederhergestellt",
+  "@backupRestored": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "noteToFlashcard": "Als Karteikarte",
+  "flashcardCreated": "Karteikarte gespeichert",
+  "pomodoroFocus": "Fokus",
+  "pomodoroBreak": "Pause",
+  "pomodoroStart": "Timer starten",
+  "pomodoroPause": "Timer pausieren",
+  "pomodoroReset": "Timer zurücksetzen",
+  "notebookSubject": "Fach",
+  "notebookSubjectHint": "Verknüpfung mit Stundenplan & Noten",
+  "openLinkedNotebook": "Notizbuch öffnen",
+  "createNotebookForSubjectHint": "Noch kein Notizbuch für dieses Fach. Eines anlegen?",
+  "csvExportFlashcards": "CSV exportieren",
+  "csvImportFlashcards": "CSV importieren",
+  "csvExportGrades": "Noten als CSV",
+  "csvImportGrades": "Noten aus CSV",
+  "csvImportedCards": "{count} Karten importiert",
+  "@csvImportedCards": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "csvImportedGrades": "{count} Noten importiert",
+  "@csvImportedGrades": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "start": "Starten",
+  "name": "Name",
+  "homework": "Hausaufgabe",
+  "share": "Teilen",
+  "roleWelcomeTitle": "Wie nutzt du BetterNotes?",
+  "roleWelcomeBody": "Wähle deine Rolle. Schüler erhalten den bisherigen Lernbereich, Lehrer zusätzlich Unterrichts- und Materialwerkzeuge.",
+  "roleStudent": "Schüler",
+  "roleTeacher": "Lehrer",
+  "roleStudentHint": "Notizbücher, Stundenplan, Noten, Karteikarten und Lernmodus.",
+  "roleTeacherHint": "Alles aus dem Schülerbereich plus Live-Unterricht, Reihenplanung, Materialien und Notenspiegel.",
+  "roleChooseStudent": "Als Schüler starten",
+  "roleChooseTeacher": "Als Lehrer starten",
+  "roleCanChangeLater": "Du kannst die Rolle später in den Einstellungen ändern.",
+  "roleSection": "Rolle",
+  "roleSectionHint": "Die Rolle bestimmt, welche Arbeitsbereiche und Optionen angezeigt werden.",
+  "teacherWorkspace": "Lehrerbereich",
+  "teacherOverview": "Übersicht",
+  "teacherOverviewTitle": "Unterricht effizient vorbereiten und steuern",
+  "teacherOverviewHint": "Live-Sessions, Stundenkalender, Materialien und Audio-Erklärungen an einem Ort.",
+  "teacherLiveClass": "Live-Unterricht",
+  "teacherLiveClassHint": "Starte eine host-gesteuerte Session und verwalte Schreibrechte, Hände, Fokus und Fortschritt.",
+  "teacherLessonJournal": "Stundentagebuch",
+  "teacherMaterials": "Materialien",
+  "teacherGradeReport": "Notenspiegel",
+  "teacherProfile": "Lehrerprofil",
+  "teacherAudio": "Audio-Erklärungen",
+  "teacherAudioHint": "Erklärungen lokal aufnehmen, transkribieren und gezielt teilen.",
+  "teacherTrainee": "Referendar-Special",
+  "teacherTraineeHint": "Nachweis einreichen und erweiterten Materialzugang beantragen.",
+  "teacherSessionActive": "Session {code} ist aktiv",
+  "@teacherSessionActive": { "placeholders": { "code": { "type": "String" } } },
+  "teacherLessonCount": "{count} Einträge im Reihenplan",
+  "@teacherLessonCount": { "placeholders": { "count": { "type": "int" } } },
+  "teacherMaterialCount": "{count} Materialien in deiner Bibliothek",
+  "@teacherMaterialCount": { "placeholders": { "count": { "type": "int" } } },
+  "teacherNewLesson": "Neue Unterrichtsstunde",
+  "teacherStartSession": "Session starten",
+  "teacherWhiteboardNotebook": "Tafel-Notizbuch",
+  "teacherAddParticipant": "Teilnehmer hinzufügen",
+  "teacherNoActiveSession": "Keine aktive Unterrichts-Session",
+  "teacherJoinCode": "Beitrittscode: {code}",
+  "@teacherJoinCode": { "placeholders": { "code": { "type": "String" } } },
+  "teacherEndSession": "Session beenden",
+  "teacherParticipants": "Teilnehmer",
+  "teacherAverageProgress": "Ø Fortschritt",
+  "teacherFocusCheck": "Fokus-Check",
+  "teacherFocusCheckPrivacy": "Zeigt nur an, ob BetterNotes während der Session im Vordergrund ist – keine fremden Apps oder Inhalte.",
+  "teacherWaitingParticipants": "Warte auf Teilnehmer im lokalen Netzwerk. Für Tests kannst du Teilnehmer manuell hinzufügen.",
+  "teacherFocused": "In BetterNotes aktiv",
+  "teacherLeftApp": "BetterNotes verlassen",
+  "teacherAllowWriting": "Schreibrecht umschalten",
+  "teacherMute": "Stummschaltung umschalten",
+  "teacherAddLesson": "Stunde hinzufügen",
+  "teacherNoLessons": "Noch keine Stunden im Reihenplan.",
+  "teacherCancelAndShift": "Ausfall + verschieben",
+  "teacherAddMaterial": "Material hinzufügen",
+  "teacherDurationMinutes": "Bearbeitungszeit (Minuten)",
+  "teacherMaterialSearch": "Nach Fach, Klasse oder Titel filtern",
+  "teacherHybridDistribution": "Hybrid Cloud-Distribution",
+  "teacherHybridDistributionHint": "Lokale Dateien bleiben lokal. Mit konfigurierter Cloud wird später nur ein kleiner Download-Befehl an Schüler gesendet.",
+  "teacherNoMaterials": "Noch keine Materialien. Füge PDF-, Office- oder Bilddateien hinzu.",
+  "teacherDistribute": "An Klasse verteilen",
+  "teacherDistributionQueued": "Verteilung vorgemerkt. Für Cloud-Downloadbefehle muss ein Backend konfiguriert sein.",
+  "teacherGradeReportHint": "Aus eingetragenen Noten werden Anzahl, Durchschnitt und Verteilung automatisch berechnet.",
+  "teacherGradedCount": "Bewertete Arbeiten",
+  "teacherClassAverage": "Klassendurchschnitt",
+  "teacherNoGrades": "Noch keine bewerteten Arbeiten vorhanden.",
+  "teacherVerificationNone": "Nicht beantragt",
+  "teacherVerificationPending": "Prüfung ausstehend",
+  "teacherVerificationVerified": "Verifiziert",
+  "teacherVerificationRejected": "Nachweis abgelehnt",
+  "teacherVerificationStatus": "Status",
+  "teacherSubmitProof": "Nachweis einreichen",
+  "teacherVerificationPrivacy": "Nachweise dürfen erst nach ausdrücklicher Einwilligung und mit definierter Löschfrist an einen vertraglich gebundenen Prüfservice übertragen werden. Aktuell wird nur der lokale Status gespeichert.",
+  "teacherMicrophonePermission": "Für die Aufnahme wird Mikrofonzugriff benötigt.",
+  "teacherNewExplanation": "Neue Erklärung",
+  "teacherSaveRecording": "Aufnahme speichern",
+  "teacherTranscript": "Transkript",
+  "teacherTranscriptHint": "Transkript einfügen oder korrigieren. Automatische KI-Transkription benötigt einen konfigurierten, datenschutzkonformen Dienst.",
+  "teacherAudioPrivacy": "Aufnahmen bleiben zunächst lokal auf diesem Gerät.",
+  "teacherStopRecording": "Aufnahme stoppen",
+  "teacherStartRecording": "Erklärung aufnehmen",
+  "teacherRecordings": "Aufnahmen",
+  "teacherNoRecordings": "Noch keine Erklärungen aufgenommen.",
+  "teacherTranscriptPending": "Transkript ausstehend – antippen zum Bearbeiten",
+  "teacherWaitingForWritePermission": "Nur ansehen – Schreibrecht beim Lehrer",
+  "teacherWritingAllowed": "Du darfst an der Tafel schreiben",
+  "teacherWritingBlocked": "Der Lehrer hat das Schreiben für dich gesperrt.",
+  "teacherSubmitOer": "Als OER bei der Community einreichen",
+  "teacherSubmitOerHint": "Der Eintrag wird erst nach Prüfung öffentlich sichtbar.",
+  "teacherOerSubmitted": "Material zur Prüfung eingereicht.",
+  "teacherOerSignInRequired": "Für die Community-Einreichung ist eine Anmeldung erforderlich.",
+  "teacherOerUploadUnavailable": "Die Datei konnte nicht für den Upload gelesen werden.",
+  "teacherStartClassBeforeDistribute": "Starte zuerst eine Live-Unterrichts-Session.",
+  "teacherDistributionSent": "Download-Befehl an die Klasse gesendet.",
+  "teacherAllowFocusCheck": "Fokus-Check zustimmen",
+  "description": "Beschreibung",
+  "teacherLessonCalendar": "Kalender",
+  "teacherLessonCalendarHint": "Tippe einen Tag an, um Titel, Beschreibung und Anhänge für jede Stunde laut Stundenplan festzuhalten.",
+  "teacherNoSchoolDay": "An diesem Tag gibt es keinen Unterricht im Stundenplan.",
+  "teacherNoLessonsForDay": "Für diesen Tag sind im Stundenplan keine Stunden eingetragen.",
+  "teacherPeriod": "{n}. Stunde",
+  "@teacherPeriod": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "teacherLessonAttachments": "Anhänge",
+  "teacherAttachmentCount": "{count} Anhänge",
+  "@teacherAttachmentCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "teacherOpenWhiteboard": "Tafel öffnen",
+  "teacherSaveLessonMaterials": "Unterlagen sichern",
+  "teacherWhiteboardFinal": "Tafel-Endstand",
+  "teacherNoWhiteboardToSave": "Kein Whiteboard zum Sichern vorhanden.",
+  "teacherSavedMaterialsLabel": "Unterlagen {time}",
+  "@teacherSavedMaterialsLabel": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "teacherMaterialsSavedToLesson": "Unterlagen an die aktuelle Stunde angehängt.",
+  "notNow": "Nicht jetzt",
+  "enable": "Aktivieren",
+  "teacherSubjectOrRoomRequired": "Gib mindestens ein Fach oder einen Raum an.",
+  "classroomAutoConnectTitle": "Nächstes Mal automatisch verbinden?",
+  "classroomAutoConnectBody": "BetterNotes kann beim nächsten Unterricht nach „{criteria}“ suchen. Eine Verbindung wird nur aufgebaut, wenn Fach oder Raum übereinstimmt. Der Lehrer prüft diese Kriterien zusätzlich beim Handshake.",
+  "@classroomAutoConnectBody": {
+    "placeholders": {
+      "criteria": { "type": "String" }
+    }
+  },
+  "classroomAutoConnectSetting": "Automatisch mit Unterricht verbinden",
+  "classroomAutoConnectSettingHint": "Verbindet nur, wenn mindestens das gespeicherte Fach oder der gespeicherte Raum mit der Lehrer-Session übereinstimmt.",
+  "classroomAutoConnectMismatch": "Automatische Verbindung abgelehnt: Fach und Raum stimmen nicht überein."
+}

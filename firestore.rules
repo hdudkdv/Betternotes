@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function collaboration(notebookId) {
+      return get(/databases/$(database)/documents/collaborations/$(notebookId));
+    }
+
+    function isCollaborator(notebookId) {
+      return collaboration(notebookId).data.members[request.auth.uid] != null;
+    }
+
+    function canEdit(notebookId) {
+      return collaboration(notebookId).data.ownerUid == request.auth.uid ||
+        collaboration(notebookId).data.members[request.auth.uid] in ['editor', 'teacher'];
+    }
+
+    match /collaborations/{notebookId} {
+      allow create: if request.auth != null &&
+        request.resource.data.ownerUid == request.auth.uid;
+      allow read: if request.auth != null &&
+        (resource.data.ownerUid == request.auth.uid || isCollaborator(notebookId));
+      allow update, delete: if request.auth != null &&
+        resource.data.ownerUid == request.auth.uid;
+
+      match /live_sessions/{sessionId} {
+        allow read: if request.auth != null && isCollaborator(notebookId);
+        allow create, update: if request.auth != null && canEdit(notebookId);
+        allow delete: if request.auth != null &&
+          collaboration(notebookId).data.ownerUid == request.auth.uid;
+      }
+
+      match /comments/{commentId} {
+        allow read: if request.auth != null && isCollaborator(notebookId);
+        allow create: if request.auth != null && isCollaborator(notebookId) &&
+          request.resource.data.authorUid == request.auth.uid;
+        allow update, delete: if request.auth != null &&
+          resource.data.authorUid == request.auth.uid;
+      }
+
+      match /activity/{activityId} {
+        allow read: if request.auth != null && isCollaborator(notebookId);
+        allow create: if request.auth != null && canEdit(notebookId) &&
+          request.resource.data.authorUid == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+
+    match /users/{ownerId}/notebooks/{notebookId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == ownerId || isCollaborator(notebookId));
+      allow write: if request.auth != null &&
+        (request.auth.uid == ownerId || canEdit(notebookId));
+
+      match /pages/{pageId} {
+        allow read: if request.auth != null &&
+          (request.auth.uid == ownerId || isCollaborator(notebookId));
+        allow write: if request.auth != null &&
+          (request.auth.uid == ownerId || canEdit(notebookId));
+      }
+    }
+
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Public OER catalog. Clients may submit only pending material under their
+    // own UID; approval must be performed by trusted server/admin tooling.
+    match /oer_materials/{materialId} {
+      allow read: if request.auth != null &&
+        resource.data.status == 'approved';
+      allow create: if request.auth != null &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      allow update, delete: if request.auth != null &&
+        resource.data.ownerUid == request.auth.uid &&
+        resource.data.status == 'pending' &&
+        request.resource.data.ownerUid == resource.data.ownerUid &&
+        request.resource.data.status == 'pending';
+    }
+  }
+}

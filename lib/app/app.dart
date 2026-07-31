@@ -1,0 +1,295 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:collection/collection.dart';
+
+import '../features/editor/presentation/editor_screen.dart';
+import '../features/collaboration/collaboration_screen.dart';
+import '../features/lan_sync/nearby_sync_screen.dart';
+import '../features/flashcards/flashcard_deck_screen.dart';
+import '../features/import_export/import_export_providers.dart';
+import '../features/import_export/import_notebook_picker_screen.dart';
+import '../features/legal/legal_document_screen.dart';
+import '../features/lan_sync/classroom_auto_connect.dart';
+import '../features/lan_sync/lan_sync_controller.dart';
+import '../features/library/presentation/library_screen.dart';
+import '../features/library/providers/library_providers.dart';
+import '../features/onboarding/role_onboarding_screen.dart';
+import '../features/search/global_search_screen.dart';
+import '../features/settings/settings_screen.dart';
+import '../features/planner/planner_screen.dart';
+import '../features/teacher/teacher_audio_screen.dart';
+import '../features/teacher/teacher_screen.dart';
+import '../features/timetable/timetable_screen.dart';
+import '../l10n/app_localizations.dart';
+import 'theme.dart';
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final role = ref.watch(settingsProvider.select((settings) => settings.userRole));
+  return GoRouter(
+    initialLocation: role == null ? '/welcome' : '/',
+    redirect: (context, state) {
+      final onWelcome = state.matchedLocation == '/welcome';
+      if (role == null && !onWelcome) return '/welcome';
+      if (role != null && onWelcome) return '/';
+      if (state.matchedLocation.startsWith('/teacher') &&
+          role != AppUserRole.teacher) {
+        return '/';
+      }
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/welcome',
+        name: 'welcome',
+        builder: (context, state) => const RoleOnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/',
+        name: 'library',
+        builder: (context, state) => const LibraryScreen(),
+      ),
+      GoRoute(
+        path: '/notebook/:id',
+        name: 'editor',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return EditorScreen(
+            notebookId: id,
+            initialPageId: state.uri.queryParameters['pageId'],
+            initialOutlineId: state.uri.queryParameters['outlineId'],
+          );
+        },
+      ),
+      GoRoute(
+        path: '/collaboration/:id',
+        name: 'collaboration',
+        builder: (context, state) =>
+            CollaborationScreen(notebookId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/nearby-sync/:id',
+        name: 'nearbySync',
+        builder: (context, state) =>
+            NearbySyncScreen(notebookId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/flashcards/:id',
+        name: 'flashcards',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return FlashcardDeckScreen(deckId: id);
+        },
+      ),
+      GoRoute(
+        path: '/search',
+        name: 'search',
+        builder: (context, state) => const GlobalSearchScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/import',
+        name: 'import',
+        builder: (context, state) => const ImportNotebookPickerScreen(),
+      ),
+      GoRoute(
+        path: '/legal/privacy',
+        name: 'legalPrivacy',
+        builder: (context, state) =>
+            const LegalDocumentScreen(kind: LegalDocKind.privacy),
+      ),
+      GoRoute(
+        path: '/legal/terms',
+        name: 'legalTerms',
+        builder: (context, state) =>
+            const LegalDocumentScreen(kind: LegalDocKind.terms),
+      ),
+      GoRoute(
+        path: '/legal/impressum',
+        name: 'legalImpressum',
+        builder: (context, state) =>
+            const LegalDocumentScreen(kind: LegalDocKind.impressum),
+      ),
+      GoRoute(
+        path: '/timetable',
+        name: 'timetable',
+        builder: (context, state) => const TimetableScreen(),
+      ),
+      GoRoute(
+        path: '/grades',
+        name: 'grades',
+        builder: (context, state) => const GradesScreen(),
+      ),
+      GoRoute(
+        path: '/calendar',
+        name: 'calendar',
+        builder: (context, state) => const CalendarScreen(),
+      ),
+      GoRoute(
+        path: '/planner',
+        name: 'planner',
+        builder: (context, state) => const GradesScreen(),
+      ),
+      GoRoute(
+        path: '/teacher',
+        name: 'teacher',
+        builder: (context, state) => const TeacherScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/audio',
+        name: 'teacherAudio',
+        builder: (context, state) => const TeacherAudioScreen(),
+      ),
+    ],
+  );
+});
+
+class BetterNotesApp extends ConsumerStatefulWidget {
+  const BetterNotesApp({super.key});
+
+  @override
+  ConsumerState<BetterNotesApp> createState() => _BetterNotesAppState();
+}
+
+class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
+  StreamSubscription? _shareSub;
+  VoidCallback? _lanListener;
+  bool _lanListenerAttached = false;
+  bool _autoBrowsing = false;
+  bool _autoConnecting = false;
+  int _handledLanEventSeq = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final intake = ref.read(shareIntakeProvider);
+      await intake.start();
+      _shareSub = intake.pending.listen((files) {
+        if (files.isEmpty) return;
+        ref.read(appRouterProvider).go('/import');
+      });
+      if (intake.peekPending != null && intake.peekPending!.isNotEmpty) {
+        ref.read(appRouterProvider).go('/import');
+      }
+      await _startClassroomAutoConnect();
+    });
+  }
+
+  Future<void> _startClassroomAutoConnect() async {
+    final settings = ref.read(settingsProvider);
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (settings.userRole != AppUserRole.student ||
+        !ClassroomAutoConnect.isEnabled(prefs)) {
+      return;
+    }
+    final lan = ref.read(lanSyncProvider);
+    if (lan.isActive || _autoBrowsing) return;
+    _lanListener ??= () {
+      final controller = ref.read(lanSyncProvider);
+      final event = controller.lastEvent;
+      if (event != null && controller.eventSeq != _handledLanEventSeq) {
+        _handledLanEventSeq = controller.eventSeq;
+        if (event.kind == LanSyncEventKind.snapshotApplied &&
+            event.notebookId != null) {
+          _autoBrowsing = false;
+          _autoConnecting = false;
+          ref.read(appRouterProvider).go('/notebook/${event.notebookId}');
+          return;
+        }
+      }
+      if (!_autoBrowsing || _autoConnecting || controller.isActive) return;
+      final match = controller.discoveredHosts
+          .where(
+            (host) => ClassroomAutoConnect.hasMatchingCriteria(
+              prefs,
+              subject: host.classroomSubject,
+              room: host.classroomRoom,
+            ),
+          )
+          .firstOrNull;
+      if (match == null) return;
+      _autoConnecting = true;
+      final expectedSubject = prefs.getString(ClassroomAutoConnect.subjectKey);
+      final expectedRoom = prefs.getString(ClassroomAutoConnect.roomKey);
+      unawaited(() async {
+        await controller.stopBrowsing();
+        _autoBrowsing = false;
+        await controller.joinDiscovered(
+          match,
+          displayName: 'Schüler',
+          autoReconnect: true,
+          expectedSubject: expectedSubject,
+          expectedRoom: expectedRoom,
+        );
+      }());
+    };
+    if (!_lanListenerAttached) {
+      lan.addListener(_lanListener!);
+      _lanListenerAttached = true;
+    }
+    _autoBrowsing = true;
+    await lan.startBrowsing();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_shareSub?.cancel() ?? Future.value());
+    final listener = _lanListener;
+    if (listener != null) {
+      ref.read(lanSyncProvider).removeListener(listener);
+      _lanListenerAttached = false;
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final router = ref.watch(appRouterProvider);
+    final settings = ref.watch(settingsProvider);
+    final autoConnectEnabled = ref.watch(
+      classroomAutoConnectEnabledProvider,
+    );
+    if (settings.userRole == AppUserRole.student &&
+        autoConnectEnabled &&
+        !_autoBrowsing &&
+        !_autoConnecting) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_startClassroomAutoConnect());
+      });
+    } else if (!autoConnectEnabled && _autoBrowsing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _autoBrowsing = false;
+        unawaited(ref.read(lanSyncProvider).stopBrowsing());
+      });
+    }
+    return MaterialApp.router(
+      title: 'BetterNotes',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.themeFor(paletteFor(settings.look, Brightness.light)),
+      darkTheme: AppTheme.themeFor(paletteFor(settings.look, Brightness.dark)),
+      themeMode: settings.themeMode,
+      builder: (context, child) {
+        AppTheme.use(paletteFor(settings.look, Theme.of(context).brightness));
+        return child!;
+      },
+      routerConfig: router,
+      locale: settings.localeOverride,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+    );
+  }
+}
