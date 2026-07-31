@@ -97,7 +97,7 @@ jobs:
           path: |
             ios/Pods
             ~/Library/Caches/CocoaPods
-          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock', 'ios/Podfile', 'pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-pods-
 
@@ -106,9 +106,7 @@ jobs:
 
       - name: Install CocoaPods dependencies
         working-directory: ios
-        run: |
-          pod repo update
-          pod install
+        run: pod install
 
       - name: Install Apple certificate and provisioning profile
         env:
