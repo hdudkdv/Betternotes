@@ -27,11 +27,25 @@ import '../features/timetable/timetable_screen.dart';
 import '../l10n/app_localizations.dart';
 import 'theme.dart';
 
+/// Keeps [GoRouter] alive; role changes only refresh redirects.
+class _RouterRefresh extends ChangeNotifier {
+  void bump() => notifyListeners();
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final role = ref.watch(settingsProvider.select((settings) => settings.userRole));
+  final refresh = _RouterRefresh();
+  ref.listen<AppUserRole?>(
+    settingsProvider.select((settings) => settings.userRole),
+    (_, _) => refresh.bump(),
+  );
+  ref.onDispose(refresh.dispose);
+
+  final initialRole = ref.read(settingsProvider).userRole;
   return GoRouter(
-    initialLocation: role == null ? '/welcome' : '/',
+    initialLocation: initialRole == null ? '/welcome' : '/',
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final role = ref.read(settingsProvider).userRole;
       final onWelcome = state.matchedLocation == '/welcome';
       if (role == null && !onWelcome) return '/welcome';
       if (role != null && onWelcome) return '/';
