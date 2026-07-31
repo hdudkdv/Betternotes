@@ -31,6 +31,11 @@ target 'Runner' do
   use_frameworks!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+
+  # Local podspec shipped by share_handler_ios (not on CocoaPods trunk).
+  pod 'share_handler_ios_models',
+      :path => '.symlinks/plugins/share_handler_ios/ios/Models'
+
   target 'RunnerTests' do
     inherit! :search_paths
   end
