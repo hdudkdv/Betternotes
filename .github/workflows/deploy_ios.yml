@@ -68,13 +68,16 @@ jobs:
 
           rm -rf Payload app-release.ipa
           mkdir -p Payload
-          cp -R "$APP_PATH" Payload/Runner.app
+          # ditto preserves iOS framework symlinks better than cp -R
+          ditto "$APP_PATH" Payload/Runner.app
 
-          # IPA = ZIP with Payload/Runner.app at archive root (no __MACOSX junk)
+          # IPA = ZIP with Payload/Runner.app at archive root
           zip -qry app-release.ipa Payload
 
-          # Sanity check for Sideloadly / IPA tools
+          # Sanity checks for Sideloadly / IPA tools
           unzip -l app-release.ipa | grep -E "Payload/Runner\.app/Info\.plist"
+          /usr/libexec/PlistBuddy -c 'Print :GADApplicationIdentifier' \
+            Payload/Runner.app/Info.plist
           ls -lh app-release.ipa
 
       - name: Upload app-release.ipa artifact
