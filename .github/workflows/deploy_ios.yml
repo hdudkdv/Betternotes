@@ -2,12 +2,11 @@
 # Kostenloser iOS-Build (ohne Apple Developer Account)
 # =============================================================================
 #
-# Dieser Workflow erzeugt eine unsignierte Runner.app (kein .ipa, keine Secrets).
+# Dieser Workflow erzeugt eine unsignierte app-release.ipa (Payload/Runner.app).
 #
-# Nach dem Download von Runner.app.zip (Actions → Artifacts):
-# 1) ZIP entpacken → Runner.app erhalten
-# 2) Mit Sideloadly (Windows/macOS) oder AltServer/AltStore (macOS/iOS)
-#    und deiner normalen kostenlosen Apple-ID auf ein iPhone/iPad installieren
+# Nach dem Download von app-release.ipa (Actions → Artifacts):
+# 1) Datei in Sideloadly (Windows/macOS) oder AltServer/AltStore öffnen
+# 2) Mit deiner normalen kostenlosen Apple-ID auf ein iPhone/iPad installieren
 # 3) Auf dem Gerät unter Einstellungen → Allgemein → VPN & Geräteverwaltung
 #    dein Apple-ID-Profil vertrauen
 #
@@ -57,7 +56,7 @@ jobs:
       - name: Build iOS (release, no codesign)
         run: flutter build ios --release --no-codesign
 
-      - name: Zip Runner.app
+      - name: Compress Runner.app
         run: |
           set -euo pipefail
           APP_PATH="build/ios/iphoneos/Runner.app"
@@ -66,13 +65,22 @@ jobs:
             ls -laR build/ios || true
             exit 1
           fi
-          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" Runner.app.zip
-          ls -lh Runner.app.zip
 
-      - name: Upload Runner.app.zip artifact
+          rm -rf Payload app-release.ipa
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/Runner.app
+
+          # IPA = ZIP with Payload/Runner.app at archive root (no __MACOSX junk)
+          zip -qry app-release.ipa Payload
+
+          # Sanity check for Sideloadly / IPA tools
+          unzip -l app-release.ipa | grep -E "Payload/Runner\.app/Info\.plist"
+          ls -lh app-release.ipa
+
+      - name: Upload app-release.ipa artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Runner.app
-          path: Runner.app.zip
+          name: app-release
+          path: app-release.ipa
           if-no-files-found: error
           retention-days: 14
