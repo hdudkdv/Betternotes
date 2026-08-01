@@ -1460,6 +1460,126 @@ abstract class AppLocalizations {
   /// **'Scroll'**
   String get browseScroll;
 
+  /// No description provided for @gesturesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Gestures'**
+  String get gesturesSection;
+
+  /// No description provided for @gesturesSectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Map Apple Pencil and multi-touch shortcuts.'**
+  String get gesturesSectionHint;
+
+  /// No description provided for @gesturePencilDoubleTap.
+  ///
+  /// In en, this message translates to:
+  /// **'Pencil double-tap'**
+  String get gesturePencilDoubleTap;
+
+  /// No description provided for @gesturePencilSqueeze.
+  ///
+  /// In en, this message translates to:
+  /// **'Pencil squeeze'**
+  String get gesturePencilSqueeze;
+
+  /// No description provided for @gestureTwoFingerTap.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-finger tap'**
+  String get gestureTwoFingerTap;
+
+  /// No description provided for @gestureThreeFingerSwipeLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-finger swipe left'**
+  String get gestureThreeFingerSwipeLeft;
+
+  /// No description provided for @gestureThreeFingerSwipeRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-finger swipe right'**
+  String get gestureThreeFingerSwipeRight;
+
+  /// No description provided for @gestureActionNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Do nothing'**
+  String get gestureActionNone;
+
+  /// No description provided for @gestureActionToggleEraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Pen / eraser'**
+  String get gestureActionToggleEraser;
+
+  /// No description provided for @gestureActionPreviousTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous tool'**
+  String get gestureActionPreviousTool;
+
+  /// No description provided for @gestureActionOpenToolWheel.
+  ///
+  /// In en, this message translates to:
+  /// **'Open tool wheel'**
+  String get gestureActionOpenToolWheel;
+
+  /// No description provided for @gestureActionUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get gestureActionUndo;
+
+  /// No description provided for @gestureActionRedo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get gestureActionRedo;
+
+  /// No description provided for @gestureActionNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get gestureActionNextPage;
+
+  /// No description provided for @gestureActionPreviousPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get gestureActionPreviousPage;
+
+  /// No description provided for @gestureActionExportPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Export page'**
+  String get gestureActionExportPage;
+
+  /// No description provided for @gestureActionCyclePenColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle pen color'**
+  String get gestureActionCyclePenColor;
+
+  /// No description provided for @gestureActionFitZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit page'**
+  String get gestureActionFitZoom;
+
+  /// No description provided for @gestureActionGoBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back'**
+  String get gestureActionGoBack;
+
+  /// No description provided for @pdfImportProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing PDF… {done}/{total}'**
+  String pdfImportProgress(int done, int total);
+
   /// No description provided for @savePageAsTemplate.
   ///
   /// In en, this message translates to:

@@ -261,6 +261,54 @@ class PrefsNotebookRepository extends NotebookRepository
   }
 
   @override
+  Future<List<NotePage>> addPages({
+    required String notebookId,
+    required List<NotePageDraft> drafts,
+  }) async {
+    if (drafts.isEmpty) return const [];
+    final pages = await _readPages(notebookId);
+    final created = <NotePage>[];
+    for (var i = 0; i < drafts.length; i++) {
+      final draft = drafts[i];
+      final page = NotePage.create(
+        notebookId: notebookId,
+        index: pages.length + i,
+        template: draft.template,
+        backgroundPdfPath: draft.backgroundPdfPath,
+        paperTemplateId: draft.paperTemplateId,
+        customPaper: draft.customPaper,
+        paperFormat: draft.paperFormat,
+        orientation: draft.orientation,
+      );
+      created.add(page);
+    }
+    pages.addAll(created);
+    await _writePages(notebookId, pages);
+
+    final notebooks = _readNotebooks();
+    final ni = notebooks.indexWhere((n) => n.id == notebookId);
+    if (ni >= 0) {
+      notebooks[ni] = notebooks[ni].copyWith(
+        pageCount: pages.length,
+        updatedAt: DateTime.now(),
+      );
+      await _writeNotebooks(notebooks);
+    }
+    for (final page in created) {
+      await enqueueSyncOp(
+        SyncOp(
+          id: const Uuid().v4(),
+          entityType: 'page',
+          entityId: page.id,
+          payloadJson: jsonEncode(page.toJson()),
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+    return created;
+  }
+
+  @override
   Future<void> savePage(NotePage page) async {
     final timestampedPage = page.copyWith(updatedAt: DateTime.now());
     final pages = await _readPages(timestampedPage.notebookId);

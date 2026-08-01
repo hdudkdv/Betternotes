@@ -495,6 +495,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             SliverAppBar(
               pinned: true,
               expandedHeight: folderId == null ? 140 : 100,
+              // Cream brand header stays light in every theme — force dark
+              // chrome so the title/icons stay readable (dark mode was washing
+              // AppTheme.ink into near-white on this gradient).
+              foregroundColor: const Color(0xFF17171C),
+              iconTheme: const IconThemeData(color: Color(0xFF17171C)),
+              actionsIconTheme: const IconThemeData(color: Color(0xFF17171C)),
               leading: folderId == null
                   ? null
                   : IconButton(
@@ -512,7 +518,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       : (currentFolder?.name ?? l10n.folder),
                   style: AppTheme.headline(
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.ink,
+                    color: const Color(0xFF17171C),
                     fontSize: folderId == null ? 30 : 26,
                   ),
                 ),

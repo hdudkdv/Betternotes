@@ -292,6 +292,63 @@ class IsarNotebookRepository extends NotebookRepository
   }
 
   @override
+  Future<List<NotePage>> addPages({
+    required String notebookId,
+    required List<NotePageDraft> drafts,
+  }) async {
+    if (drafts.isEmpty) return const [];
+    final existing = await getPages(notebookId);
+    final created = <NotePage>[];
+    final entities = <PageEntity>[];
+    for (var i = 0; i < drafts.length; i++) {
+      final draft = drafts[i];
+      final page = NotePage.create(
+        notebookId: notebookId,
+        index: existing.length + i,
+        template: draft.template,
+        backgroundPdfPath: draft.backgroundPdfPath,
+        paperTemplateId: draft.paperTemplateId,
+        customPaper: draft.customPaper,
+        paperFormat: draft.paperFormat,
+        orientation: draft.orientation,
+      );
+      final entity = PageEntity()
+        ..strokesJson = '[]'
+        ..textBlocksJson = '[]';
+      applyPageToEntity(page, entity);
+      created.add(page);
+      entities.add(entity);
+    }
+
+    final notebook = await _isar.notebookEntitys
+        .filter()
+        .uuidEqualTo(notebookId)
+        .findFirst();
+
+    await _isar.writeTxn(() async {
+      await _isar.pageEntitys.putAll(entities);
+      if (notebook != null) {
+        notebook.pageCount = existing.length + created.length;
+        notebook.updatedAt = DateTime.now();
+        await _isar.notebookEntitys.put(notebook);
+      }
+    });
+
+    for (final page in created) {
+      await enqueueSyncOp(
+        SyncOp(
+          id: const Uuid().v4(),
+          entityType: 'page',
+          entityId: page.id,
+          payloadJson: jsonEncode(page.toJson()),
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+    return created;
+  }
+
+  @override
   Future<void> savePage(NotePage page) async {
     final timestampedPage = page.copyWith(updatedAt: DateTime.now());
     final existing = await _isar.pageEntitys

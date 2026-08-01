@@ -25,12 +25,15 @@ import '../../teacher/teacher_models.dart';
 import '../../timetable/timetable_model.dart';
 import '../../library/providers/library_providers.dart';
 import '../../pdf/pdf_service.dart';
+import '../domain/editor_gestures.dart';
 import '../domain/ink_engine.dart';
 import '../domain/ink_models.dart';
 import '../domain/last_page_store.dart';
 import '../domain/paper_line_metrics.dart';
 import '../domain/text_block_registry.dart';
+import '../platform/pencil_gestures.dart';
 import '../providers/open_tabs_provider.dart';
+import '../providers/tool_presets.dart';
 import 'editor_chrome.dart';
 import 'paper_creator_screen.dart';
 import 'widgets/editor_hud.dart';
@@ -47,6 +50,7 @@ import 'widgets/share_export_sheet.dart';
 import 'widgets/shape_painter.dart';
 import 'widgets/study_pomodoro_chip.dart';
 import 'widgets/text_block_layer.dart';
+import 'widgets/tool_wheel.dart';
 import '../../flashcards/create_flashcard_dialog.dart';
 import '../../import_export/import_export_providers.dart';
 
@@ -493,6 +497,32 @@ class EditorController extends ChangeNotifier {
   Future<void> importPdf() async {
     await _persistCurrent();
     final created = await pdfService.importPdfAsPages(notebookId: notebookId);
+    if (created.isEmpty) return;
+    pages = await repository.getPages(notebookId);
+    notebook = await repository.getNotebook(notebookId);
+    final idx = pages.indexWhere((p) => p.id == created.first.id);
+    await _bindPage(idx < 0 ? pageIndex : idx);
+    notifyListeners();
+  }
+
+  /// Import with a progress dialog owned by the screen.
+  Future<void> importPdfWithProgress(
+    void Function(int done, int total) onProgress,
+  ) async {
+    await _persistCurrent();
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final bytes = result.files.first.bytes;
+    if (bytes == null) return;
+    final created = await pdfService.importPdfFromBytes(
+      notebookId: notebookId,
+      bytes: bytes,
+      onProgress: onProgress,
+    );
     if (created.isEmpty) return;
     pages = await repository.getPages(notebookId);
     notebook = await repository.getNotebook(notebookId);
@@ -1050,11 +1080,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   int _handledLanEventSeq = 0;
   int _lastClassroomProgress = -1;
   bool _autoConnectPromptScheduled = false;
+  bool _toolWheelOpen = false;
+  InkTool _previousTool = InkTool.pen;
+  StreamSubscription<PencilHardwareEvent>? _pencilSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _pencilSub = PencilGestures.events.listen(_onPencilHardware);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(openNotebookTabsProvider.notifier).open(widget.notebookId);
     });
@@ -1062,8 +1096,70 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
 
   @override
   void dispose() {
+    unawaited(_pencilSub?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _onPencilHardware(PencilHardwareEvent event) {
+    if (!mounted) return;
+    final settings = ref.read(settingsProvider);
+    final action = switch (event) {
+      PencilHardwareEvent.doubleTap => settings.pencilDoubleTapAction,
+      PencilHardwareEvent.squeeze => settings.pencilSqueezeAction,
+    };
+    unawaited(_runGestureAction(action));
+  }
+
+  EditorController get _controller => ref.read(
+    editorControllerDeepLinkProvider((
+      id: widget.notebookId,
+      pageId: widget.initialPageId,
+      outlineId: widget.initialOutlineId,
+    )),
+  );
+
+  Future<void> _runGestureAction(EditorGestureAction action) async {
+    if (action == EditorGestureAction.none) return;
+    final c = _controller;
+
+    switch (action) {
+      case EditorGestureAction.none:
+        return;
+      case EditorGestureAction.toggleEraser:
+        if (c.ink.tool == InkTool.eraser) {
+          c.ink.setTool(_previousTool);
+        } else {
+          _previousTool = c.ink.tool.isFreehand ? c.ink.tool : InkTool.pen;
+          c.ink.setTool(InkTool.eraser);
+        }
+      case EditorGestureAction.previousTool:
+        final next = _previousTool;
+        _previousTool = c.ink.tool;
+        c.ink.setTool(next);
+      case EditorGestureAction.openToolWheel:
+        setState(() => _toolWheelOpen = !_toolWheelOpen);
+      case EditorGestureAction.undo:
+        c.ink.undo();
+      case EditorGestureAction.redo:
+        c.ink.redo();
+      case EditorGestureAction.nextPage:
+        _pagesViewportKey.currentState?.goToAdjacent(1);
+      case EditorGestureAction.previousPage:
+        _pagesViewportKey.currentState?.goToAdjacent(-1);
+      case EditorGestureAction.exportPage:
+        await c.shareCurrentPage();
+      case EditorGestureAction.cyclePenColor:
+        final presets = ref.read(toolPresetsProvider);
+        if (presets.colors.isEmpty) return;
+        final idx = presets.colors.indexOf(c.ink.colorValue);
+        final next = presets.colors[(idx + 1) % presets.colors.length];
+        c.ink.setColor(next);
+      case EditorGestureAction.fitZoom:
+        _canvasKey.currentState?.fitToViewport();
+      case EditorGestureAction.goBack:
+        if (context.canPop()) context.pop();
+    }
   }
 
   @override
@@ -1380,6 +1476,25 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                           false,
                       onBrowsePanEnd: () =>
                           _pagesViewportKey.currentState?.handleBrowsePanEnd(),
+                      onScrollLockChanged: (locked) => _pagesViewportKey
+                          .currentState
+                          ?.setScrollLock(locked),
+                      onTwoFingerTap: () => unawaited(
+                        _runGestureAction(
+                          ref.read(settingsProvider).twoFingerTapAction,
+                        ),
+                      ),
+                      onThreeFingerSwipe: (dir) => unawaited(
+                        _runGestureAction(
+                          dir < 0
+                              ? ref
+                                    .read(settingsProvider)
+                                    .threeFingerSwipeLeftAction
+                              : ref
+                                    .read(settingsProvider)
+                                    .threeFingerSwipeRightAction,
+                        ),
+                      ),
                       onPointerDown: controller.onPointerDown,
                       onPointerMove: controller.onPointerMove,
                       onPointerUp: controller.onPointerUp,
@@ -1766,6 +1881,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
               ),
             ),
           ),
+        if (_toolWheelOpen && !readOnly && !presenting)
+          Positioned.fill(
+            child: ToolWheelOverlay(
+              current: controller.ink.tool,
+              onDismiss: () => setState(() => _toolWheelOpen = false),
+              onSelect: (tool) {
+                _previousTool = controller.ink.tool;
+                controller.ink.setTool(tool);
+                setState(() => _toolWheelOpen = false);
+              },
+            ),
+          ),
       ],
     );
 
@@ -1844,7 +1971,43 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         );
         if (result != null) await controller.applyPaper(result);
       case EditorMenuAction.importPdf:
-        await controller.importPdf();
+        if (!context.mounted) return;
+        final l10n = AppLocalizations.of(context)!;
+        final progress = ValueNotifier<String>(l10n.importPdf);
+        final dialog = showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => PopScope(
+            canPop: false,
+            child: ValueListenableBuilder<String>(
+              valueListenable: progress,
+              builder: (_, label, _) => AlertDialog(
+                content: Row(
+                  children: [
+                    const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(child: Text(label)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        try {
+          await controller.importPdfWithProgress((d, t) {
+            progress.value = l10n.pdfImportProgress(d, t);
+          });
+        } finally {
+          if (context.mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
+          await dialog;
+          progress.dispose();
+        }
       case EditorMenuAction.settings:
         if (context.mounted) context.push('/settings');
       case EditorMenuAction.collaborate:

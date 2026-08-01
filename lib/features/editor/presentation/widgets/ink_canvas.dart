@@ -33,6 +33,9 @@ class InkCanvas extends StatefulWidget {
     this.browseMode = PageBrowseMode.swipeHorizontal,
     this.onBrowsePan,
     this.onBrowsePanEnd,
+    this.onScrollLockChanged,
+    this.onTwoFingerTap,
+    this.onThreeFingerSwipe,
     this.onDoubleTap,
   });
 
@@ -52,6 +55,15 @@ class InkCanvas extends StatefulWidget {
   /// Return true if the parent consumed the gesture (skip canvas pan).
   final bool Function(Offset globalDelta)? onBrowsePan;
   final VoidCallback? onBrowsePanEnd;
+
+  /// Lock PageView/ListView while drawing, pinching, or zoomed in.
+  final ValueChanged<bool>? onScrollLockChanged;
+
+  /// Two-finger tap (little movement) for configurable shortcuts.
+  final VoidCallback? onTwoFingerTap;
+
+  /// Three-finger horizontal swipe: `-1` left, `+1` right.
+  final ValueChanged<int>? onThreeFingerSwipe;
   final VoidCallback? onDoubleTap;
 
   final void Function(
@@ -73,14 +85,21 @@ class InkCanvasState extends State<InkCanvas>
   final Map<int, Offset> _pointerGlobal = {};
   int? _drawPointer;
   bool _drawing = false;
+  bool _drawIsStylus = false;
   Offset? _panLastFocal;
   Size _viewportSize = Size.zero;
-  bool _browseActive = false;
   double _fitScale = 1;
   Size? _fittedViewport;
   Size? _fittedPageSize;
   AnimationController? _viewAnim;
   bool _keyboardOpen = false;
+  bool _scrollLockSent = false;
+  double? _pinchBaseDistance;
+  double? _pinchBaseScale;
+  Offset? _pinchFocalGlobal;
+  double _multiTravel = 0;
+  int _multiMaxPointers = 0;
+  Offset? _threeFingerStart;
 
   /// Current zoom relative to the scale at which the page fits the viewport.
   double get relativeZoom =>
@@ -280,8 +299,62 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _onTransformChanged() {
+    _updateScrollLock();
     if (widget.canvasMode == CanvasMode.infinite) {
       setState(() {});
+    }
+  }
+
+  void _updateScrollLock() {
+    final lock =
+        _drawing || _pointerGlobal.length >= 2 || _isZoomed || _keyboardOpen;
+    if (lock == _scrollLockSent) return;
+    _scrollLockSent = lock;
+    widget.onScrollLockChanged?.call(lock);
+  }
+
+  void _resetPinch() {
+    _pinchBaseDistance = null;
+    _pinchBaseScale = null;
+    _pinchFocalGlobal = null;
+  }
+
+  void _applyPinchScale() {
+    if (_viewportSize == Size.zero) return;
+    final points = _pointerGlobal.values.toList();
+    if (points.length < 2) return;
+    final dist = (points[0] - points[1]).distance;
+    if (dist < 12) return;
+    final focal = _focalGlobal();
+    if (_pinchBaseDistance == null || _pinchBaseScale == null) {
+      _pinchBaseDistance = dist;
+      _pinchBaseScale = _transform.value.getMaxScaleOnAxis();
+      _pinchFocalGlobal = focal;
+      return;
+    }
+    final factor = dist / _pinchBaseDistance!;
+    final minScale = widget.canvasMode == CanvasMode.infinite
+        ? 0.012
+        : _fitScale * 0.4;
+    final maxScale = widget.canvasMode == CanvasMode.infinite
+        ? 80.0
+        : _fitScale * 8.0;
+    final newScale = (_pinchBaseScale! * factor).clamp(minScale, maxScale);
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    final focalLocal = box.globalToLocal(_pinchFocalGlobal ?? focal);
+    final current = _transform.value;
+    final currentScale = current.getMaxScaleOnAxis().clamp(0.01, 100.0);
+    final applied = newScale / currentScale;
+    if ((applied - 1).abs() < 0.001) return;
+    final zoom = Matrix4.identity()
+      ..setEntry(0, 0, applied)
+      ..setEntry(1, 1, applied)
+      ..setEntry(0, 3, focalLocal.dx * (1 - applied))
+      ..setEntry(1, 3, focalLocal.dy * (1 - applied));
+    _transform.value = zoom * current;
+    if (widget.canvasMode != CanvasMode.infinite) {
+      _clampFitTranslation();
     }
   }
 
@@ -334,16 +407,6 @@ class InkCanvasState extends State<InkCanvas>
     _transform.value = matrix;
   }
 
-  bool _tryBrowsePan(Offset globalDelta) {
-    final cb = widget.onBrowsePan;
-    if (cb == null || widget.canvasMode == CanvasMode.infinite) return false;
-    // Only browse when roughly fit-to-view (not deep-zoomed).
-    if (_isZoomed) return false;
-    final consumed = cb(globalDelta);
-    if (consumed) _browseActive = true;
-    return consumed;
-  }
-
   /// Visible board rect in page/local coordinates.
   Rect _visibleWorldRect(Size pageSize) {
     if (_viewportSize == Size.zero) {
@@ -367,27 +430,52 @@ class InkCanvasState extends State<InkCanvas>
     }
     _drawing = false;
     _drawPointer = null;
+    _drawIsStylus = false;
+    _updateScrollLock();
   }
 
   void _handlePointerDown(PointerDownEvent event) {
-    _pointerGlobal[event.pointer] = event.position;
+    // Palm rejection: ignore touch while a stylus stroke is active.
+    if (_drawing && _drawIsStylus && _isTouch(event)) {
+      return;
+    }
 
-    // A second finger always cancels ink and starts pan / browse.
+    _pointerGlobal[event.pointer] = event.position;
+    _multiMaxPointers = _multiMaxPointers < _pointerGlobal.length
+        ? _pointerGlobal.length
+        : _multiMaxPointers;
+    _updateScrollLock();
+
+    // A second finger cancels ink and starts pinch-zoom — unless the
+    // active stroke is from a stylus (then the extra touch is treated as palm).
     if (_pointerGlobal.length >= 2) {
+      if (_drawing && _drawIsStylus) {
+        _pointerGlobal.remove(event.pointer);
+        _updateScrollLock();
+        return;
+      }
       if (_drawing) {
         _stopDrawing(commit: false);
       }
+      _resetPinch();
       _panLastFocal = _focalGlobal();
-      _browseActive = false;
+      if (_pointerGlobal.length >= 3) {
+        _threeFingerStart ??= _focalGlobal();
+      }
       setState(() {});
       return;
     }
 
     // Single pointer.
+    _multiMaxPointers = 1;
+    _multiTravel = 0;
+    _threeFingerStart = null;
     if (_canDrawWith(event)) {
       _drawPointer = event.pointer;
       _drawing = true;
+      _drawIsStylus = _isStylusOrMouse(event);
       setState(() {});
+      _updateScrollLock();
       widget.onPointerDown(
         event.localPosition,
         isStylus:
@@ -411,24 +499,27 @@ class InkCanvasState extends State<InkCanvas>
 
     if (_pointerGlobal.length >= 2) {
       final focal = _focalGlobal();
-      // While the keyboard is open, InteractiveViewer owns pan/zoom gestures.
       if (_keyboardOpen) {
         _panLastFocal = focal;
         return;
       }
       if (_panLastFocal != null) {
         final delta = focal - _panLastFocal!;
-        final atFitBrowse =
-            widget.canvasMode != CanvasMode.infinite &&
-            !_isZoomed &&
-            widget.onBrowsePan != null;
-        if (atFitBrowse) {
-          // At fit zoom the parent owns navigation. In particular, do not
-          // turn an off-axis drag into a vertical/horizontal canvas pan.
-          _tryBrowsePan(delta);
-          _clampFitTranslation();
-        } else if (!_tryBrowsePan(delta)) {
+        _multiTravel += delta.distance;
+        // Two+ fingers always pinch/pan the canvas — never flip pages.
+        // (One finger of a pinch used to steal PageView and feel broken.)
+        _applyPinchScale();
+        if (_isZoomed || widget.canvasMode == CanvasMode.infinite) {
           _applyPanDelta(delta);
+        } else {
+          _clampFitTranslation();
+        }
+        if (_pointerGlobal.length >= 3 && _threeFingerStart != null) {
+          final swipe = focal - _threeFingerStart!;
+          if (swipe.dx.abs() > 64 && swipe.dx.abs() > swipe.dy.abs() * 1.4) {
+            widget.onThreeFingerSwipe?.call(swipe.dx < 0 ? -1 : 1);
+            _threeFingerStart = null;
+          }
         }
       }
       _panLastFocal = focal;
@@ -460,6 +551,8 @@ class InkCanvasState extends State<InkCanvas>
 
   void _handlePointerUp(PointerUpEvent event) {
     final wasMulti = _pointerGlobal.length >= 2;
+    final maxPointers = _multiMaxPointers;
+    final travel = _multiTravel;
     _pointerGlobal.remove(event.pointer);
 
     if (event.pointer == _drawPointer) {
@@ -467,39 +560,46 @@ class InkCanvasState extends State<InkCanvas>
       setState(() {});
     }
 
-    if ((wasMulti || _browseActive) && _pointerGlobal.length < 2) {
-      if (_browseActive) {
-        widget.onBrowsePanEnd?.call();
+    if (wasMulti && _pointerGlobal.length < 2) {
+      if (maxPointers == 2 && travel < 18) {
+        widget.onTwoFingerTap?.call();
       }
-      _browseActive = false;
+      _resetPinch();
+      _threeFingerStart = null;
+      _multiTravel = 0;
+      _multiMaxPointers = _pointerGlobal.length;
       _snapToFitIfNeeded();
     }
 
-    if (_pointerGlobal.length >= 2) {
-      _panLastFocal = _focalGlobal();
-    } else if (_pointerGlobal.length == 1) {
-      _panLastFocal = _pointerGlobal.values.first;
-    } else {
+    if (_pointerGlobal.isEmpty) {
       _panLastFocal = null;
+      _multiMaxPointers = 0;
+      _multiTravel = 0;
       _snapToFitIfNeeded();
+    } else if (_pointerGlobal.length >= 2) {
+      _panLastFocal = _focalGlobal();
+      _resetPinch();
+    } else {
+      _panLastFocal = _pointerGlobal.values.first;
+      _resetPinch();
     }
+    _updateScrollLock();
     setState(() {});
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
-    final wasBrowse = _browseActive;
     _pointerGlobal.remove(event.pointer);
     if (event.pointer == _drawPointer) {
       _stopDrawing(commit: false);
     }
-    if (wasBrowse && _pointerGlobal.length < 2) {
-      widget.onBrowsePanEnd?.call();
-      _browseActive = false;
-    }
+    _resetPinch();
     _panLastFocal = _pointerGlobal.isEmpty ? null : _focalGlobal();
     if (_pointerGlobal.isEmpty) {
+      _multiMaxPointers = 0;
+      _multiTravel = 0;
       _snapToFitIfNeeded();
     }
+    _updateScrollLock();
     setState(() {});
   }
 
@@ -548,9 +648,9 @@ class InkCanvasState extends State<InkCanvas>
           boundaryMargin: EdgeInsets.all(margin),
           minScale: minScale,
           maxScale: maxScale,
-          // Keyboard up: allow finger-panning the page while typing.
-          panEnabled: _keyboardOpen,
-          scaleEnabled: true,
+          // Pinch/pan are handled in [Listener] so they never race PageView.
+          panEnabled: _keyboardOpen && !_drawing,
+          scaleEnabled: false,
           onInteractionUpdate: infinite
               ? null
               : (_) {

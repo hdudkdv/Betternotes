@@ -725,6 +725,69 @@ class AppLocalizationsDe extends AppLocalizations {
   String get browseScroll => 'Durchscrollen';
 
   @override
+  String get gesturesSection => 'Gesten';
+
+  @override
+  String get gesturesSectionHint =>
+      'Apple Pencil und Multi-Touch-Kurzbefehle zuordnen.';
+
+  @override
+  String get gesturePencilDoubleTap => 'Pencil Doppeltipp';
+
+  @override
+  String get gesturePencilSqueeze => 'Pencil Zusammendrücken';
+
+  @override
+  String get gestureTwoFingerTap => 'Zwei-Finger-Tipp';
+
+  @override
+  String get gestureThreeFingerSwipeLeft => 'Drei Finger nach links';
+
+  @override
+  String get gestureThreeFingerSwipeRight => 'Drei Finger nach rechts';
+
+  @override
+  String get gestureActionNone => 'Nichts';
+
+  @override
+  String get gestureActionToggleEraser => 'Stift / Radierer';
+
+  @override
+  String get gestureActionPreviousTool => 'Vorheriges Werkzeug';
+
+  @override
+  String get gestureActionOpenToolWheel => 'Werkzeugrad öffnen';
+
+  @override
+  String get gestureActionUndo => 'Rückgängig';
+
+  @override
+  String get gestureActionRedo => 'Wiederholen';
+
+  @override
+  String get gestureActionNextPage => 'Nächste Seite';
+
+  @override
+  String get gestureActionPreviousPage => 'Vorherige Seite';
+
+  @override
+  String get gestureActionExportPage => 'Seite exportieren';
+
+  @override
+  String get gestureActionCyclePenColor => 'Stiftfarbe wechseln';
+
+  @override
+  String get gestureActionFitZoom => 'Seite einpassen';
+
+  @override
+  String get gestureActionGoBack => 'Zurück';
+
+  @override
+  String pdfImportProgress(int done, int total) {
+    return 'PDF importieren… $done/$total';
+  }
+
+  @override
   String get savePageAsTemplate => 'Seite als Vorlage';
 
   @override

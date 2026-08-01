@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../data/models/content_models.dart';
@@ -137,6 +138,18 @@ class AddPageAffordance extends StatelessWidget {
   }
 }
 
+/// Touch / trackpad may scroll pages. Stylus and mouse write ink and must
+/// never drive [PageView] / [ListView] scrolling.
+class _TouchOnlyScrollBehavior extends MaterialScrollBehavior {
+  const _TouchOnlyScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.trackpad,
+  };
+}
+
 /// GoodNotes-like multi-page browser: horizontal swipe or vertical scroll.
 class NotebookPagesViewport extends StatefulWidget {
   const NotebookPagesViewport({
@@ -176,14 +189,55 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   final Map<int, GlobalKey> _keys = {};
   bool _ignorePageSync = false;
   bool _selecting = false;
-  int? _deferredActivationIndex;
   bool _creatingPage = false;
 
   /// Set while jumping to a page, so the jump cannot select another page.
   bool _restoring = false;
   double _swipeAccum = 0;
 
+  /// Locks PageView / ListView while drawing, pinching, or zoomed.
+  bool _scrollLock = false;
+
+  /// Horizontal browse: commit [selectPage] only after the swipe settles.
+  int? _pendingPageIndex;
+
   ScrollController? get scrollController => _scrollController;
+
+  /// Called from [InkCanvas] so ink / pinch / zoom cannot pan the page list.
+  void setScrollLock(bool locked) {
+    if (_scrollLock == locked) return;
+    final pc = _pageController;
+    if (locked && pc != null && pc.hasClients && pc.page != null) {
+      // Cancel a half-finished swipe the moment a pinch starts so the page
+      // cannot stick between slots.
+      final settled = pc.page!.round().clamp(0, widget.pages.length - 1);
+      if ((pc.page! - settled).abs() > 0.01) {
+        pc.jumpToPage(settled);
+      }
+    }
+    setState(() => _scrollLock = locked);
+    if (locked) {
+      _swipeAccum = 0;
+      _pendingPageIndex = null;
+    }
+  }
+
+  @Deprecated('Use setScrollLock')
+  void setDrawingLock(bool locked) => setScrollLock(locked);
+
+  ScrollPhysics get _scrollPhysics {
+    if (_scrollLock) {
+      return const NeverScrollableScrollPhysics();
+    }
+    return const PageScrollPhysics(parent: ClampingScrollPhysics());
+  }
+
+  ScrollPhysics get _listPhysics {
+    if (_scrollLock) {
+      return const NeverScrollableScrollPhysics();
+    }
+    return const ClampingScrollPhysics();
+  }
 
   @override
   void initState() {
@@ -196,7 +250,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
       _pageController = PageController(
         initialPage: widget.pageIndex,
-        viewportFraction: 0.88,
+        viewportFraction: 1.0,
       );
       _scrollController?.dispose();
       _scrollController = null;
@@ -227,22 +281,13 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       return;
     }
     if (oldWidget.pageIndex != widget.pageIndex) {
-      // Keep the scroll-settling frame cheap. The static page snapshot gives
-      // immediate visual feedback; the interactive canvas is attached on the
-      // following frame, after the list has settled.
-      _deferredActivationIndex = widget.pageIndex;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _deferredActivationIndex == widget.pageIndex) {
-          setState(() => _deferredActivationIndex = null);
-        }
-      });
       if (_ignorePageSync) return;
       if (_pageController != null && _pageController!.hasClients) {
         final current = _pageController!.page?.round() ?? widget.pageIndex;
         if (current != widget.pageIndex) {
           _pageController!.animateToPage(
             widget.pageIndex,
-            duration: const Duration(milliseconds: 280),
+            duration: const Duration(milliseconds: 240),
             curve: Curves.easeOutCubic,
           );
         }
@@ -285,7 +330,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (_pageController?.hasClients ?? false) {
       _pageController!.animateToPage(
         target,
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
       );
       return;
@@ -303,8 +348,9 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     }
   }
 
-  /// Consume two-finger browse pan from [InkCanvas]. Returns true if handled.
+  /// Consume browse pan from [InkCanvas]. Returns true if handled.
   bool handleBrowsePan(Offset delta) {
+    if (_scrollLock) return true;
     if (widget.canvasMode == CanvasMode.infinite) return false;
 
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
@@ -334,6 +380,10 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   void handleBrowsePanEnd() {
+    if (_scrollLock) {
+      _swipeAccum = 0;
+      return;
+    }
     if (widget.browseMode != PageBrowseMode.swipeHorizontal) {
       _swipeAccum = 0;
       return;
@@ -344,38 +394,66 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     } else if (_swipeAccum >= threshold) {
       goToAdjacent(-1);
     } else {
-      _snapPageToIndex(widget.pageIndex);
+      _snapToNearestPage(animate: true);
     }
     _swipeAccum = 0;
   }
 
-  void _snapPageToIndex(int index) {
+  void _snapToNearestPage({required bool animate}) {
     final pc = _pageController;
-    if (pc == null || !pc.hasClients) return;
+    if (pc == null || !pc.hasClients || pc.page == null) return;
     final showAdd = !widget.readOnly && widget.onReachEnd != null;
     final maxIndex = widget.pages.length - 1 + (showAdd ? 1 : 0);
     if (maxIndex < 0) return;
-    final target = index.clamp(0, maxIndex);
-    pc.animateToPage(
-      target,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-    );
+    final target = pc.page!.round().clamp(0, maxIndex);
+    if ((pc.page! - target).abs() < 0.001) return;
+    if (animate) {
+      pc.animateToPage(
+        target,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      pc.jumpToPage(target);
+    }
   }
 
   bool _onPageScroll(ScrollNotification n) {
     if (widget.browseMode != PageBrowseMode.swipeHorizontal) return false;
+    if (_scrollLock) return false;
     if (n is! ScrollEndNotification) return false;
+
     final pc = _pageController;
+    if (pc != null && pc.hasClients && pc.page != null) {
+      final showAdd = !widget.readOnly && widget.onReachEnd != null;
+      final maxIndex = widget.pages.length - 1 + (showAdd ? 1 : 0);
+      final rounded = pc.page!.round().clamp(0, maxIndex < 0 ? 0 : maxIndex);
+      // Always land on a whole page — fixes pages stuck halfway at the edge.
+      if ((pc.page! - rounded).abs() > 0.001) {
+        pc.jumpToPage(rounded);
+      }
+    }
+
+    final pending = _pendingPageIndex;
+    _pendingPageIndex = null;
+    if (pending != null) {
+      if (pending < widget.pages.length) {
+        _emitPage(pending);
+      } else {
+        // Overscrolled onto the add-page slot: create, or bounce back.
+        _requestAddPage();
+        if (pc != null && pc.hasClients && widget.pages.isNotEmpty) {
+          pc.jumpToPage(widget.pages.length - 1);
+        }
+      }
+      return false;
+    }
+
+    // Fallback if onPageChanged did not fire (e.g. cancelled swipe).
     if (pc == null || !pc.hasClients || pc.page == null) return false;
-    final page = pc.page!;
-    final showAdd = !widget.readOnly && widget.onReachEnd != null;
-    final maxIndex = widget.pages.length - 1 + (showAdd ? 1 : 0);
-    if (maxIndex < 0) return false;
-    final rounded = page.round().clamp(0, maxIndex);
-    // Incomplete swipe: spring back to the nearest settled page.
-    if ((page - rounded).abs() > 0.01) {
-      _snapPageToIndex(rounded);
+    final rounded = pc.page!.round().clamp(0, widget.pages.length - 1);
+    if (rounded != widget.pageIndex && rounded < widget.pages.length) {
+      _emitPage(rounded);
     }
     return false;
   }
@@ -415,7 +493,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       Scrollable.ensureVisible(
         ctx,
         alignment: 0.08,
-        duration: animate ? const Duration(milliseconds: 280) : Duration.zero,
+        duration: animate ? const Duration(milliseconds: 240) : Duration.zero,
         curve: Curves.easeOutCubic,
       );
       _endRestore();
@@ -449,6 +527,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
 
   bool _onScroll(ScrollNotification n) {
     if (widget.browseMode != PageBrowseMode.scrollVertical) return false;
+    if (_scrollLock) return false;
     if (n is OverscrollNotification &&
         n.overscroll > 8 &&
         n.metrics.extentAfter <= 0) {
@@ -506,93 +585,95 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     final showAddSlot = !widget.readOnly && widget.onReachEnd != null;
 
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
-      return NotificationListener<ScrollNotification>(
-        onNotification: _onPageScroll,
-        child: PageView.builder(
-          controller: _pageController,
-          physics: const PageScrollPhysics(parent: BouncingScrollPhysics()),
-          onPageChanged: (index) {
-            if (index < widget.pages.length) {
-              _emitPage(index);
-            } else {
-              _requestAddPage();
-            }
-          },
-          itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= widget.pages.length) {
-              return Center(
-                child: AddPageAffordance(
-                  axis: Axis.horizontal,
-                  onTap: () => _requestAddPage(),
+      return ScrollConfiguration(
+        behavior: const _TouchOnlyScrollBehavior(),
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _onPageScroll,
+          child: PageView.builder(
+            controller: _pageController,
+            physics: _scrollPhysics,
+            allowImplicitScrolling: false,
+            onPageChanged: (index) {
+              // Defer selectPage until the swipe settles — swapping the live
+              // InkCanvas mid-animation is what made flips feel choppy.
+              _pendingPageIndex = index;
+            },
+            itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= widget.pages.length) {
+                return Center(
+                  child: AddPageAffordance(
+                    axis: Axis.horizontal,
+                    onTap: () => _requestAddPage(),
+                  ),
+                );
+              }
+              // Keep active canvas and snapshots identically framed so the
+              // page cannot appear to jump vertically between slots.
+              return RepaintBoundary(
+                child: Center(
+                  child: index == widget.pageIndex
+                      ? widget.activePageBuilder(context, index)
+                      : PageSnapshot(page: widget.pages[index]),
                 ),
               );
-            }
-            if (index == widget.pageIndex &&
-                _deferredActivationIndex != widget.pageIndex) {
-              return widget.activePageBuilder(context, index);
-            }
-            return RepaintBoundary(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: PageSnapshot(page: widget.pages[index]),
-              ),
-            );
-          },
+            },
+          ),
         ),
       );
     }
 
     // Vertical continuous scroll through all pages.
-    return NotificationListener<ScrollNotification>(
-      onNotification: _onScroll,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return ListView.builder(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            padding: _listPadding,
-            itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= widget.pages.length) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 40),
-                  child: Center(
-                    child: AddPageAffordance(
-                      axis: Axis.vertical,
-                      onTap: () => _requestAddPage(),
+    return ScrollConfiguration(
+      behavior: const _TouchOnlyScrollBehavior(),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: _onScroll,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return ListView.builder(
+              controller: _scrollController,
+              physics: _listPhysics,
+              padding: _listPadding,
+              itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= widget.pages.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 40),
+                    child: Center(
+                      child: AddPageAffordance(
+                        axis: Axis.vertical,
+                        onTap: () => _requestAddPage(),
+                      ),
+                    ),
+                  );
+                }
+                return KeyedSubtree(
+                  key: _keyFor(index),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: _itemGap),
+                    child: Center(
+                      child: index == widget.pageIndex
+                          ? _constrainedActive(
+                              context,
+                              index,
+                              constraints.maxWidth,
+                            )
+                          : RepaintBoundary(
+                              child: GestureDetector(
+                                onTap: () => _emitPage(index),
+                                child: PageSnapshot(
+                                  page: widget.pages[index],
+                                  width: constraints.maxWidth * 0.92,
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                 );
-              }
-              return KeyedSubtree(
-                key: _keyFor(index),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: _itemGap),
-                  child: Center(
-                    child:
-                        index == widget.pageIndex &&
-                            _deferredActivationIndex != widget.pageIndex
-                        ? _constrainedActive(
-                            context,
-                            index,
-                            constraints.maxWidth,
-                          )
-                        : RepaintBoundary(
-                            child: GestureDetector(
-                              onTap: () => _emitPage(index),
-                              child: PageSnapshot(
-                                page: widget.pages[index],
-                                width: constraints.maxWidth * 0.92,
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+              },
+            );
+          },
+        ),
       ),
     );
   }

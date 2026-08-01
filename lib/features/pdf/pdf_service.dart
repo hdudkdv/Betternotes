@@ -41,6 +41,7 @@ class PdfService {
   Future<List<NotePage>> importPdfFromBytes({
     required String notebookId,
     required Uint8List bytes,
+    void Function(int done, int total)? onProgress,
   }) async {
     await pdfrx.pdfrxFlutterInitialize();
 
@@ -51,31 +52,42 @@ class PdfService {
     final pageSize = NotePageSize.resolve(paperFormat, orientation);
     final doc = await pdfrx.PdfDocument.openData(bytes);
     final filesDir = await _repository.resolveFilesDir();
-    final created = <NotePage>[];
+    final drafts = <NotePageDraft>[];
+    // 1.5× is sharp enough on tablets and much cheaper than 2× PNG.
+    final renderW = pageSize.width * 1.5;
+    final renderH = pageSize.height * 1.5;
+    final stamp = DateTime.now().microsecondsSinceEpoch;
 
     try {
-      for (var i = 0; i < doc.pages.length; i++) {
+      final total = doc.pages.length;
+      for (var i = 0; i < total; i++) {
         final pdfPage = doc.pages[i];
         String? imagePath;
 
         try {
           final rendered = await pdfPage.render(
-            fullWidth: pageSize.width * 2,
-            fullHeight: pageSize.height * 2,
+            fullWidth: renderW,
+            fullHeight: renderH,
           );
           if (rendered != null) {
-            final dartImage = rendered.createImageNF(pixelSizeThreshold: 1600);
-            final pngBytes = Uint8List.fromList(img.encodePng(dartImage));
+            final dartImage = rendered.createImageNF(pixelSizeThreshold: 1400);
             rendered.dispose();
+            // JPEG is far cheaper than PNG; run encode off the UI isolate.
+            final rgba = dartImage.getBytes(order: img.ChannelOrder.rgba);
+            final encoded = await compute(_encodeJpegIsolate, <String, dynamic>{
+              'width': dartImage.width,
+              'height': dartImage.height,
+              'bytes': rgba,
+            });
 
             if (kIsWeb) {
-              imagePath = 'memory:${base64Encode(pngBytes)}';
+              imagePath = 'memory:${base64Encode(encoded)}';
             } else {
               final outPath = p.join(
                 filesDir,
-                '${notebookId}_pdf_${DateTime.now().microsecondsSinceEpoch}_${i + 1}.png',
+                '${notebookId}_pdf_${stamp}_${i + 1}.jpg',
               );
-              await _files.writeBytes(outPath, pngBytes);
+              await _files.writeBytes(outPath, encoded);
               imagePath = outPath;
             }
           }
@@ -83,20 +95,23 @@ class PdfService {
           // Keep importing remaining pages.
         }
 
-        final notePage = await _repository.addPage(
-          notebookId: notebookId,
-          template: PageTemplate.blank,
-          backgroundPdfPath: imagePath,
-          paperFormat: paperFormat,
-          orientation: orientation,
+        drafts.add(
+          NotePageDraft(
+            template: PageTemplate.blank,
+            backgroundPdfPath: imagePath,
+            paperFormat: paperFormat,
+            orientation: orientation,
+          ),
         );
-        created.add(notePage);
+        onProgress?.call(i + 1, total);
+        // Let the UI breathe between heavy raster pages.
+        await Future<void>.delayed(Duration.zero);
       }
     } finally {
       await doc.dispose();
     }
 
-    return created;
+    return _repository.addPages(notebookId: notebookId, drafts: drafts);
   }
 
   Future<Uint8List> buildNotebookPdfBytes(
@@ -427,4 +442,20 @@ class PdfService {
     }
     canvas.strokePath();
   }
+}
+
+/// Isolate entry: JPEG encode is CPU-heavy and blocked the UI before.
+Uint8List _encodeJpegIsolate(Map<String, dynamic> args) {
+  final width = args['width'] as int;
+  final height = args['height'] as int;
+  final bytes = args['bytes'] as Uint8List;
+  final image = img.Image.fromBytes(
+    width: width,
+    height: height,
+    bytes: bytes.buffer,
+    bytesOffset: bytes.offsetInBytes,
+    rowStride: width * 4,
+    order: img.ChannelOrder.rgba,
+  );
+  return Uint8List.fromList(img.encodeJpg(image, quality: 82));
 }

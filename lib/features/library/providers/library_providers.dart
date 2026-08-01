@@ -7,6 +7,7 @@ import '../../../data/local/local_database.dart';
 import '../../../data/models/content_models.dart';
 import '../../../data/models/notebook.dart';
 import '../../../data/repositories/notebook_repository.dart';
+import '../../editor/domain/editor_gestures.dart';
 import '../../editor/domain/ink_models.dart';
 import '../../pdf/pdf_service.dart';
 import '../../planner/education_settings.dart';
@@ -78,6 +79,11 @@ class AppSettings {
     this.look = AppLook.studio,
     this.themeMode = ThemeMode.system,
     this.userRole,
+    this.pencilDoubleTapAction = EditorGestureAction.toggleEraser,
+    this.pencilSqueezeAction = EditorGestureAction.openToolWheel,
+    this.twoFingerTapAction = EditorGestureAction.undo,
+    this.threeFingerSwipeLeftAction = EditorGestureAction.previousPage,
+    this.threeFingerSwipeRightAction = EditorGestureAction.nextPage,
   });
 
   final bool fingerPanZoom;
@@ -88,6 +94,12 @@ class AppSettings {
   final PageBrowseMode pageBrowseMode;
   final EducationLevel educationLevel;
   final GermanState germanState;
+
+  final EditorGestureAction pencilDoubleTapAction;
+  final EditorGestureAction pencilSqueezeAction;
+  final EditorGestureAction twoFingerTapAction;
+  final EditorGestureAction threeFingerSwipeLeftAction;
+  final EditorGestureAction threeFingerSwipeRightAction;
 
   /// Bachelor-Ziel ECTS (typisch 180).
   final int targetEcts;
@@ -135,6 +147,11 @@ class AppSettings {
     ThemeMode? themeMode,
     AppUserRole? userRole,
     bool clearUserRole = false,
+    EditorGestureAction? pencilDoubleTapAction,
+    EditorGestureAction? pencilSqueezeAction,
+    EditorGestureAction? twoFingerTapAction,
+    EditorGestureAction? threeFingerSwipeLeftAction,
+    EditorGestureAction? threeFingerSwipeRightAction,
   }) {
     return AppSettings(
       fingerPanZoom: fingerPanZoom ?? this.fingerPanZoom,
@@ -149,6 +166,14 @@ class AppSettings {
       look: look ?? this.look,
       themeMode: themeMode ?? this.themeMode,
       userRole: clearUserRole ? null : (userRole ?? this.userRole),
+      pencilDoubleTapAction:
+          pencilDoubleTapAction ?? this.pencilDoubleTapAction,
+      pencilSqueezeAction: pencilSqueezeAction ?? this.pencilSqueezeAction,
+      twoFingerTapAction: twoFingerTapAction ?? this.twoFingerTapAction,
+      threeFingerSwipeLeftAction:
+          threeFingerSwipeLeftAction ?? this.threeFingerSwipeLeftAction,
+      threeFingerSwipeRightAction:
+          threeFingerSwipeRightAction ?? this.threeFingerSwipeRightAction,
     );
   }
 }
@@ -192,6 +217,26 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
                   (role) => role.name == _prefs.getString('userRole'),
                   orElse: () => AppUserRole.student,
                 ),
+          pencilDoubleTapAction: EditorGestureActionX.parse(
+            _prefs.getString('gesturePencilDoubleTap'),
+            EditorGestureAction.toggleEraser,
+          ),
+          pencilSqueezeAction: EditorGestureActionX.parse(
+            _prefs.getString('gesturePencilSqueeze'),
+            EditorGestureAction.openToolWheel,
+          ),
+          twoFingerTapAction: EditorGestureActionX.parse(
+            _prefs.getString('gestureTwoFingerTap'),
+            EditorGestureAction.undo,
+          ),
+          threeFingerSwipeLeftAction: EditorGestureActionX.parse(
+            _prefs.getString('gestureThreeFingerSwipeLeft'),
+            EditorGestureAction.previousPage,
+          ),
+          threeFingerSwipeRightAction: EditorGestureActionX.parse(
+            _prefs.getString('gestureThreeFingerSwipeRight'),
+            EditorGestureAction.nextPage,
+          ),
         ),
       );
 
@@ -255,6 +300,29 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> setUserRole(AppUserRole value) async {
     state = state.copyWith(userRole: value);
     await _prefs.setString('userRole', value.name);
+  }
+
+  Future<void> setGestureAction(
+    EditorGestureSlot slot,
+    EditorGestureAction action,
+  ) async {
+    switch (slot) {
+      case EditorGestureSlot.pencilDoubleTap:
+        state = state.copyWith(pencilDoubleTapAction: action);
+        await _prefs.setString('gesturePencilDoubleTap', action.name);
+      case EditorGestureSlot.pencilSqueeze:
+        state = state.copyWith(pencilSqueezeAction: action);
+        await _prefs.setString('gesturePencilSqueeze', action.name);
+      case EditorGestureSlot.twoFingerTap:
+        state = state.copyWith(twoFingerTapAction: action);
+        await _prefs.setString('gestureTwoFingerTap', action.name);
+      case EditorGestureSlot.threeFingerSwipeLeft:
+        state = state.copyWith(threeFingerSwipeLeftAction: action);
+        await _prefs.setString('gestureThreeFingerSwipeLeft', action.name);
+      case EditorGestureSlot.threeFingerSwipeRight:
+        state = state.copyWith(threeFingerSwipeRightAction: action);
+        await _prefs.setString('gestureThreeFingerSwipeRight', action.name);
+    }
   }
 }
 

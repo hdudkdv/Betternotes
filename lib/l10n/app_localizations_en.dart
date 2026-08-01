@@ -723,6 +723,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseScroll => 'Scroll';
 
   @override
+  String get gesturesSection => 'Gestures';
+
+  @override
+  String get gesturesSectionHint =>
+      'Map Apple Pencil and multi-touch shortcuts.';
+
+  @override
+  String get gesturePencilDoubleTap => 'Pencil double-tap';
+
+  @override
+  String get gesturePencilSqueeze => 'Pencil squeeze';
+
+  @override
+  String get gestureTwoFingerTap => 'Two-finger tap';
+
+  @override
+  String get gestureThreeFingerSwipeLeft => 'Three-finger swipe left';
+
+  @override
+  String get gestureThreeFingerSwipeRight => 'Three-finger swipe right';
+
+  @override
+  String get gestureActionNone => 'Do nothing';
+
+  @override
+  String get gestureActionToggleEraser => 'Pen / eraser';
+
+  @override
+  String get gestureActionPreviousTool => 'Previous tool';
+
+  @override
+  String get gestureActionOpenToolWheel => 'Open tool wheel';
+
+  @override
+  String get gestureActionUndo => 'Undo';
+
+  @override
+  String get gestureActionRedo => 'Redo';
+
+  @override
+  String get gestureActionNextPage => 'Next page';
+
+  @override
+  String get gestureActionPreviousPage => 'Previous page';
+
+  @override
+  String get gestureActionExportPage => 'Export page';
+
+  @override
+  String get gestureActionCyclePenColor => 'Cycle pen color';
+
+  @override
+  String get gestureActionFitZoom => 'Fit page';
+
+  @override
+  String get gestureActionGoBack => 'Go back';
+
+  @override
+  String pdfImportProgress(int done, int total) {
+    return 'Importing PDF… $done/$total';
+  }
+
+  @override
   String get savePageAsTemplate => 'Save page as template';
 
   @override

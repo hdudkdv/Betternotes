@@ -10,6 +10,7 @@ import '../../app/theme.dart';
 import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_repository.dart';
+import '../editor/domain/editor_gestures.dart';
 import '../editor/domain/ink_models.dart';
 import '../entitlements/entitlement_model.dart';
 import '../entitlements/rewarded_ad_mock.dart';
@@ -362,6 +363,65 @@ class SettingsScreen extends ConsumerWidget {
                 onSelectionChanged: (s) => ref
                     .read(settingsProvider.notifier)
                     .setDefaultTemplate(s.first),
+              ),
+            ],
+          ),
+          _SettingsSection(
+            title: l10n.gesturesSection,
+            titleStyle: _sectionTitle,
+            children: [
+              Text(l10n.gesturesSectionHint, style: _body),
+              const SizedBox(height: 12),
+              _GestureActionTile(
+                label: l10n.gesturePencilDoubleTap,
+                value: settings.pencilDoubleTapAction,
+                labelStyle: _label,
+                bodyStyle: _body,
+                onChanged: (a) => ref
+                    .read(settingsProvider.notifier)
+                    .setGestureAction(EditorGestureSlot.pencilDoubleTap, a),
+              ),
+              _GestureActionTile(
+                label: l10n.gesturePencilSqueeze,
+                value: settings.pencilSqueezeAction,
+                labelStyle: _label,
+                bodyStyle: _body,
+                onChanged: (a) => ref
+                    .read(settingsProvider.notifier)
+                    .setGestureAction(EditorGestureSlot.pencilSqueeze, a),
+              ),
+              _GestureActionTile(
+                label: l10n.gestureTwoFingerTap,
+                value: settings.twoFingerTapAction,
+                labelStyle: _label,
+                bodyStyle: _body,
+                onChanged: (a) => ref
+                    .read(settingsProvider.notifier)
+                    .setGestureAction(EditorGestureSlot.twoFingerTap, a),
+              ),
+              _GestureActionTile(
+                label: l10n.gestureThreeFingerSwipeLeft,
+                value: settings.threeFingerSwipeLeftAction,
+                labelStyle: _label,
+                bodyStyle: _body,
+                onChanged: (a) => ref
+                    .read(settingsProvider.notifier)
+                    .setGestureAction(
+                      EditorGestureSlot.threeFingerSwipeLeft,
+                      a,
+                    ),
+              ),
+              _GestureActionTile(
+                label: l10n.gestureThreeFingerSwipeRight,
+                value: settings.threeFingerSwipeRightAction,
+                labelStyle: _label,
+                bodyStyle: _body,
+                onChanged: (a) => ref
+                    .read(settingsProvider.notifier)
+                    .setGestureAction(
+                      EditorGestureSlot.threeFingerSwipeRight,
+                      a,
+                    ),
               ),
             ],
           ),
@@ -991,6 +1051,86 @@ class _LookPreview extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GestureActionTile extends StatelessWidget {
+  const _GestureActionTile({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    required this.labelStyle,
+    required this.bodyStyle,
+  });
+
+  final String label;
+  final EditorGestureAction value;
+  final ValueChanged<EditorGestureAction> onChanged;
+  final TextStyle labelStyle;
+  final TextStyle bodyStyle;
+
+  static String actionLabel(AppLocalizations l10n, EditorGestureAction action) {
+    switch (action) {
+      case EditorGestureAction.none:
+        return l10n.gestureActionNone;
+      case EditorGestureAction.toggleEraser:
+        return l10n.gestureActionToggleEraser;
+      case EditorGestureAction.previousTool:
+        return l10n.gestureActionPreviousTool;
+      case EditorGestureAction.openToolWheel:
+        return l10n.gestureActionOpenToolWheel;
+      case EditorGestureAction.undo:
+        return l10n.gestureActionUndo;
+      case EditorGestureAction.redo:
+        return l10n.gestureActionRedo;
+      case EditorGestureAction.nextPage:
+        return l10n.gestureActionNextPage;
+      case EditorGestureAction.previousPage:
+        return l10n.gestureActionPreviousPage;
+      case EditorGestureAction.exportPage:
+        return l10n.gestureActionExportPage;
+      case EditorGestureAction.cyclePenColor:
+        return l10n.gestureActionCyclePenColor;
+      case EditorGestureAction.fitZoom:
+        return l10n.gestureActionFitZoom;
+      case EditorGestureAction.goBack:
+        return l10n.gestureActionGoBack;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: labelStyle),
+          const SizedBox(height: 4),
+          DropdownButtonFormField<EditorGestureAction>(
+            key: ValueKey(value),
+            initialValue: value,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              isDense: true,
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+            items: [
+              for (final action in EditorGestureAction.values)
+                DropdownMenuItem(
+                  value: action,
+                  child: Text(actionLabel(l10n, action), style: bodyStyle),
+                ),
+            ],
+            onChanged: (v) {
+              if (v != null) onChanged(v);
+            },
           ),
         ],
       ),

@@ -3,6 +3,25 @@ import '../models/notebook.dart';
 import '../../features/editor/domain/ink_models.dart';
 import '../../shared/utils/page_size.dart';
 
+/// Lightweight input for [NotebookRepository.addPages].
+class NotePageDraft {
+  const NotePageDraft({
+    this.template = PageTemplate.blank,
+    this.backgroundPdfPath,
+    this.paperTemplateId,
+    this.customPaper,
+    this.paperFormat = PaperFormat.a4,
+    this.orientation = PageOrientation.portrait,
+  });
+
+  final PageTemplate template;
+  final String? backgroundPdfPath;
+  final String? paperTemplateId;
+  final PaperTemplate? customPaper;
+  final PaperFormat paperFormat;
+  final PageOrientation orientation;
+}
+
 abstract class NotebookRepository {
   Future<List<Notebook>> getNotebooks({String query = ''});
 
@@ -38,6 +57,12 @@ abstract class NotebookRepository {
     PaperTemplate? customPaper,
     PaperFormat paperFormat = PaperFormat.a4,
     PageOrientation orientation = PageOrientation.portrait,
+  });
+
+  /// Bulk insert used by PDF import — one txn / sync flush instead of N.
+  Future<List<NotePage>> addPages({
+    required String notebookId,
+    required List<NotePageDraft> drafts,
   });
 
   Future<void> savePage(NotePage page);
