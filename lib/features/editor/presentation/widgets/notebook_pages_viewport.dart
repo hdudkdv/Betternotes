@@ -224,6 +224,8 @@ class _TouchOnlyScrollBehavior extends MaterialScrollBehavior {
   Set<PointerDeviceKind> get dragDevices => const {
     PointerDeviceKind.touch,
     PointerDeviceKind.trackpad,
+    // Desktop testing / mouse-as-finger navigation.
+    PointerDeviceKind.mouse,
   };
 }
 
@@ -272,7 +274,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   bool _restoring = false;
   double _swipeAccum = 0;
 
-  /// Locks PageView / ListView while drawing, pinching, or zoomed.
+  /// Locks PageView / ListView while drawing or pinching.
   bool _scrollLock = false;
 
   /// Swipe velocity (px/s, screen space) for natural page commits.

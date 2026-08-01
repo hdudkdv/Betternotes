@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 import '../../../../data/models/content_models.dart';
 import '../../domain/ink_engine.dart';
@@ -55,12 +53,13 @@ class InkCanvas extends StatefulWidget {
   final Widget? overlay;
   final PageBrowseMode browseMode;
 
-  /// Finger pan at fit-zoom: used for page browse (swipe/scroll).
+  /// Finger pan for page browse (fit zoom, or zoomed + edge overscroll).
   /// Return true if the parent consumed the gesture (skip canvas pan).
   final bool Function(Offset globalDelta)? onBrowsePan;
   final VoidCallback? onBrowsePanEnd;
 
-  /// Lock PageView/ListView while drawing, pinching, or zoomed in.
+  /// Lock PageView/ListView while drawing or pinching (not merely zoomed —
+  /// zoomed edge-swipes still drive the page strip).
   final ValueChanged<bool>? onScrollLockChanged;
 
   /// Two-finger tap (little movement) for configurable shortcuts.
@@ -106,14 +105,20 @@ class InkCanvasState extends State<InkCanvas>
   Offset? _threeFingerStart;
   bool _browseActive = false;
 
+  /// Set once the fit matrix has been written to [_transform]. Until then the
+  /// controller is still identity (scale=1), which must NOT count as zoomed —
+  /// otherwise page-swipe is locked and the page pans at the wrong size.
+  bool _fitReady = false;
+
   /// Current zoom relative to the scale at which the page fits the viewport.
   double get relativeZoom =>
       _transform.value.getMaxScaleOnAxis() / (_fitScale == 0 ? 1 : _fitScale);
 
-  /// True only when clearly zoomed in — tiny float noise must not block swipes.
-  bool get _isZoomed =>
-      _fitScale > 0 &&
-      _transform.value.getMaxScaleOnAxis() > _fitScale * 1.12;
+  /// True only when clearly zoomed in past fit. Unfitted identity ≠ zoomed.
+  bool get _isZoomed {
+    if (!_fitReady || _fitScale <= 0) return false;
+    return _transform.value.getMaxScaleOnAxis() > _fitScale * 1.12;
+  }
 
   double get _minScale =>
       widget.canvasMode == CanvasMode.infinite ? 0.012 : _fitScale;
@@ -145,7 +150,11 @@ class InkCanvasState extends State<InkCanvas>
   void fitToViewport() {
     final size = _viewportSize;
     if (size == Size.zero) return;
-    setState(() => _transform.value = _fitMatrix(size));
+    setState(() {
+      _transform.value = _fitMatrix(size);
+      _fitReady = true;
+    });
+    _forceScrollUnlock();
   }
 
   Size get _childSize {
@@ -205,22 +214,19 @@ class InkCanvasState extends State<InkCanvas>
     _clampView();
   }
 
-  /// Keep scale ≥ fit and translation so the page never leaves the viewport.
-  void _clampView() {
-    if (widget.canvasMode == CanvasMode.infinite) return;
-    if (_viewportSize == Size.zero || _fitScale <= 0) return;
-
-    final current = _transform.value;
-    final scale = current.getMaxScaleOnAxis().clamp(_minScale, _maxScale);
+  /// Pan translation limits for the current scale (scene → viewport).
+  ({double minDx, double maxDx, double minDy, double maxDy}) _translationBounds([
+    double? scaleOverride,
+  ]) {
+    final scale =
+        (scaleOverride ?? _transform.value.getMaxScaleOnAxis())
+            .clamp(_minScale, _maxScale);
     final child = _childSize;
     final scaledW = child.width * scale;
     final scaledH = child.height * scale;
     final vp = _viewportSize;
 
-    double minDx;
-    double maxDx;
-    double minDy;
-    double maxDy;
+    late double minDx, maxDx, minDy, maxDy;
     if (scaledW <= vp.width + 0.5) {
       minDx = maxDx = (vp.width - scaledW) / 2;
     } else {
@@ -233,9 +239,19 @@ class InkCanvasState extends State<InkCanvas>
       minDy = vp.height - scaledH;
       maxDy = 0;
     }
+    return (minDx: minDx, maxDx: maxDx, minDy: minDy, maxDy: maxDy);
+  }
 
-    final dx = current.storage[12].clamp(minDx, maxDx);
-    final dy = current.storage[13].clamp(minDy, maxDy);
+  /// Keep scale ≥ fit and translation so the page never leaves the viewport.
+  void _clampView() {
+    if (widget.canvasMode == CanvasMode.infinite) return;
+    if (_viewportSize == Size.zero || _fitScale <= 0) return;
+
+    final current = _transform.value;
+    final scale = current.getMaxScaleOnAxis().clamp(_minScale, _maxScale);
+    final b = _translationBounds(scale);
+    final dx = current.storage[12].clamp(b.minDx, b.maxDx);
+    final dy = current.storage[13].clamp(b.minDy, b.maxDy);
     final scaleChanged =
         (current.getMaxScaleOnAxis() - scale).abs() > 0.0001;
     final posChanged =
@@ -254,7 +270,8 @@ class InkCanvasState extends State<InkCanvas>
     if (widget.canvasMode == CanvasMode.infinite) return;
     if (_viewportSize == Size.zero) return;
     // Anything at/near fit zoom snaps back to a perfectly centered page.
-    if (_transform.value.getMaxScaleOnAxis() > _fitScale * 1.12) {
+    if (_fitReady &&
+        _transform.value.getMaxScaleOnAxis() > _fitScale * 1.12) {
       _clampView();
       _updateScrollLock();
       return;
@@ -263,6 +280,7 @@ class InkCanvasState extends State<InkCanvas>
     if (_transform.value != fitted) {
       _transform.value = fitted;
     }
+    _fitReady = true;
     _forceScrollUnlock();
   }
 
@@ -356,9 +374,9 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _updateScrollLock() {
-    // Lock page browsing only while drawing, pinching, or actually zoomed-in.
-    // Never lock for the keyboard — that permanently blocked page swipes.
-    final lock = _drawing || _pointerGlobal.length >= 2 || _isZoomed;
+    // Lock native list physics while drawing or pinching. Zoomed-in single
+    // finger must stay free so edge-overscroll can flip pages (GoodNotes).
+    final lock = _drawing || _pointerGlobal.length >= 2;
     if (lock == _scrollLockSent) return;
     _scrollLockSent = lock;
     widget.onScrollLockChanged?.call(lock);
@@ -410,12 +428,6 @@ class InkCanvasState extends State<InkCanvas>
     _clampView();
   }
 
-  bool _isStylusOrMouse(PointerEvent event) {
-    return event.kind == PointerDeviceKind.stylus ||
-        event.kind == PointerDeviceKind.invertedStylus ||
-        event.kind == PointerDeviceKind.mouse;
-  }
-
   bool _isTouch(PointerEvent event) => event.kind == PointerDeviceKind.touch;
 
   /// [Listener] wraps the gutter box; ink APIs expect page-local coords.
@@ -424,7 +436,11 @@ class InkCanvasState extends State<InkCanvas>
     return local - const Offset(PageViewportFit.gutter / 2, PageViewportFit.gutter / 2);
   }
 
-  /// One finger draws (unless stylus-only mode). Stylus/mouse always draw.
+  bool _isActiveStylus(PointerEvent event) =>
+      event.kind == PointerDeviceKind.stylus ||
+      event.kind == PointerDeviceKind.invertedStylus;
+
+  /// Whether this pointer should ink (vs. pan / page-browse).
   bool _canDrawWith(PointerEvent event) {
     if (widget.readOnly) return false;
     if (widget.engine.tool == InkTool.none) return false;
@@ -432,13 +448,21 @@ class InkCanvasState extends State<InkCanvas>
     if (widget.engine.tool == InkTool.text) {
       return true; // tap to place text
     }
-    if (_isStylusOrMouse(event)) return true;
-    if (_isTouch(event)) {
-      // Stylus-only navigation mode: finger does not draw.
-      if (widget.fingerPanZoom) return false;
-      return true;
+    // Stylus-only mode (normal notebook pages): only the pencil inks.
+    // Touch, mouse and trackpad navigate / flip pages — critical on desktop.
+    if (widget.fingerPanZoom) {
+      return _isActiveStylus(event);
     }
-    return true;
+    // Freehand with any pointing device.
+    return _isActiveStylus(event) ||
+        _isTouch(event) ||
+        event.kind == PointerDeviceKind.mouse;
+  }
+
+  bool _canBrowseWith(PointerEvent event) {
+    if (widget.canvasMode == CanvasMode.infinite) return false;
+    if (!(widget.fingerPanZoom || widget.readOnly)) return false;
+    return !_canDrawWith(event);
   }
 
   Offset _focalGlobal() {
@@ -470,10 +494,76 @@ class InkCanvasState extends State<InkCanvas>
   bool _tryBrowsePan(Offset globalDelta) {
     final cb = widget.onBrowsePan;
     if (cb == null || widget.canvasMode == CanvasMode.infinite) return false;
-    if (_isZoomed) return false;
     final consumed = cb(globalDelta);
     if (consumed) _browseActive = true;
     return consumed;
+  }
+
+  /// GoodNotes-style navigation:
+  /// - Fit zoom: horizontal/vertical swipe flips pages.
+  /// - Zoomed in: pan freely; once the page edge is hit, further swipe in that
+  ///   direction overscrolls into the page strip (next/previous page).
+  void _handleNavPan(Offset delta) {
+    if (widget.canvasMode == CanvasMode.infinite) {
+      _applyPanDelta(delta);
+      return;
+    }
+
+    final horizontal =
+        widget.browseMode == PageBrowseMode.swipeHorizontal;
+    final bounds = _translationBounds();
+    final dx = _transform.value.storage[12];
+    final dy = _transform.value.storage[13];
+
+    if (horizontal) {
+      // Mostly vertical movement while zoomed → just pan.
+      if (_isZoomed && delta.dx.abs() < delta.dy.abs() * 0.85) {
+        _applyPanDelta(delta);
+        return;
+      }
+      final atLeft = dx >= bounds.maxDx - 1.0;
+      final atRight = dx <= bounds.minDx + 1.0;
+      // Finger right → content right → previous page; finger left → next.
+      final toPrev = delta.dx > 0;
+      final toNext = delta.dx < 0;
+      if ((atLeft && toPrev) || (atRight && toNext)) {
+        _tryBrowsePan(Offset(delta.dx, 0));
+        // Keep orthogonal pan when zoomed.
+        if (_isZoomed && delta.dy.abs() > 0.01) {
+          _applyPanDelta(Offset(0, delta.dy));
+        }
+        return;
+      }
+      if (_isZoomed) {
+        _applyPanDelta(delta);
+      } else {
+        // Fit zoom: any clear horizontal swipe flips pages.
+        _tryBrowsePan(delta);
+      }
+      return;
+    }
+
+    // Vertical continuous browse.
+    if (_isZoomed && delta.dy.abs() < delta.dx.abs() * 0.85) {
+      _applyPanDelta(delta);
+      return;
+    }
+    final atTop = dy >= bounds.maxDy - 1.0;
+    final atBottom = dy <= bounds.minDy + 1.0;
+    final toPrev = delta.dy > 0;
+    final toNext = delta.dy < 0;
+    if ((atTop && toPrev) || (atBottom && toNext)) {
+      _tryBrowsePan(Offset(0, delta.dy));
+      if (_isZoomed && delta.dx.abs() > 0.01) {
+        _applyPanDelta(Offset(delta.dx, 0));
+      }
+      return;
+    }
+    if (_isZoomed) {
+      _applyPanDelta(delta);
+    } else {
+      _tryBrowsePan(delta);
+    }
   }
 
   /// Visible board rect in page/local coordinates.
@@ -542,21 +632,19 @@ class InkCanvasState extends State<InkCanvas>
     if (_canDrawWith(event)) {
       _drawPointer = event.pointer;
       _drawing = true;
-      _drawIsStylus = _isStylusOrMouse(event);
+      _drawIsStylus = _isActiveStylus(event);
       setState(() {});
       _updateScrollLock();
       widget.onPointerDown(
         _toPageLocal(event.localPosition),
-        isStylus:
-            event.kind == PointerDeviceKind.stylus ||
-            event.kind == PointerDeviceKind.invertedStylus,
+        isStylus: _isActiveStylus(event),
         pressure: event.pressure == 0 ? 0.5 : event.pressure,
       );
       return;
     }
 
-    // Finger navigation: stylus/mouse writes, a finger browses or pans.
-    if ((widget.fingerPanZoom || widget.readOnly) && _isTouch(event)) {
+    // Navigation pointer: browse pages at fit zoom / pan when zoomed in.
+    if (_canBrowseWith(event)) {
       _panLastFocal = event.position;
       setState(() {});
     }
@@ -602,18 +690,10 @@ class InkCanvasState extends State<InkCanvas>
       return;
     }
 
-    // At fit zoom, drive page browsing from the canvas (PageView alone is
-    // unreliable under InteractiveViewer). When zoomed, pan the page instead.
-    if (!_keyboardOpen &&
-        !_drawing &&
-        _panLastFocal != null &&
-        (widget.readOnly || widget.fingerPanZoom)) {
+    // Fit zoom → page flip. Zoomed → pan, then edge-overscroll → page flip.
+    if (!_keyboardOpen && !_drawing && _panLastFocal != null) {
       final delta = event.position - _panLastFocal!;
-      if (_isZoomed) {
-        _applyPanDelta(delta);
-      } else {
-        _tryBrowsePan(delta);
-      }
+      _handleNavPan(delta);
       _panLastFocal = event.position;
     }
   }
@@ -694,23 +774,28 @@ class InkCanvasState extends State<InkCanvas>
           final pageChanged = _fittedPageSize != widget.pageSize;
           final viewportChanged = _fittedViewport != viewport;
           if (_fittedViewport == null || pageChanged) {
+            final firstFit = _fittedViewport == null;
             _fittedPageSize = widget.pageSize;
             _fittedViewport = viewport;
             final matrix = _fitMatrix(viewport);
-            // Apply before the next paint (same frame) so the page never
-            // flashes at scale=1 when the live canvas mounts.
-            SchedulerBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
+            if (firstFit) {
+              // InteractiveViewer is not listening yet this build — safe to
+              // write the fit matrix synchronously so the first paint is correct
+              // and page-swipe is not locked by identity scale=1.
               _transform.value = matrix;
-              _forceScrollUnlock();
-            });
-            // Also push immediately after this build phase.
-            scheduleMicrotask(() {
-              if (!mounted) return;
-              if (_fittedViewport == viewport) {
+              _fitReady = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _forceScrollUnlock();
+              });
+            } else {
+              _fitReady = false;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
                 _transform.value = matrix;
-              }
-            });
+                _fitReady = true;
+                _forceScrollUnlock();
+              });
+            }
           } else if (viewportChanged) {
             final oldViewport = _fittedViewport!;
             _fittedViewport = viewport;
@@ -719,6 +804,7 @@ class InkCanvasState extends State<InkCanvas>
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 _retainViewOnViewportChange(oldViewport, viewport);
+                _fitReady = true;
               }
             });
           }

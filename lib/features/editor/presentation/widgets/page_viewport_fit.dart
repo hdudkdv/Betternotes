@@ -8,34 +8,35 @@ class PageViewportFit {
   PageViewportFit._();
 
   /// Invisible interaction gutter around the paper (32px per side).
+  /// Not part of the fit-scale math — only hit-testing / chrome.
   static const double gutter = 64;
 
   static Size childSize(Size pageSize) =>
       Size(pageSize.width + gutter, pageSize.height + gutter);
 
-  /// Breathing room between page and viewport edges — larger than a thin
-  /// hairline so the paper clearly floats on the workspace background.
+  /// Workspace margin around the paper (GoodNotes-like floating page).
   static EdgeInsets paddingFor(Size viewport) {
     return EdgeInsets.symmetric(
-      horizontal: math.max(48.0, viewport.width * 0.1),
-      vertical: math.max(40.0, viewport.height * 0.08),
+      horizontal: math.max(36.0, viewport.width * 0.07),
+      vertical: math.max(28.0, viewport.height * 0.055),
     );
   }
 
+  /// Scale so the **paper** (not the gutter) fits inside the padded viewport.
   static double fitScale(Size viewport, Size pageSize) {
     final pad = paddingFor(viewport);
-    final child = childSize(pageSize);
     final availW =
         (viewport.width - pad.horizontal).clamp(1.0, double.infinity);
     final availH =
         (viewport.height - pad.vertical).clamp(1.0, double.infinity);
-    return math.min(availW / child.width, availH / child.height);
+    return math.min(availW / pageSize.width, availH / pageSize.height);
   }
 
   /// Same matrix [InkCanvas] uses at fit-zoom — keep snapshots pixel-aligned.
   static Matrix4 fitMatrix(Size viewport, Size pageSize) {
     final scale = fitScale(viewport, pageSize);
     final child = childSize(pageSize);
+    // Centering the gutter-box keeps the paper itself centered in the viewport.
     final dx = (viewport.width - child.width * scale) / 2;
     final dy = (viewport.height - child.height * scale) / 2;
     return Matrix4.identity()
