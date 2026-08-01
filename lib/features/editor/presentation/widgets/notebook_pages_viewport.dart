@@ -226,10 +226,10 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   void setDrawingLock(bool locked) => setScrollLock(locked);
 
   ScrollPhysics get _scrollPhysics {
-    if (_scrollLock) {
-      return const NeverScrollableScrollPhysics();
-    }
-    return const PageScrollPhysics(parent: ClampingScrollPhysics());
+    // Page flips are driven by InkCanvas finger-browse / goToAdjacent /
+    // sidebar — not by PageView's own drag (that fought the canvas and
+    // often ended up permanently locked).
+    return const NeverScrollableScrollPhysics();
   }
 
   ScrollPhysics get _listPhysics {
@@ -350,7 +350,6 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
 
   /// Consume browse pan from [InkCanvas]. Returns true if handled.
   bool handleBrowsePan(Offset delta) {
-    if (_scrollLock) return true;
     if (widget.canvasMode == CanvasMode.infinite) return false;
 
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
@@ -380,15 +379,11 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   void handleBrowsePanEnd() {
-    if (_scrollLock) {
-      _swipeAccum = 0;
-      return;
-    }
     if (widget.browseMode != PageBrowseMode.swipeHorizontal) {
       _swipeAccum = 0;
       return;
     }
-    const threshold = 72.0;
+    const threshold = 64.0;
     if (_swipeAccum <= -threshold) {
       goToAdjacent(1);
     } else if (_swipeAccum >= threshold) {

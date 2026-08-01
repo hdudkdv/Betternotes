@@ -758,6 +758,54 @@ abstract class AppLocalizations {
   /// **'Compass'**
   String get compass;
 
+  /// No description provided for @fixGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get fixGuide;
+
+  /// No description provided for @guideFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get guideFixed;
+
+  /// No description provided for @compassSetCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to set center'**
+  String get compassSetCenter;
+
+  /// No description provided for @compassRadius.
+  ///
+  /// In en, this message translates to:
+  /// **'Radius'**
+  String get compassRadius;
+
+  /// No description provided for @strokeStyleSolid.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid'**
+  String get strokeStyleSolid;
+
+  /// No description provided for @strokeStyleDashed.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashed'**
+  String get strokeStyleDashed;
+
+  /// No description provided for @strokeStyleDotted.
+  ///
+  /// In en, this message translates to:
+  /// **'Dotted'**
+  String get strokeStyleDotted;
+
+  /// No description provided for @strokeStyleDashDot.
+  ///
+  /// In en, this message translates to:
+  /// **'Dash-dot'**
+  String get strokeStyleDashDot;
+
   /// No description provided for @rulerHint.
   ///
   /// In en, this message translates to:

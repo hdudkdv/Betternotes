@@ -25,6 +25,7 @@ import '../../teacher/teacher_models.dart';
 import '../../timetable/timetable_model.dart';
 import '../../library/providers/library_providers.dart';
 import '../../pdf/pdf_service.dart';
+import '../domain/drawing_aids.dart';
 import '../domain/editor_gestures.dart';
 import '../domain/ink_engine.dart';
 import '../domain/ink_models.dart';
@@ -50,6 +51,8 @@ import 'widgets/share_export_sheet.dart';
 import 'widgets/shape_painter.dart';
 import 'widgets/study_pomodoro_chip.dart';
 import 'widgets/text_block_layer.dart';
+import 'widgets/compass_overlay.dart';
+import 'widgets/ruler_overlay.dart';
 import 'widgets/tool_wheel.dart';
 import '../../flashcards/create_flashcard_dialog.dart';
 import '../../import_export/import_export_providers.dart';
@@ -92,6 +95,8 @@ class EditorController extends ChangeNotifier {
     this.initialOutlineId,
   }) {
     ink.addListener(_onInkChanged);
+    drawingAids.addListener(_onAidsChanged);
+    ink.pointConstraint = drawingAids.activeConstraint;
     _load();
   }
 
@@ -102,6 +107,8 @@ class EditorController extends ChangeNotifier {
   final bool fingerPanZoom;
   final String? initialPageId;
   final String? initialOutlineId;
+
+  final DrawingAidsController drawingAids = DrawingAidsController();
 
   /// Optional hook used by nearby LAN sync after a local page save.
   void Function(NotePage page)? onPagePersisted;
@@ -281,6 +288,33 @@ class EditorController extends ChangeNotifier {
     _scheduleSave();
   }
 
+  void _onAidsChanged() {
+    ink.pointConstraint = drawingAids.activeConstraint;
+    // Keep guide chips in sync with overlay visibility.
+    if (drawingAids.hasRuler) {
+      ink.guide = DrawingGuide.ruler;
+    } else if (drawingAids.hasCompass) {
+      ink.guide = DrawingGuide.compass;
+    } else if (ink.guide != DrawingGuide.none) {
+      ink.guide = DrawingGuide.none;
+    }
+    notifyListeners();
+  }
+
+  void toggleRulerAid() {
+    final page = currentPage;
+    if (page == null) return;
+    final size = NotePageSize.resolve(page.paperFormat, page.orientation);
+    drawingAids.toggleRuler(size);
+  }
+
+  void toggleCompassAid() {
+    final page = currentPage;
+    if (page == null) return;
+    final size = NotePageSize.resolve(page.paperFormat, page.orientation);
+    drawingAids.toggleCompass(size);
+  }
+
   void _scheduleSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 450), _persistCurrent);
@@ -324,6 +358,8 @@ class EditorController extends ChangeNotifier {
     // Saving the page we leave takes its snapshot synchronously, so the swap
     // does not have to wait for the write to land.
     unawaited(_persistCurrent());
+    // Unfixed aids leave with the page; fixed ruler/compass stay in place.
+    drawingAids.clearUnfixed();
     _bindPageContent(index);
     notifyListeners();
     await _loadBackground();
@@ -1048,10 +1084,13 @@ class EditorController extends ChangeNotifier {
     _disposed = true;
     _saveTimer?.cancel();
     ink.removeListener(_onInkChanged);
+    drawingAids.removeListener(_onAidsChanged);
     unawaited(_persistCurrent());
     backgroundImage?.dispose();
     textRegistry.disposeAll();
+    ink.pointConstraint = null;
     ink.dispose();
+    drawingAids.dispose();
     super.dispose();
   }
 }
@@ -1509,6 +1548,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               ),
                             ),
                           ),
+                          if (controller.drawingAids.ruler != null)
+                            RulerOverlay(
+                              aid: controller.drawingAids.ruler!,
+                              readOnly: readOnly || presenting,
+                              onChanged: controller.drawingAids.updateRuler,
+                              onToggleFixed: () => controller.drawingAids
+                                  .setRulerFixed(
+                                    !controller.drawingAids.ruler!.fixed,
+                                  ),
+                            ),
+                          if (controller.drawingAids.compass != null)
+                            CompassOverlay(
+                              aid: controller.drawingAids.compass!,
+                              pageSize: NotePageSize.resolve(
+                                page.paperFormat,
+                                page.orientation,
+                              ),
+                              readOnly: readOnly || presenting,
+                              onChanged: controller.drawingAids.updateCompass,
+                              onToggleFixed: () => controller.drawingAids
+                                  .setCompassFixed(
+                                    !controller.drawingAids.compass!.fixed,
+                                  ),
+                            ),
                           ImageElementsLayer(
                             images: controller.images,
                             selectedId: controller.selectedImageId,
@@ -1577,6 +1640,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   onTextLayoutModeChanged: controller.setTextLayoutMode,
                   onAddText: () => controller.addTextBlock(text: l10n.newText),
                   onPickImage: controller.pickAndInsertImage,
+                  onToggleRuler: controller.toggleRulerAid,
+                  onToggleCompass: controller.toggleCompassAid,
+                  rulerActive: controller.drawingAids.hasRuler,
+                  compassActive: controller.drawingAids.hasCompass,
                   formatBlock: textFormatTarget,
                   formatController: textFormatController,
                   onFormatBlockChanged: controller.updateTextBlock,

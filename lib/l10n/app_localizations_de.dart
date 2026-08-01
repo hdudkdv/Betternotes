@@ -366,6 +366,30 @@ class AppLocalizationsDe extends AppLocalizations {
   String get compass => 'Zirkel';
 
   @override
+  String get fixGuide => 'Fixieren';
+
+  @override
+  String get guideFixed => 'Fixiert';
+
+  @override
+  String get compassSetCenter => 'Mittelpunkt antippen';
+
+  @override
+  String get compassRadius => 'Radius';
+
+  @override
+  String get strokeStyleSolid => 'Durchgezogen';
+
+  @override
+  String get strokeStyleDashed => 'Gestrichelt';
+
+  @override
+  String get strokeStyleDotted => 'Gepunktet';
+
+  @override
+  String get strokeStyleDashDot => 'Strich-Punkt';
+
+  @override
   String get rulerHint => 'Ziehen für eine Gerade (rastet alle 15°)';
 
   @override

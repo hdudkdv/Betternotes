@@ -364,6 +364,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get compass => 'Compass';
 
   @override
+  String get fixGuide => 'Pin';
+
+  @override
+  String get guideFixed => 'Pinned';
+
+  @override
+  String get compassSetCenter => 'Tap to set center';
+
+  @override
+  String get compassRadius => 'Radius';
+
+  @override
+  String get strokeStyleSolid => 'Solid';
+
+  @override
+  String get strokeStyleDashed => 'Dashed';
+
+  @override
+  String get strokeStyleDotted => 'Dotted';
+
+  @override
+  String get strokeStyleDashDot => 'Dash-dot';
+
+  @override
   String get rulerHint => 'Drag for a straight line (snaps every 15°)';
 
   @override

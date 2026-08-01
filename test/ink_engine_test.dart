@@ -4,6 +4,8 @@ import 'package:betternotes/features/editor/domain/ink_engine.dart';
 import 'package:betternotes/features/editor/domain/ink_models.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('InkEngine records strokes and undo', () {
     final engine = InkEngine()
       ..setTool(InkTool.pen)

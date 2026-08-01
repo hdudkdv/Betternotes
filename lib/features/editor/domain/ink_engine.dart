@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -29,6 +28,7 @@ class InkEngine extends ChangeNotifier {
   InkTool tool = InkTool.pen;
   int colorValue = 0xFF1A1A1A;
   double width = 2.5;
+  StrokeStyle strokeStyle = StrokeStyle.solid;
   EraserMode eraserMode = EraserMode.stroke;
   Offset? eraserCursor;
 
@@ -37,6 +37,9 @@ class InkEngine extends ChangeNotifier {
 
   /// Optional ruler/compass constraint used with freehand tools.
   DrawingGuide guide = DrawingGuide.none;
+
+  /// When set (ruler/compass overlays), freehand samples snap onto the aid.
+  Offset Function(Offset point)? pointConstraint;
 
   List<Offset> _lassoPoints = [];
   Set<String> selectedIds = {};
@@ -110,6 +113,17 @@ class InkEngine extends ChangeNotifier {
   void setGuide(DrawingGuide value) {
     guide = guide == value ? DrawingGuide.none : value;
     notifyListeners();
+  }
+
+  void setStrokeStyle(StrokeStyle value) {
+    strokeStyle = value;
+    notifyListeners();
+  }
+
+  Offset _constrained(Offset point) {
+    final c = pointConstraint;
+    if (c != null) return c(point);
+    return point;
   }
 
   void setPressureSensitivity(double value) {
@@ -187,14 +201,16 @@ class InkEngine extends ChangeNotifier {
     }
 
     final p = _effectivePressure(pressure);
-    _guideOrigin = point;
+    final start = _constrained(point);
+    _guideOrigin = start;
     _activeStroke = InkStroke(
       id: _uuid.v4(),
       tool: tool,
       colorValue: colorValue,
       width: width,
+      style: tool.isFreehand ? strokeStyle : StrokeStyle.solid,
       points: <StrokePoint>[
-        StrokePoint(x: point.dx, y: point.dy, pressure: p, t: t),
+        StrokePoint(x: start.dx, y: start.dy, pressure: p, t: t),
       ],
     );
     _notifyNow();
@@ -226,21 +242,28 @@ class InkEngine extends ChangeNotifier {
     final p = _effectivePressure(pressure);
     final origin = _guideOrigin ?? active.points.first.offset;
 
+    // Overlay aids (ruler/compass) snap samples onto the guide geometry —
+    // the user chooses where ink is laid, rather than auto-drawing a circle.
+    if (pointConstraint != null) {
+      final snapped = _constrained(point);
+      final last = active.points.last;
+      final dx = snapped.dx - last.x;
+      final dy = snapped.dy - last.y;
+      if (dx * dx + dy * dy < 0.09) return;
+      active.points.add(
+        StrokePoint(x: snapped.dx, y: snapped.dy, pressure: p, t: t),
+      );
+      _notifyPaint();
+      return;
+    }
+
+    // Legacy angle-snap ruler (no overlay).
     if (guide == DrawingGuide.ruler) {
       final end = snapRulerEndpoint(origin, point);
       active.points
         ..clear()
         ..add(StrokePoint(x: origin.dx, y: origin.dy, pressure: p, t: t))
         ..add(StrokePoint(x: end.dx, y: end.dy, pressure: p, t: t));
-      _notifyPaint();
-      return;
-    }
-
-    if (guide == DrawingGuide.compass) {
-      final radius = (point - origin).distance;
-      active.points
-        ..clear()
-        ..addAll(_circleStrokePoints(origin, radius, p, t));
       _notifyPaint();
       return;
     }
@@ -255,33 +278,6 @@ class InkEngine extends ChangeNotifier {
       StrokePoint(x: point.dx, y: point.dy, pressure: p, t: t),
     );
     _notifyPaint();
-  }
-
-  List<StrokePoint> _circleStrokePoints(
-    Offset center,
-    double radius,
-    double pressure,
-    int t,
-  ) {
-    if (radius < 0.5) {
-      return [
-        StrokePoint(x: center.dx, y: center.dy, pressure: pressure, t: t),
-      ];
-    }
-    final segments = (radius * 0.75).clamp(32, 96).round();
-    final points = <StrokePoint>[];
-    for (var i = 0; i <= segments; i++) {
-      final a = (i / segments) * math.pi * 2;
-      points.add(
-        StrokePoint(
-          x: center.dx + math.cos(a) * radius,
-          y: center.dy + math.sin(a) * radius,
-          pressure: pressure,
-          t: t,
-        ),
-      );
-    }
-    return points;
   }
 
   void cancelStroke() {
@@ -348,6 +344,7 @@ class InkEngine extends ChangeNotifier {
       tool: active.tool,
       colorValue: active.colorValue,
       width: active.width,
+      style: active.style,
       points: List<StrokePoint>.of(active.points),
     );
     _pushUndo(_HistoryEntry.add(committed));

@@ -24,6 +24,10 @@ class ToolOptionsBar extends ConsumerWidget {
     required this.onTextLayoutModeChanged,
     required this.onAddText,
     required this.onPickImage,
+    this.onToggleRuler,
+    this.onToggleCompass,
+    this.rulerActive = false,
+    this.compassActive = false,
     this.formatBlock,
     this.formatController,
     this.onFormatBlockChanged,
@@ -36,6 +40,10 @@ class ToolOptionsBar extends ConsumerWidget {
   final ValueChanged<TextLayoutMode> onTextLayoutModeChanged;
   final VoidCallback onAddText;
   final VoidCallback onPickImage;
+  final VoidCallback? onToggleRuler;
+  final VoidCallback? onToggleCompass;
+  final bool rulerActive;
+  final bool compassActive;
   final TextBlock? formatBlock;
   final RichTextEditingController? formatController;
   final ValueChanged<TextBlock>? onFormatBlockChanged;
@@ -181,6 +189,8 @@ class ToolOptionsBar extends ConsumerWidget {
             onTap: () => engine.setPenSubtype(fountain: true),
           ),
           _divider(),
+          ..._strokeStyleChips(context, l10n),
+          _divider(),
           ..._pressureSlider(context, l10n),
           _divider(),
           ..._widthChips(context, l10n, presets, InkTool.pen),
@@ -200,6 +210,8 @@ class ToolOptionsBar extends ConsumerWidget {
       case InkTool.marker:
         return [
           ..._guideChips(context, l10n),
+          _divider(),
+          ..._strokeStyleChips(context, l10n),
           _divider(),
           ..._widthChips(context, l10n, presets, engine.tool),
           _divider(),
@@ -304,16 +316,46 @@ class ToolOptionsBar extends ConsumerWidget {
   List<Widget> _guideChips(BuildContext context, AppLocalizations l10n) {
     return [
       _labelChip(
-        selected: engine.guide == DrawingGuide.ruler,
+        selected: rulerActive || engine.guide == DrawingGuide.ruler,
         icon: Icons.straighten_rounded,
         label: l10n.ruler,
-        onTap: () => engine.setGuide(DrawingGuide.ruler),
+        onTap: () => (onToggleRuler ?? () => engine.setGuide(DrawingGuide.ruler))(),
       ),
       _labelChip(
-        selected: engine.guide == DrawingGuide.compass,
+        selected: compassActive || engine.guide == DrawingGuide.compass,
         icon: Icons.architecture_rounded,
         label: l10n.compass,
-        onTap: () => engine.setGuide(DrawingGuide.compass),
+        onTap: () =>
+            (onToggleCompass ?? () => engine.setGuide(DrawingGuide.compass))(),
+      ),
+    ];
+  }
+
+  List<Widget> _strokeStyleChips(BuildContext context, AppLocalizations l10n) {
+    return [
+      _iconChip(
+        selected: engine.strokeStyle == StrokeStyle.solid,
+        icon: Icons.horizontal_rule_rounded,
+        tooltip: l10n.strokeStyleSolid,
+        onTap: () => engine.setStrokeStyle(StrokeStyle.solid),
+      ),
+      _iconChip(
+        selected: engine.strokeStyle == StrokeStyle.dashed,
+        icon: Icons.power_input_rounded,
+        tooltip: l10n.strokeStyleDashed,
+        onTap: () => engine.setStrokeStyle(StrokeStyle.dashed),
+      ),
+      _iconChip(
+        selected: engine.strokeStyle == StrokeStyle.dotted,
+        icon: Icons.more_horiz_rounded,
+        tooltip: l10n.strokeStyleDotted,
+        onTap: () => engine.setStrokeStyle(StrokeStyle.dotted),
+      ),
+      _iconChip(
+        selected: engine.strokeStyle == StrokeStyle.dashDot,
+        icon: Icons.linear_scale_rounded,
+        tooltip: l10n.strokeStyleDashDot,
+        onTap: () => engine.setStrokeStyle(StrokeStyle.dashDot),
       ),
     ];
   }

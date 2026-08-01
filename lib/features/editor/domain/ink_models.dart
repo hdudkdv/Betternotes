@@ -22,6 +22,9 @@ enum InkTool {
 /// Straight / circular drawing aids that work together with a pen tool.
 enum DrawingGuide { none, ruler, compass }
 
+/// Stroke pattern for pens / markers (pencil stays textured).
+enum StrokeStyle { solid, dashed, dotted, dashDot }
+
 extension InkToolX on InkTool {
   /// Freehand ink tools that go through begin/append/end stroke.
   bool get isFreehand =>
@@ -100,6 +103,7 @@ class InkStroke extends Equatable {
     required this.colorValue,
     required this.width,
     required this.points,
+    this.style = StrokeStyle.solid,
   });
 
   final String id;
@@ -107,6 +111,7 @@ class InkStroke extends Equatable {
   final int colorValue;
   final double width;
   final List<StrokePoint> points;
+  final StrokeStyle style;
 
   Color get color => Color(colorValue);
 
@@ -166,6 +171,7 @@ class InkStroke extends Equatable {
       tool: tool,
       colorValue: colorValue,
       width: width,
+      style: style,
       points: [
         for (final p in points)
           StrokePoint(
@@ -178,12 +184,17 @@ class InkStroke extends Equatable {
     );
   }
 
-  InkStroke copyWith({List<StrokePoint>? points, String? id}) {
+  InkStroke copyWith({
+    List<StrokePoint>? points,
+    String? id,
+    StrokeStyle? style,
+  }) {
     return InkStroke(
       id: id ?? this.id,
       tool: tool,
       colorValue: colorValue,
       width: width,
+      style: style ?? this.style,
       points: points ?? this.points,
     );
   }
@@ -284,6 +295,7 @@ class InkStroke extends Equatable {
     'tool': tool.name,
     'color': colorValue,
     'width': width,
+    'style': style.name,
     'points': points.map((p) => p.toJson()).toList(),
   };
 
@@ -296,6 +308,10 @@ class InkStroke extends Equatable {
       ),
       colorValue: json['color'] as int,
       width: (json['width'] as num).toDouble(),
+      style: StrokeStyle.values.firstWhere(
+        (s) => s.name == (json['style'] as String? ?? ''),
+        orElse: () => StrokeStyle.solid,
+      ),
       points: [
         for (final p in (json['points'] as List))
           StrokePoint.fromJson(Map<String, dynamic>.from(p as Map)),
@@ -329,5 +345,5 @@ class InkStroke extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, tool, colorValue, width, points];
+  List<Object?> get props => [id, tool, colorValue, width, style, points];
 }
