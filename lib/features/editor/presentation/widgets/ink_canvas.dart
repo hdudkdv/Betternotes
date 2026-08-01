@@ -107,12 +107,18 @@ class InkCanvasState extends State<InkCanvas>
 
   bool get _isZoomed => relativeZoom > 1.05;
 
+  double get _minScale =>
+      widget.canvasMode == CanvasMode.infinite ? 0.012 : _fitScale;
+
+  double get _maxScale =>
+      widget.canvasMode == CanvasMode.infinite ? 80.0 : _fitScale * 8.0;
+
   /// Scales around the viewport center, used by the zoom controls.
   void zoomBy(double factor) {
     final size = _viewportSize;
     if (size == Size.zero) return;
     final current = _transform.value.getMaxScaleOnAxis();
-    final target = (current * factor).clamp(_fitScale * 0.4, _fitScale * 8.0);
+    final target = (current * factor).clamp(_minScale, _maxScale);
     final applied = target / current;
     if ((applied - 1).abs() < 0.001) return;
     final center = Offset(size.width / 2, size.height / 2);
@@ -121,7 +127,10 @@ class InkCanvasState extends State<InkCanvas>
       ..setEntry(1, 1, applied)
       ..setEntry(0, 3, center.dx * (1 - applied))
       ..setEntry(1, 3, center.dy * (1 - applied));
-    setState(() => _transform.value = zoom * _transform.value);
+    setState(() {
+      _transform.value = zoom * _transform.value;
+      _clampView();
+    });
   }
 
   /// Resets the view so the whole page is visible again.
@@ -175,41 +184,69 @@ class InkCanvasState extends State<InkCanvas>
       Offset(oldViewport.width / 2, oldViewport.height / 2),
     );
     _fitScale = _computeFitScale(newViewport);
-    final clamped = scale.clamp(_fitScale * 0.4, _fitScale * 8.0);
+    final clamped = scale.clamp(_minScale, _maxScale);
     final newCenter = Offset(newViewport.width / 2, newViewport.height / 2);
     _transform.value = Matrix4.identity()
       ..setEntry(0, 0, clamped)
       ..setEntry(1, 1, clamped)
       ..setEntry(0, 3, newCenter.dx - pageFocus.dx * clamped)
       ..setEntry(1, 3, newCenter.dy - pageFocus.dy * clamped);
+    _clampView();
   }
 
-  /// At fit zoom, keep the page centered — InteractiveViewer two-finger
-  /// gestures would otherwise translate freely (including vertically).
-  void _clampFitTranslation() {
+  /// Keep scale ≥ fit and translation so the page never leaves the viewport.
+  void _clampView() {
     if (widget.canvasMode == CanvasMode.infinite) return;
-    if (_viewportSize == Size.zero) return;
-    final scale = _transform.value.getMaxScaleOnAxis();
-    if (scale > _fitScale * 1.05) return;
-    final target = scale < _fitScale * 0.98
-        ? _fitMatrix(_viewportSize)
-        : _matrixForScale(
-            scale.clamp(_fitScale, _fitScale * 1.05),
-            _viewportSize,
-          );
+    if (_viewportSize == Size.zero || _fitScale <= 0) return;
+
     final current = _transform.value;
-    if ((current.storage[12] - target.storage[12]).abs() > 0.5 ||
-        (current.storage[13] - target.storage[13]).abs() > 0.5 ||
-        (current.getMaxScaleOnAxis() - target.getMaxScaleOnAxis()).abs() >
-            0.001) {
-      _transform.value = target;
+    final scale = current.getMaxScaleOnAxis().clamp(_minScale, _maxScale);
+    final child = _childSize;
+    final scaledW = child.width * scale;
+    final scaledH = child.height * scale;
+    final vp = _viewportSize;
+
+    double minDx;
+    double maxDx;
+    double minDy;
+    double maxDy;
+    if (scaledW <= vp.width + 0.5) {
+      minDx = maxDx = (vp.width - scaledW) / 2;
+    } else {
+      minDx = vp.width - scaledW;
+      maxDx = 0;
     }
+    if (scaledH <= vp.height + 0.5) {
+      minDy = maxDy = (vp.height - scaledH) / 2;
+    } else {
+      minDy = vp.height - scaledH;
+      maxDy = 0;
+    }
+
+    final dx = current.storage[12].clamp(minDx, maxDx);
+    final dy = current.storage[13].clamp(minDy, maxDy);
+    final scaleChanged =
+        (current.getMaxScaleOnAxis() - scale).abs() > 0.0001;
+    final posChanged =
+        (current.storage[12] - dx).abs() > 0.5 ||
+        (current.storage[13] - dy).abs() > 0.5;
+    if (!scaleChanged && !posChanged) return;
+
+    _transform.value = Matrix4.identity()
+      ..setEntry(0, 0, scale)
+      ..setEntry(1, 1, scale)
+      ..setEntry(0, 3, dx)
+      ..setEntry(1, 3, dy);
   }
 
   void _snapToFitIfNeeded() {
     if (widget.canvasMode == CanvasMode.infinite) return;
     if (_viewportSize == Size.zero) return;
-    if (_transform.value.getMaxScaleOnAxis() > _fitScale * 1.05) return;
+    // Anything at/near fit zoom snaps back to a perfectly centered page.
+    if (_transform.value.getMaxScaleOnAxis() > _fitScale * 1.02) {
+      _clampView();
+      return;
+    }
     final fitted = _fitMatrix(_viewportSize);
     if (_transform.value != fitted) {
       _transform.value = fitted;
@@ -333,29 +370,24 @@ class InkCanvasState extends State<InkCanvas>
       return;
     }
     final factor = dist / _pinchBaseDistance!;
-    final minScale = widget.canvasMode == CanvasMode.infinite
-        ? 0.012
-        : _fitScale * 0.4;
-    final maxScale = widget.canvasMode == CanvasMode.infinite
-        ? 80.0
-        : _fitScale * 8.0;
-    final newScale = (_pinchBaseScale! * factor).clamp(minScale, maxScale);
+    final newScale = (_pinchBaseScale! * factor).clamp(_minScale, _maxScale);
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
     final focalLocal = box.globalToLocal(_pinchFocalGlobal ?? focal);
     final current = _transform.value;
     final currentScale = current.getMaxScaleOnAxis().clamp(0.01, 100.0);
     final applied = newScale / currentScale;
-    if ((applied - 1).abs() < 0.001) return;
+    if ((applied - 1).abs() < 0.001) {
+      _clampView();
+      return;
+    }
     final zoom = Matrix4.identity()
       ..setEntry(0, 0, applied)
       ..setEntry(1, 1, applied)
       ..setEntry(0, 3, focalLocal.dx * (1 - applied))
       ..setEntry(1, 3, focalLocal.dy * (1 - applied));
     _transform.value = zoom * current;
-    if (widget.canvasMode != CanvasMode.infinite) {
-      _clampFitTranslation();
-    }
+    _clampView();
   }
 
   bool _isStylusOrMouse(PointerEvent event) {
@@ -394,10 +426,11 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _applyPanDelta(Offset globalDelta) {
-    // Page mode at fit zoom is axis-locked to page browsing — no free pan.
+    // Page mode at fit zoom: no free pan — PageView owns navigation.
     if (widget.canvasMode != CanvasMode.infinite && !_isZoomed) return;
     final matrix = Matrix4.copy(_transform.value);
     final scale = matrix.getMaxScaleOnAxis().clamp(0.01, 100.0);
+    // InteractiveViewer / Matrix4 translate is in pre-scale (scene) units.
     matrix.translateByDouble(
       globalDelta.dx / scale,
       globalDelta.dy / scale,
@@ -405,6 +438,7 @@ class InkCanvasState extends State<InkCanvas>
       1,
     );
     _transform.value = matrix;
+    _clampView();
   }
 
   /// Visible board rect in page/local coordinates.
@@ -506,13 +540,12 @@ class InkCanvasState extends State<InkCanvas>
       if (_panLastFocal != null) {
         final delta = focal - _panLastFocal!;
         _multiTravel += delta.distance;
-        // Two+ fingers always pinch/pan the canvas — never flip pages.
-        // (One finger of a pinch used to steal PageView and feel broken.)
+        // Pinch-zoom only; pan only while zoomed-in. Never free-drag at fit.
         _applyPinchScale();
         if (_isZoomed || widget.canvasMode == CanvasMode.infinite) {
           _applyPanDelta(delta);
         } else {
-          _clampFitTranslation();
+          _clampView();
         }
         if (_pointerGlobal.length >= 3 && _threeFingerStart != null) {
           final swipe = focal - _threeFingerStart!;
@@ -639,13 +672,14 @@ class InkCanvasState extends State<InkCanvas>
           }
         }
         final visible = _visibleWorldRect(pageSize);
-        final minScale = infinite ? 0.012 : _fitScale * 0.4;
-        final maxScale = infinite ? 80.0 : _fitScale * 8.0;
+        final minScale = _minScale <= 0 ? 0.01 : _minScale;
+        final maxScale = _maxScale;
 
         return InteractiveViewer(
           transformationController: _transform,
           constrained: false,
-          boundaryMargin: EdgeInsets.all(margin),
+          // Page mode: no slack margin — otherwise the page can drift.
+          boundaryMargin: EdgeInsets.all(infinite ? margin : 0),
           minScale: minScale,
           maxScale: maxScale,
           // Pinch/pan are handled in [Listener] so they never race PageView.
@@ -654,7 +688,7 @@ class InkCanvasState extends State<InkCanvas>
           onInteractionUpdate: infinite
               ? null
               : (_) {
-                  _clampFitTranslation();
+                  _clampView();
                 },
           onInteractionEnd: infinite
               ? null
