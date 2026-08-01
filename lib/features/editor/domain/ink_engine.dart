@@ -163,7 +163,11 @@ class InkEngine extends ChangeNotifier {
     notifyListeners();
   }
 
-  void replaceStrokes(List<InkStroke> strokes, {bool recordHistory = false}) {
+  void replaceStrokes(
+    List<InkStroke> strokes, {
+    bool recordHistory = false,
+    bool quiet = false,
+  }) {
     if (recordHistory) {
       _pushUndo(_HistoryEntry.replace(List.of(_strokes)));
     } else {
@@ -175,7 +179,10 @@ class InkEngine extends ChangeNotifier {
     _lassoPoints = [];
     selectedIds = {};
     eraserCursor = null;
-    notifyListeners();
+    _paintEpoch++;
+    if (!quiet) {
+      notifyListeners();
+    }
   }
 
   void beginStroke(Offset point, {double pressure = 0.5, int t = 0}) {
@@ -271,8 +278,8 @@ class InkEngine extends ChangeNotifier {
     final last = active.points.last;
     final dx = point.dx - last.x;
     final dy = point.dy - last.y;
-    // Pencil can afford slightly coarser samples — huge win for paint cost.
-    final minDist2 = tool == InkTool.pencil ? 1.0 : 0.16;
+    // Pencil: a bit coarser than pen (paint cost), still dense enough for grain.
+    final minDist2 = tool == InkTool.pencil ? 0.49 : 0.16;
     if (dx * dx + dy * dy < minDist2) return;
 
     active.points.add(

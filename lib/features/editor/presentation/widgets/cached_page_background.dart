@@ -82,9 +82,10 @@ class _CachedPageBackgroundState extends State<CachedPageBackground> {
     if (_image != null && _builtKey == key) return;
 
     final dpr = MediaQuery.devicePixelRatioOf(context).clamp(1.0, 3.0);
-    // Extra scale keeps rules crisp under moderate pinch-zoom.
-    var scale = dpr * 2.0;
-    const maxEdge = 4096.0;
+    // 1.25× DPR is sharp enough at fit/moderate zoom and much cheaper on
+    // page flips than a 2× raster (less main-thread toImage jank).
+    var scale = dpr * 1.25;
+    const maxEdge = 2048.0;
     final longest = math.max(widget.pageSize.width, widget.pageSize.height);
     if (longest * scale > maxEdge) {
       scale = maxEdge / longest;

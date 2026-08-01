@@ -1,29 +1,84 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../../../data/models/content_models.dart';
 import '../../../../data/models/notebook.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/utils/page_size.dart';
 import '../editor_chrome.dart';
+import '../page_preview_cache.dart';
 import 'ink_painter.dart';
 import 'page_background_painter.dart';
+import 'page_viewport_fit.dart';
 import 'shape_painter.dart';
 
 /// Static (non-interactive) snapshot of a page for multi-page browsing.
+/// Prefers a warm [PagePreviewCache] bitmap when available.
 class PageSnapshot extends StatelessWidget {
-  const PageSnapshot({super.key, required this.page, this.width});
+  const PageSnapshot({
+    super.key,
+    required this.page,
+    this.width,
+    this.matchLiveFit = false,
+  });
 
   final NotePage page;
   final double? width;
 
+  /// When true, apply the same GoodNotes-style viewport insets as [InkCanvas]
+  /// so neighbor pages don't jump when the live canvas mounts.
+  final bool matchLiveFit;
+
   @override
   Widget build(BuildContext context) {
     final pageSize = NotePageSize.resolve(page.paperFormat, page.orientation);
-    // Match InkCanvas' 32px interaction gutter on every side. Without this,
-    // a static page and its interactive replacement have different fitted
-    // sizes, producing a visible jump when scrolling settles.
-    final canvasSize = Size(pageSize.width + 64, pageSize.height + 64);
+    // Match InkCanvas' interaction gutter on every side.
+    final canvasSize = PageViewportFit.childSize(pageSize);
+    final paper = ValueListenableBuilder<ui.Image?>(
+      valueListenable: PagePreviewCache.instance.listenableFor(page.id),
+      builder: (context, cached, _) {
+        // Fall back to revision-aware lookup (notifier may lag one frame).
+        final image = cached ?? PagePreviewCache.instance.get(page);
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.45),
+                blurRadius: 32,
+                offset: const Offset(0, 18),
+              ),
+            ],
+          ),
+          child: image != null
+              ? _CachedPageImage(image: image, pageSize: pageSize)
+              : Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CustomPaint(
+                      size: pageSize,
+                      painter: PageBackgroundPainter(
+                        template: page.template,
+                        paper: page.customPaper,
+                      ),
+                    ),
+                    CustomPaint(
+                      size: pageSize,
+                      painter: InkPainter(strokes: page.strokes),
+                    ),
+                    CustomPaint(
+                      size: pageSize,
+                      painter: ShapePainter(shapes: page.shapes),
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
     final content = FittedBox(
       fit: BoxFit.contain,
       child: SizedBox(
@@ -33,38 +88,7 @@ class PageSnapshot extends StatelessWidget {
           child: SizedBox(
             width: pageSize.width,
             height: pageSize.height,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    blurRadius: 32,
-                    offset: const Offset(0, 18),
-                  ),
-                ],
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CustomPaint(
-                    size: pageSize,
-                    painter: PageBackgroundPainter(
-                      template: page.template,
-                      paper: page.customPaper,
-                    ),
-                  ),
-                  CustomPaint(
-                    size: pageSize,
-                    painter: InkPainter(strokes: page.strokes),
-                  ),
-                  CustomPaint(
-                    size: pageSize,
-                    painter: ShapePainter(shapes: page.shapes),
-                  ),
-                ],
-              ),
-            ),
+            child: paper,
           ),
         ),
       ),
@@ -74,10 +98,57 @@ class PageSnapshot extends StatelessWidget {
     if (width != null) {
       return SizedBox(width: width, height: width! / aspect, child: content);
     }
+    if (matchLiveFit) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final viewport = Size(constraints.maxWidth, constraints.maxHeight);
+          return Padding(
+            padding: PageViewportFit.paddingFor(viewport),
+            child: content,
+          );
+        },
+      );
+    }
     return Center(
       child: AspectRatio(aspectRatio: aspect, child: content),
     );
   }
+}
+
+class _CachedPageImage extends StatelessWidget {
+  const _CachedPageImage({required this.image, required this.pageSize});
+
+  final ui.Image image;
+  final Size pageSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: pageSize,
+      painter: _ImagePainter(image),
+    );
+  }
+}
+
+class _ImagePainter extends CustomPainter {
+  _ImagePainter(this.image);
+
+  final ui.Image image;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    paintImage(
+      canvas: canvas,
+      rect: Offset.zero & size,
+      image: image,
+      fit: BoxFit.fill,
+      filterQuality: FilterQuality.medium,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ImagePainter oldDelegate) =>
+      oldDelegate.image != image;
 }
 
 /// Placeholder shown past the last page to create a new one.
@@ -198,8 +269,17 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   /// Locks PageView / ListView while drawing, pinching, or zoomed.
   bool _scrollLock = false;
 
-  /// Horizontal browse: commit [selectPage] only after the swipe settles.
-  int? _pendingPageIndex;
+  /// While true, every slot (incl. the active page) is a cheap bitmap/snapshot
+  /// so PageView jumpTo stays butter-smooth.
+  bool _flipLightweight = false;
+
+  /// After a flip, delay mounting the live [InkCanvas] by a couple of frames.
+  bool _liveArmed = true;
+  int _liveArmToken = 0;
+
+  /// Swipe velocity (px/s, screen space) for natural page commits.
+  double _swipeVelocity = 0;
+  int _lastPanMicros = 0;
 
   ScrollController? get scrollController => _scrollController;
 
@@ -218,8 +298,44 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     setState(() => _scrollLock = locked);
     if (locked) {
       _swipeAccum = 0;
-      _pendingPageIndex = null;
+      PagePreviewCache.instance.setPaused(true);
+    } else {
+      PagePreviewCache.instance.setPaused(false);
+      _scheduleNeighborPreviews();
     }
+  }
+
+  void _scheduleNeighborPreviews() {
+    if (widget.canvasMode == CanvasMode.infinite) return;
+    PagePreviewCache.instance.scheduleNeighbors(
+      widget.pages,
+      widget.pageIndex,
+    );
+  }
+
+  void _enterLightweightFlip() {
+    if (_flipLightweight) return;
+    setState(() {
+      _flipLightweight = true;
+      _liveArmed = false;
+    });
+  }
+
+  void _armLiveCanvasSoon() {
+    final token = ++_liveArmToken;
+    // Two frames: one for PageView settle composite, one for selectPage bind.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || token != _liveArmToken) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || token != _liveArmToken) return;
+        setState(() {
+          _flipLightweight = false;
+          _liveArmed = true;
+        });
+        PagePreviewCache.instance.setPaused(false);
+        _scheduleNeighborPreviews();
+      });
+    });
   }
 
   @Deprecated('Use setScrollLock')
@@ -243,6 +359,9 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   void initState() {
     super.initState();
     _initControllers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scheduleNeighborPreviews();
+    });
   }
 
   void _initControllers() {
@@ -281,19 +400,27 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       return;
     }
     if (oldWidget.pageIndex != widget.pageIndex) {
+      // Sidebar / external jumps: keep the flip on bitmaps until armed.
+      if (!_flipLightweight) {
+        _flipLightweight = true;
+        _liveArmed = false;
+      }
+      _armLiveCanvasSoon();
       if (_ignorePageSync) return;
       if (_pageController != null && _pageController!.hasClients) {
         final current = _pageController!.page?.round() ?? widget.pageIndex;
         if (current != widget.pageIndex) {
           _pageController!.animateToPage(
             widget.pageIndex,
-            duration: const Duration(milliseconds: 240),
+            duration: const Duration(milliseconds: 280),
             curve: Curves.easeOutCubic,
           );
         }
       } else if (_scrollController != null) {
         _scrollToIndex(widget.pageIndex, animate: true);
       }
+    } else if (!identical(oldWidget.pages, widget.pages)) {
+      _scheduleNeighborPreviews();
     }
   }
 
@@ -327,15 +454,50 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       return;
     }
     if (target < 0 || target >= widget.pages.length) return;
-    if (_pageController?.hasClients ?? false) {
-      _pageController!.animateToPage(
-        target,
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
-      );
+    _enterLightweightFlip();
+    unawaited(_commitPage(target, animate: true));
+  }
+
+  /// Animates (optional) then always commits [selectPage]. Relying only on
+  /// ScrollEnd + pending index was flaky with jumpTo-driven browse pans.
+  Future<void> _commitPage(int target, {required bool animate}) async {
+    final showAdd = !widget.readOnly && widget.onReachEnd != null;
+    final maxIndex = widget.pages.length - 1 + (showAdd ? 1 : 0);
+    if (maxIndex < 0) return;
+    final clamped = target.clamp(0, maxIndex);
+
+    if (clamped >= widget.pages.length) {
+      await _requestAddPage();
+      if (_pageController?.hasClients ?? false) {
+        _pageController!.jumpToPage(widget.pages.length - 1);
+      }
       return;
     }
-    _emitPage(target);
+
+    final pc = _pageController;
+    if (pc != null && pc.hasClients) {
+      final page = pc.page;
+      final needsMove = page == null || (page - clamped).abs() > 0.001;
+      if (needsMove) {
+        _enterLightweightFlip();
+        if (animate) {
+          await pc.animateToPage(
+            clamped,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+          );
+        } else {
+          pc.jumpToPage(clamped);
+        }
+      }
+    }
+    if (!mounted) return;
+    // Keep bitmap mode through the selectPage bind — live canvas arms later.
+    _enterLightweightFlip();
+    await SchedulerBinding.instance.endOfFrame;
+    if (!mounted) return;
+    _emitPage(clamped);
+    _armLiveCanvasSoon();
   }
 
   Future<void> _requestAddPage() async {
@@ -355,6 +517,20 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
       // Absorb vertical movement at fit zoom so the page cannot drift.
       if (delta.dx.abs() < delta.dy.abs() * 0.85) return true;
+      // Drop the live canvas for the drag — only bitmaps move with the finger.
+      _enterLightweightFlip();
+      PagePreviewCache.instance.setPaused(true);
+
+      final now = DateTime.now().microsecondsSinceEpoch;
+      if (_lastPanMicros > 0) {
+        final dt = (now - _lastPanMicros) / 1e6;
+        if (dt > 0 && dt < 0.08) {
+          final v = delta.dx / dt;
+          _swipeVelocity = _swipeVelocity * 0.65 + v * 0.35;
+        }
+      }
+      _lastPanMicros = now;
+
       final pc = _pageController;
       if (pc != null && pc.hasClients) {
         final next = (pc.position.pixels - delta.dx).clamp(
@@ -373,6 +549,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (delta.dy.abs() < delta.dx.abs() * 0.85 && !widget.readOnly) {
       return false;
     }
+    PagePreviewCache.instance.setPaused(true);
     final next = (sc.offset - delta.dy).clamp(0.0, sc.position.maxScrollExtent);
     sc.jumpTo(next);
     return true;
@@ -381,36 +558,29 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   void handleBrowsePanEnd() {
     if (widget.browseMode != PageBrowseMode.swipeHorizontal) {
       _swipeAccum = 0;
+      _swipeVelocity = 0;
+      _lastPanMicros = 0;
       return;
     }
-    const threshold = 64.0;
-    if (_swipeAccum <= -threshold) {
-      goToAdjacent(1);
-    } else if (_swipeAccum >= threshold) {
-      goToAdjacent(-1);
+    const distanceThreshold = 56.0;
+    const velocityThreshold = 700.0;
+    int target;
+    if (_swipeAccum <= -distanceThreshold ||
+        _swipeVelocity <= -velocityThreshold) {
+      target = widget.pageIndex + 1;
+    } else if (_swipeAccum >= distanceThreshold ||
+        _swipeVelocity >= velocityThreshold) {
+      target = widget.pageIndex - 1;
     } else {
-      _snapToNearestPage(animate: true);
+      final pc = _pageController;
+      target = (pc != null && pc.hasClients && pc.page != null)
+          ? pc.page!.round()
+          : widget.pageIndex;
     }
     _swipeAccum = 0;
-  }
-
-  void _snapToNearestPage({required bool animate}) {
-    final pc = _pageController;
-    if (pc == null || !pc.hasClients || pc.page == null) return;
-    final showAdd = !widget.readOnly && widget.onReachEnd != null;
-    final maxIndex = widget.pages.length - 1 + (showAdd ? 1 : 0);
-    if (maxIndex < 0) return;
-    final target = pc.page!.round().clamp(0, maxIndex);
-    if ((pc.page! - target).abs() < 0.001) return;
-    if (animate) {
-      pc.animateToPage(
-        target,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-      );
-    } else {
-      pc.jumpToPage(target);
-    }
+    _swipeVelocity = 0;
+    _lastPanMicros = 0;
+    unawaited(_commitPage(target, animate: true));
   }
 
   bool _onPageScroll(ScrollNotification n) {
@@ -419,37 +589,16 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (n is! ScrollEndNotification) return false;
 
     final pc = _pageController;
-    if (pc != null && pc.hasClients && pc.page != null) {
-      final showAdd = !widget.readOnly && widget.onReachEnd != null;
-      final maxIndex = widget.pages.length - 1 + (showAdd ? 1 : 0);
-      final rounded = pc.page!.round().clamp(0, maxIndex < 0 ? 0 : maxIndex);
-      // Always land on a whole page — fixes pages stuck halfway at the edge.
-      if ((pc.page! - rounded).abs() > 0.001) {
-        pc.jumpToPage(rounded);
-      }
-    }
-
-    final pending = _pendingPageIndex;
-    _pendingPageIndex = null;
-    if (pending != null) {
-      if (pending < widget.pages.length) {
-        _emitPage(pending);
-      } else {
-        // Overscrolled onto the add-page slot: create, or bounce back.
-        _requestAddPage();
-        if (pc != null && pc.hasClients && widget.pages.isNotEmpty) {
-          pc.jumpToPage(widget.pages.length - 1);
-        }
-      }
-      return false;
-    }
-
-    // Fallback if onPageChanged did not fire (e.g. cancelled swipe).
     if (pc == null || !pc.hasClients || pc.page == null) return false;
-    final rounded = pc.page!.round().clamp(0, widget.pages.length - 1);
-    if (rounded != widget.pageIndex && rounded < widget.pages.length) {
-      _emitPage(rounded);
+    final showAdd = !widget.readOnly && widget.onReachEnd != null;
+    final maxIndex = widget.pages.length - 1 + (showAdd ? 1 : 0);
+    final rounded = pc.page!.round().clamp(0, maxIndex < 0 ? 0 : maxIndex);
+    // Always land on a whole page — fixes pages stuck halfway at the edge.
+    if ((pc.page! - rounded).abs() > 0.001) {
+      pc.jumpToPage(rounded);
     }
+    // Page commits happen in [_commitPage] after browse/adjacent gestures.
+    // Avoid selecting mid-settle here — that was a major source of hitching.
     return false;
   }
 
@@ -458,7 +607,9 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (index >= widget.pages.length) return 240;
     final page = widget.pages[index];
     final size = NotePageSize.resolve(page.paperFormat, page.orientation);
-    final aspect = (size.height + 64) / (size.width + 64);
+    final aspect =
+        (size.height + PageViewportFit.gutter) /
+        (size.width + PageViewportFit.gutter);
     return viewportWidth * 0.92 * aspect + _itemGap;
   }
 
@@ -560,7 +711,9 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     final page = widget.pages[index];
     final size = NotePageSize.resolve(page.paperFormat, page.orientation);
     final width = maxWidth * 0.92;
-    final aspect = (size.height + 64) / (size.width + 64);
+    final aspect =
+        (size.height + PageViewportFit.gutter) /
+        (size.width + PageViewportFit.gutter);
     final h = width * aspect;
     return Center(
       child: SizedBox(
@@ -587,12 +740,8 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
           child: PageView.builder(
             controller: _pageController,
             physics: _scrollPhysics,
-            allowImplicitScrolling: false,
-            onPageChanged: (index) {
-              // Defer selectPage until the swipe settles — swapping the live
-              // InkCanvas mid-animation is what made flips feel choppy.
-              _pendingPageIndex = index;
-            },
+            // Keep neighbors built so the next swipe already has layers ready.
+            allowImplicitScrolling: true,
             itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= widget.pages.length) {
@@ -603,14 +752,18 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
                   ),
                 );
               }
-              // Keep active canvas and snapshots identically framed so the
-              // page cannot appear to jump vertically between slots.
+              // During a flip (or before live arm), every slot is a cheap
+              // snapshot/bitmap so scrolling never composites InkCanvas.
+              final showLive = index == widget.pageIndex &&
+                  _liveArmed &&
+                  !_flipLightweight;
               return RepaintBoundary(
-                child: Center(
-                  child: index == widget.pageIndex
-                      ? widget.activePageBuilder(context, index)
-                      : PageSnapshot(page: widget.pages[index]),
-                ),
+                child: showLive
+                    ? widget.activePageBuilder(context, index)
+                    : PageSnapshot(
+                        page: widget.pages[index],
+                        matchLiveFit: true,
+                      ),
               );
             },
           ),

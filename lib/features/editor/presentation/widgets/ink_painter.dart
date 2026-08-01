@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../domain/ink_models.dart';
 
@@ -34,11 +35,73 @@ class InkPainter extends CustomPainter {
   /// Live editor canvas only — thumbnails must leave this off.
   final bool cacheSettled;
 
+  /// Bumps when the settled Picture upgrades from preview → rich grain.
+  static final ValueNotifier<int> settledCacheTick = ValueNotifier(0);
+
   /// Cached picture of committed strokes for the live editor.
   static ui.Picture? _settledPicture;
   static List<InkStroke>? _settledFor;
   static Rect? _settledCull;
   static Set<String> _settledSelected = const {};
+  static int _richUpgradeToken = 0;
+
+  static ui.Picture _recordSettled(
+    List<InkStroke> strokes,
+    Rect? cull,
+    Set<String> selectedIds, {
+    required bool rich,
+  }) {
+    final recorder = ui.PictureRecorder();
+    final settledCanvas = Canvas(recorder);
+    final painter = InkPainter(strokes: strokes, selectedIds: selectedIds);
+    for (final stroke in strokes) {
+      if (cull != null && !stroke.boundingBox.overlaps(cull)) continue;
+      painter._paintStroke(
+        settledCanvas,
+        stroke,
+        selected: selectedIds.contains(stroke.id),
+        live: !rich,
+      );
+    }
+    return recorder.endRecording();
+  }
+
+  void _cacheSettledPreviewThenUpgrade(Rect? cull) {
+    _settledPicture?.dispose();
+    _settledPicture = _recordSettled(
+      strokes,
+      cull,
+      selectedIds,
+      rich: false,
+    );
+    _settledFor = strokes;
+    _settledCull = cull;
+    _settledSelected = Set<String>.of(selectedIds);
+
+    final hasPencil = strokes.any((s) => s.isPencil);
+    if (!hasPencil) {
+      // Non-pencil strokes look identical in preview/rich paths.
+      return;
+    }
+
+    final token = ++_richUpgradeToken;
+    final strokesRef = strokes;
+    final cullRef = cull;
+    final selectedRef = Set<String>.of(selectedIds);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (token != _richUpgradeToken) return;
+      if (!identical(_settledFor, strokesRef)) return;
+      final rich = _recordSettled(
+        strokesRef,
+        cullRef,
+        selectedRef,
+        rich: true,
+      );
+      _settledPicture?.dispose();
+      _settledPicture = rich;
+      settledCacheTick.value++;
+    });
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -51,22 +114,9 @@ class InkPainter extends CustomPainter {
           !_setEquals(_settledSelected, selectedIds);
 
       if (settledChanged) {
-        final recorder = ui.PictureRecorder();
-        final settledCanvas = Canvas(recorder);
-        for (final stroke in strokes) {
-          if (cull != null && !stroke.boundingBox.overlaps(cull)) continue;
-          _paintStroke(
-            settledCanvas,
-            stroke,
-            selected: selectedIds.contains(stroke.id),
-            live: false,
-          );
-        }
-        _settledPicture?.dispose();
-        _settledPicture = recorder.endRecording();
-        _settledFor = strokes;
-        _settledCull = cull;
-        _settledSelected = Set<String>.of(selectedIds);
+        // Cheap preview first so page flips stay smooth; rich graphite
+        // upgrades on the next frame.
+        _cacheSettledPreviewThenUpgrade(cull);
       }
 
       final picture = _settledPicture;
@@ -278,10 +328,8 @@ class InkPainter extends CustomPainter {
     }
   }
 
-  /// Graphite look without per-point stamp storms (those killed frame rate).
-  ///
-  /// Soft underlay + core ribbon + a few sparse grains. Committed strokes are
-  /// cached as a [ui.Picture] so only the live stroke is redrawn each frame.
+  /// Graphite pencil: rich grain on committed strokes (Picture-cached),
+  /// lighter preview while the stroke is still live.
   void _paintPencilStroke(
     Canvas canvas,
     InkStroke stroke, {
@@ -291,13 +339,14 @@ class InkPainter extends CustomPainter {
     if (points.isEmpty) return;
 
     if (points.length == 1) {
-      final p = points.first.pressure.clamp(0.05, 1.0);
-      canvas.drawCircle(
+      _paintPencilStamp(
+        canvas,
         points.first.offset,
-        stroke.width * (0.35 + p * 0.2),
-        Paint()
-          ..color = stroke.color.withValues(alpha: 0.2 + p * 0.45)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke.width * 0.35),
+        stroke.width,
+        points.first.pressure.clamp(0.05, 1.0),
+        stroke.color,
+        seed: stroke.id.hashCode ^ points.first.t,
+        rich: !live,
       );
       return;
     }
@@ -309,39 +358,45 @@ class InkPainter extends CustomPainter {
     }
     final avgP = (pressureSum / points.length).clamp(0.05, 1.0);
 
-    // Soft graphite cloud under the stroke (one blur pass).
+    // One soft underlay (single blur — not per grain).
     canvas.drawPath(
       path,
       Paint()
-        ..color = stroke.color.withValues(alpha: 0.12 + avgP * 0.1)
+        ..color = stroke.color.withValues(alpha: 0.11 + avgP * 0.12)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = stroke.width * 1.25
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke.width * 0.45),
+        ..strokeWidth = stroke.width * 1.3
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke.width * 0.5),
     );
 
-    // Pressure-varying core — segment lines, no blur.
+    // Side graphite ribbons (settled only) — cheap extra texture.
+    if (!live) {
+      _paintPencilJitterRibbon(canvas, points, stroke, side: -1.0);
+      _paintPencilJitterRibbon(canvas, points, stroke, side: 1.0);
+    }
+
+    // Pressure-varying core ribbon.
+    final corePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
     for (var i = 1; i < points.length; i++) {
       final a = points[i - 1];
       final b = points[i];
       final pressure = ((a.pressure + b.pressure) / 2).clamp(0.05, 1.0);
-      canvas.drawLine(
-        a.offset,
-        b.offset,
-        Paint()
-          ..color = stroke.color.withValues(alpha: 0.22 + pressure * 0.5)
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = stroke.width * (0.55 + pressure * 0.35),
-      );
+      corePaint
+        ..color = stroke.color.withValues(alpha: 0.2 + pressure * 0.48)
+        ..strokeWidth = stroke.width * (0.5 + pressure * 0.4);
+      canvas.drawLine(a.offset, b.offset, corePaint);
     }
 
-    // Sparse grain — much cheaper than per-sample stamp clouds.
-    // Live strokes use an even larger step so drawing stays smooth.
+    // Grain stamps. Settled strokes are cached → can be dense & detailed.
+    // Live strokes stay sparse so the pen feels smooth.
     final step = live
-        ? math.max(3.2, stroke.width * 1.1)
-        : math.max(2.2, stroke.width * 0.75);
+        ? math.max(2.8, stroke.width * 0.95)
+        : math.max(0.7, stroke.width * 0.32);
+    final grainPaint = Paint();
     var distance = 0.0;
     for (var i = 1; i < points.length; i++) {
       final a = points[i - 1];
@@ -351,29 +406,105 @@ class InkPainter extends CustomPainter {
       if (len < 0.001) continue;
       final dir = segment / len;
       final normal = Offset(-dir.dy, dir.dx);
-      var d = distance % step;
-      if (d > 0) d = step - d;
+      var d = 0.0;
       while (d < len) {
         final t = d / len;
         final pos = Offset(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
         final pressure =
             (a.pressure + (b.pressure - a.pressure) * t).clamp(0.05, 1.0);
-        final seed =
-            stroke.id.hashCode ^ ((distance + d) * 97).round() ^ (i * 31);
-        final rng = math.Random(seed);
-        final across = (rng.nextDouble() - 0.5) * stroke.width * 0.55;
-        final grain = pos + normal * across;
-        canvas.drawCircle(
-          grain,
-          stroke.width * (0.08 + rng.nextDouble() * 0.1),
-          Paint()
-            ..color = stroke.color.withValues(
-              alpha: (0.18 + pressure * 0.4) * (0.5 + rng.nextDouble() * 0.5),
-            ),
+        final seed = stroke.id.hashCode ^
+            ((distance + d) * 1000).round() ^
+            (i * 73856093);
+        _paintPencilStamp(
+          canvas,
+          pos,
+          stroke.width,
+          pressure,
+          stroke.color,
+          normal: normal,
+          seed: seed,
+          rich: !live,
+          reuse: grainPaint,
         );
         d += step;
       }
       distance += len;
+    }
+  }
+
+  void _paintPencilJitterRibbon(
+    Canvas canvas,
+    List<StrokePoint> points,
+    InkStroke stroke, {
+    required double side,
+  }) {
+    final path = Path();
+    var started = false;
+    for (var i = 1; i < points.length; i++) {
+      final a = points[i - 1].offset;
+      final b = points[i].offset;
+      final seg = b - a;
+      final len = seg.distance;
+      if (len < 0.001) continue;
+      final normal = Offset(-seg.dy / len, seg.dx / len) * side;
+      final seed = stroke.id.hashCode ^ (i * 17) ^ side.hashCode;
+      final rng = math.Random(seed);
+      final offset = stroke.width * (0.18 + rng.nextDouble() * 0.22);
+      final p = b + normal * offset;
+      if (!started) {
+        path.moveTo((a + normal * offset).dx, (a + normal * offset).dy);
+        started = true;
+      }
+      path.lineTo(p.dx, p.dy);
+    }
+    if (!started) return;
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = stroke.color.withValues(alpha: 0.1)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..strokeWidth = stroke.width * 0.45,
+    );
+  }
+
+  void _paintPencilStamp(
+    Canvas canvas,
+    Offset center,
+    double width,
+    double pressure,
+    Color color, {
+    Offset normal = Offset.zero,
+    required int seed,
+    required bool rich,
+    Paint? reuse,
+  }) {
+    final rng = math.Random(seed);
+    final density = rich ? (5 + (pressure * 8).round()) : (2 + (pressure * 3).round());
+    final baseAlpha = (0.16 + pressure * 0.55).clamp(0.1, 0.78);
+    final spread = width * (0.45 + (1 - pressure) * 0.35);
+    final paint = reuse ?? Paint();
+
+    // Soft core without MaskFilter — blur-per-stamp was the FPS killer.
+    paint.color = color.withValues(alpha: baseAlpha * (rich ? 0.5 : 0.4));
+    canvas.drawCircle(center, width * (0.26 + pressure * 0.16), paint);
+
+    final n = normal == Offset.zero
+        ? Offset(rng.nextDouble() - 0.5, rng.nextDouble() - 0.5)
+        : normal;
+    final nLen = n.distance;
+    final nUnit = nLen < 1e-6 ? const Offset(0, 1) : n / nLen;
+    final tangent = Offset(-nUnit.dy, nUnit.dx);
+
+    for (var i = 0; i < density; i++) {
+      final along = (rng.nextDouble() - 0.5) * width * (rich ? 0.4 : 0.3);
+      final across = (rng.nextDouble() - 0.5) * spread;
+      final p = center + tangent * along + nUnit * across;
+      final r = width * (rich ? (0.05 + rng.nextDouble() * 0.15) : (0.07 + rng.nextDouble() * 0.1));
+      final a = baseAlpha * (0.35 + rng.nextDouble() * 0.65);
+      paint.color = color.withValues(alpha: a.clamp(0.05, 0.85));
+      canvas.drawCircle(p, r, paint);
     }
   }
 

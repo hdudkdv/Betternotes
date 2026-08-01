@@ -31,6 +31,7 @@ import '../domain/ink_engine.dart';
 import '../domain/ink_models.dart';
 import '../domain/last_page_store.dart';
 import '../domain/paper_line_metrics.dart';
+import 'page_preview_cache.dart';
 import '../domain/text_block_registry.dart';
 import '../platform/pencil_gestures.dart';
 import '../providers/open_tabs_provider.dart';
@@ -198,6 +199,7 @@ class EditorController extends ChangeNotifier {
       await _bindPage(startIndex);
       loading = false;
       notifyListeners();
+      PagePreviewCache.instance.scheduleNeighbors(pages, pageIndex);
     } catch (e) {
       error = e.toString();
       loading = false;
@@ -216,7 +218,9 @@ class EditorController extends ChangeNotifier {
     pageIndex = index;
     _bindToken++;
     var page = pages[index];
-    ink.replaceStrokes(page.strokes);
+    // Quiet: avoid a second full-editor rebuild from the ink listener while
+    // selectPage is already about to notify.
+    ink.replaceStrokes(page.strokes, quiet: true);
     final normalizedText = _normalizePageText(page);
     if (normalizedText != page.textBlocks) {
       page = page.copyWith(textBlocks: normalizedText);
@@ -225,7 +229,11 @@ class EditorController extends ChangeNotifier {
       unawaited(repository.savePage(page));
     }
     textBlocks = List.of(normalizedText);
-    textRegistry.disposeAll();
+    // Defer controller teardown so it never races the page-flip frame.
+    final keepIds = {for (final b in textBlocks) b.id};
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_disposed) textRegistry.retainOnly(keepIds);
+    });
     shapes = List.of(page.shapes);
     images = List.of(page.images);
     selectedTextId = null;
@@ -332,6 +340,8 @@ class EditorController extends ChangeNotifier {
       updatedAt: DateTime.now(),
     );
     pages[pageIndex] = updated;
+    // Replace the bitmap in place (no empty gap) once idle rendering finishes.
+    unawaited(PagePreviewCache.instance.ensure(updated, force: true));
     await repository.savePage(updated);
     onPagePersisted?.call(updated);
   }
@@ -355,6 +365,7 @@ class EditorController extends ChangeNotifier {
 
   Future<void> selectPage(int index) async {
     if (index == pageIndex || index < 0 || index >= pages.length) return;
+    final leavingPath = currentPage?.backgroundPdfPath;
     // Saving the page we leave takes its snapshot synchronously, so the swap
     // does not have to wait for the write to land.
     unawaited(_persistCurrent());
@@ -362,6 +373,13 @@ class EditorController extends ChangeNotifier {
     drawingAids.clearUnfixed();
     _bindPageContent(index);
     final page = currentPage;
+    final arrivingPath = page?.backgroundPdfPath;
+    // Only drop the PDF bitmap when the path actually changes — keeps flips
+    // between plain pages from thrashing the background cache.
+    if (leavingPath != arrivingPath) {
+      backgroundImage?.dispose();
+      backgroundImage = null;
+    }
     if (page != null && drawingAids.ruler?.fixed == true) {
       drawingAids.updateRuler(
         drawingAids.ruler!.copyWith(
@@ -369,10 +387,15 @@ class EditorController extends ChangeNotifier {
         ),
       );
     }
+    // One chrome rebuild after the in-memory swap — decode PDF off the
+    // critical path and only notify again if a background actually arrives.
     notifyListeners();
-    await _loadBackground();
-    if (_disposed) return;
-    notifyListeners();
+    PagePreviewCache.instance.scheduleNeighbors(pages, pageIndex);
+    if (arrivingPath != null && leavingPath != arrivingPath) {
+      await _loadBackground();
+      if (_disposed) return;
+      if (backgroundImage != null) notifyListeners();
+    }
   }
 
   bool get currentPageHasImportedBackground =>
@@ -437,6 +460,7 @@ class EditorController extends ChangeNotifier {
     if (pages.length <= 1 || index < 0 || index >= pages.length) return;
     await _persistCurrent();
     final pageId = pages[index].id;
+    PagePreviewCache.instance.invalidate(pageId);
     await repository.deletePage(pageId);
     onPageDeleted?.call(pageId);
     pages = await repository.getPages(notebookId);

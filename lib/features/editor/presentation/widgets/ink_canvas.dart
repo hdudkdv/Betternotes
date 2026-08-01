@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
@@ -9,6 +10,7 @@ import '../../domain/ink_models.dart';
 import 'ink_painter.dart';
 import 'cached_page_background.dart';
 import 'page_background_painter.dart';
+import 'page_viewport_fit.dart';
 
 /// Large but finite board for "infinite" documents.
 /// Viewport culling keeps paint cost proportional to what's on screen.
@@ -111,9 +113,6 @@ class InkCanvasState extends State<InkCanvas>
       _fitScale > 0 &&
       _transform.value.getMaxScaleOnAxis() > _fitScale * 1.12;
 
-  /// Inset so the fitted page keeps a small gap to the viewport edges.
-  static const double _fitPadding = 22;
-
   double get _minScale =>
       widget.canvasMode == CanvasMode.infinite ? 0.012 : _fitScale;
 
@@ -150,19 +149,16 @@ class InkCanvasState extends State<InkCanvas>
   Size get _childSize {
     final infinite = widget.canvasMode == CanvasMode.infinite;
     final pageSize = infinite ? kInfiniteCanvasSize : widget.pageSize;
-    return infinite
-        ? pageSize
-        : Size(pageSize.width + 64, pageSize.height + 64);
+    return infinite ? pageSize : PageViewportFit.childSize(pageSize);
   }
 
   double _computeFitScale(Size viewport) {
-    final child = _childSize;
-    // Leave a little breathing room so the page never sits flush to the edges.
-    final availW = (viewport.width - 2 * _fitPadding).clamp(1.0, double.infinity);
-    final availH = (viewport.height - 2 * _fitPadding).clamp(1.0, double.infinity);
-    final scaleW = availW / child.width;
-    final scaleH = availH / child.height;
-    return scaleW < scaleH ? scaleW : scaleH;
+    if (widget.canvasMode == CanvasMode.infinite) {
+      final child = _childSize;
+      return math.min(viewport.width / child.width, viewport.height / child.height);
+    }
+    // GoodNotes-style: page floats centered with a clear workspace margin.
+    return PageViewportFit.fitScale(viewport, widget.pageSize);
   }
 
   Matrix4 _fitMatrix(Size viewport) {
@@ -783,7 +779,10 @@ class InkCanvasState extends State<InkCanvas>
                         // Rebuild only ink while drawing — keep paper static.
                         if (!widget.hideInk)
                           AnimatedBuilder(
-                            animation: widget.engine,
+                            animation: Listenable.merge([
+                              widget.engine,
+                              InkPainter.settledCacheTick,
+                            ]),
                             builder: (context, _) {
                               final erasing =
                                   widget.engine.tool == InkTool.eraser;
