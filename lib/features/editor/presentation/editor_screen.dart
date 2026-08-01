@@ -361,6 +361,14 @@ class EditorController extends ChangeNotifier {
     // Unfixed aids leave with the page; fixed ruler/compass stay in place.
     drawingAids.clearUnfixed();
     _bindPageContent(index);
+    final page = currentPage;
+    if (page != null && drawingAids.ruler?.fixed == true) {
+      drawingAids.updateRuler(
+        drawingAids.ruler!.copyWith(
+          pageSize: NotePageSize.resolve(page.paperFormat, page.orientation),
+        ),
+      );
+    }
     notifyListeners();
     await _loadBackground();
     if (_disposed) return;

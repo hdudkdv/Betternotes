@@ -7,7 +7,7 @@ import '../../../../shared/utils/page_units.dart';
 import '../../domain/drawing_aids.dart';
 import '../editor_chrome.dart';
 
-/// Visual ruler in page coordinates with cm/mm ticks and inclination.
+/// Visual ruler in page coordinates — always spans page edge → edge.
 class RulerOverlay extends StatelessWidget {
   const RulerOverlay({
     super.key,
@@ -25,22 +25,38 @@ class RulerOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final bodyCenter = aid.center;
+    final mid = Offset(
+      (aid.start.dx + aid.end.dx) / 2,
+      (aid.start.dy + aid.end.dy) / 2,
+    );
     return Stack(
       fit: StackFit.expand,
       children: [
-        IgnorePointer(child: CustomPaint(painter: _RulerPainter(aid: aid))),
+        IgnorePointer(
+          child: CustomPaint(
+            // Painter needs page size for edge clipping / ticks.
+            size: aid.pageSize,
+            painter: _RulerPainter(aid: aid),
+          ),
+        ),
         if (!readOnly) ...[
-          // Movable strip — only the ruler body captures drags.
           Positioned(
-            left: bodyCenter.dx - 36,
-            top: bodyCenter.dy - 36,
-            width: 72,
-            height: 72,
+            left: mid.dx - 40,
+            top: mid.dy - 40,
+            width: 80,
+            height: 80,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onPanUpdate: (d) {
-                onChanged(aid.copyWith(center: aid.center + d.delta));
+                final next = aid.center + d.delta;
+                onChanged(
+                  aid.copyWith(
+                    center: Offset(
+                      next.dx.clamp(0, aid.pageSize.width),
+                      next.dy.clamp(0, aid.pageSize.height),
+                    ),
+                  ),
+                );
               },
               child: const SizedBox.expand(),
             ),
@@ -69,8 +85,8 @@ class RulerOverlay extends StatelessWidget {
           ),
         ],
         Positioned(
-          left: (aid.center.dx - 78).clamp(8, double.infinity),
-          top: (aid.center.dy - 52).clamp(8, double.infinity),
+          left: (mid.dx - 78).clamp(8, aid.pageSize.width - 160),
+          top: (mid.dy - 52).clamp(8, aid.pageSize.height - 48),
           child: Material(
             color: EditorChrome.floating.withValues(alpha: 0.94),
             borderRadius: BorderRadius.circular(14),
@@ -150,13 +166,14 @@ class _RulerPainter extends CustomPainter {
     final start = aid.start;
     final end = aid.end;
     final dir = aid.direction;
-    final normal = Offset(-dir.dy, dir.dx);
+    final normal = aid.normal;
+    const half = RulerAid.edgeOffset;
 
     final bodyPath = Path()
-      ..moveTo((start + normal * 14).dx, (start + normal * 14).dy)
-      ..lineTo((end + normal * 14).dx, (end + normal * 14).dy)
-      ..lineTo((end - normal * 14).dx, (end - normal * 14).dy)
-      ..lineTo((start - normal * 14).dx, (start - normal * 14).dy)
+      ..moveTo((start + normal * half).dx, (start + normal * half).dy)
+      ..lineTo((end + normal * half).dx, (end + normal * half).dy)
+      ..lineTo((end - normal * half).dx, (end - normal * half).dy)
+      ..lineTo((start - normal * half).dx, (start - normal * half).dy)
       ..close();
 
     canvas.drawPath(bodyPath, Paint()..color = const Color(0xE8F4E8C8));
@@ -170,8 +187,8 @@ class _RulerPainter extends CustomPainter {
 
     // Drawing edge (ink snaps here).
     canvas.drawLine(
-      start - normal * 14,
-      end - normal * 14,
+      start - normal * half,
+      end - normal * half,
       Paint()
         ..color = const Color(0xFF2F6FED)
         ..strokeWidth = 1.6,
@@ -186,11 +203,12 @@ class _RulerPainter extends CustomPainter {
       final isCm = index % 10 == 0;
       final isHalf = index % 5 == 0;
       final tick = isCm ? 11.0 : (isHalf ? 7.0 : 4.0);
-      final a = along - normal * 14;
-      final b = along - normal * (14 - tick);
+      // Ticks grow upward into the ruler body from the drawing edge.
+      final edge = along - normal * half;
+      final tip = along - normal * (half - tick);
       canvas.drawLine(
-        a,
-        b,
+        edge,
+        tip,
         Paint()
           ..color = const Color(0xFF2A241C)
           ..strokeWidth = isCm ? 1.3 : 0.9,
@@ -208,11 +226,12 @@ class _RulerPainter extends CustomPainter {
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        final anchor = along - normal * 1;
+        // Numbers sit below the ticks (outside the ruler, past the blue edge).
+        final anchor = along - normal * (half + 3);
         canvas.save();
         canvas.translate(anchor.dx, anchor.dy);
         canvas.rotate(aid.angle);
-        tp.paint(canvas, Offset(-tp.width / 2, -tp.height - 1));
+        tp.paint(canvas, Offset(-tp.width / 2, 1));
         canvas.restore();
       }
       x += mm;
@@ -224,6 +243,6 @@ class _RulerPainter extends CustomPainter {
   bool shouldRepaint(covariant _RulerPainter oldDelegate) =>
       oldDelegate.aid.center != aid.center ||
       oldDelegate.aid.angle != aid.angle ||
-      oldDelegate.aid.lengthPt != aid.lengthPt ||
+      oldDelegate.aid.pageSize != aid.pageSize ||
       oldDelegate.aid.fixed != aid.fixed;
 }

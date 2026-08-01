@@ -99,36 +99,48 @@ class DrawingAidsController extends ChangeNotifier {
 
 class RulerAid {
   const RulerAid({
+    required this.pageSize,
     required this.center,
     required this.angle,
-    required this.lengthPt,
     this.fixed = false,
   });
 
   factory RulerAid.defaults(Size pageSize) {
     return RulerAid(
-      center: Offset(pageSize.width * 0.5, pageSize.height * 0.45),
+      pageSize: pageSize,
+      center: Offset(pageSize.width * 0.5, pageSize.height * 0.42),
       angle: 0,
-      lengthPt: PageUnits.cmToPt(12),
     );
   }
 
-  /// Midpoint of the ruler in page coordinates.
+  /// Page the ruler spans edge-to-edge.
+  final Size pageSize;
+
+  /// Anchor on the infinite line (usually near the page center).
   final Offset center;
 
   /// Radians; 0 = horizontal along +X.
   final double angle;
-
-  /// Full length in PDF points.
-  final double lengthPt;
   final bool fixed;
 
   Offset get direction => Offset(math.cos(angle), math.sin(angle));
 
   Offset get normal => Offset(-direction.dy, direction.dx);
 
-  Offset get start => center - direction * (lengthPt / 2);
-  Offset get end => center + direction * (lengthPt / 2);
+  /// Endpoints clipped to the page rectangle (always edge → edge).
+  (Offset, Offset) get span {
+    final far = direction * (pageSize.width + pageSize.height + 4);
+    return clipLineToRect(
+      center - far,
+      center + far,
+      Rect.fromLTWH(0, 0, pageSize.width, pageSize.height),
+    );
+  }
+
+  Offset get start => span.$1;
+  Offset get end => span.$2;
+
+  double get lengthPt => (end - start).distance;
 
   /// Edge the ink snaps to (bottom edge of the ruler body).
   static const double edgeOffset = 14;
@@ -162,18 +174,53 @@ class RulerAid {
   }
 
   RulerAid copyWith({
+    Size? pageSize,
     Offset? center,
     double? angle,
-    double? lengthPt,
     bool? fixed,
   }) {
     return RulerAid(
+      pageSize: pageSize ?? this.pageSize,
       center: center ?? this.center,
       angle: angle ?? this.angle,
-      lengthPt: lengthPt ?? this.lengthPt,
       fixed: fixed ?? this.fixed,
     );
   }
+}
+
+/// Clip an infinite line segment to a rectangle; returns the two edge hits.
+(Offset, Offset) clipLineToRect(Offset a, Offset b, Rect rect) {
+  final dx = b.dx - a.dx;
+  final dy = b.dy - a.dy;
+  var t0 = 0.0;
+  var t1 = 1.0;
+
+  bool clip(double p, double q) {
+    if (p == 0) return q >= 0;
+    final r = q / p;
+    if (p < 0) {
+      if (r > t1) return false;
+      if (r > t0) t0 = r;
+    } else {
+      if (r < t0) return false;
+      if (r < t1) t1 = r;
+    }
+    return true;
+  }
+
+  // Liang–Barsky against rect expanded slightly so we always hit edges.
+  final r = rect.inflate(0.5);
+  if (!clip(-dx, a.dx - r.left) ||
+      !clip(dx, r.right - a.dx) ||
+      !clip(-dy, a.dy - r.top) ||
+      !clip(dy, r.bottom - a.dy)) {
+    // Degenerate fallback: horizontal through center.
+    return (Offset(r.left, a.dy.clamp(r.top, r.bottom)), Offset(r.right, a.dy.clamp(r.top, r.bottom)));
+  }
+  return (
+    Offset(a.dx + t0 * dx, a.dy + t0 * dy),
+    Offset(a.dx + t1 * dx, a.dy + t1 * dy),
+  );
 }
 
 enum CompassPhase {

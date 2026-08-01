@@ -271,8 +271,9 @@ class InkEngine extends ChangeNotifier {
     final last = active.points.last;
     final dx = point.dx - last.x;
     final dy = point.dy - last.y;
-    // Keep denser samples while drawing so curves stay smooth.
-    if (dx * dx + dy * dy < 0.16) return;
+    // Pencil can afford slightly coarser samples — huge win for paint cost.
+    final minDist2 = tool == InkTool.pencil ? 1.0 : 0.16;
+    if (dx * dx + dy * dy < minDist2) return;
 
     active.points.add(
       StrokePoint(x: point.dx, y: point.dy, pressure: p, t: t),

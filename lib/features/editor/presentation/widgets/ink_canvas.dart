@@ -804,6 +804,7 @@ class InkCanvasState extends State<InkCanvas>
                                       ? widget.engine.width / 2
                                       : null,
                                   paintEpoch: widget.engine.paintEpoch,
+                                  cacheSettled: true,
                                 ),
                               );
                             },
