@@ -29,19 +29,16 @@ class PageSnapshot extends StatelessWidget {
   final NotePage page;
   final double? width;
 
-  /// When true, apply the same GoodNotes-style viewport insets as [InkCanvas]
-  /// so neighbor pages don't jump when the live canvas mounts.
+  /// When true, apply the same transform matrix as [InkCanvas] at fit-zoom.
   final bool matchLiveFit;
 
   @override
   Widget build(BuildContext context) {
     final pageSize = NotePageSize.resolve(page.paperFormat, page.orientation);
-    // Match InkCanvas' interaction gutter on every side.
     final canvasSize = PageViewportFit.childSize(pageSize);
     final paper = ValueListenableBuilder<ui.Image?>(
       valueListenable: PagePreviewCache.instance.listenableFor(page.id),
       builder: (context, cached, _) {
-        // Fall back to revision-aware lookup (notifier may lag one frame).
         final image = cached ?? PagePreviewCache.instance.get(page);
         return DecoratedBox(
           decoration: BoxDecoration(
@@ -79,38 +76,47 @@ class PageSnapshot extends StatelessWidget {
         );
       },
     );
-    final content = FittedBox(
-      fit: BoxFit.contain,
-      child: SizedBox(
-        width: canvasSize.width,
-        height: canvasSize.height,
-        child: Center(
-          child: SizedBox(
-            width: pageSize.width,
-            height: pageSize.height,
-            child: paper,
-          ),
-        ),
-      ),
-    );
 
     final aspect = canvasSize.width / canvasSize.height;
     if (width != null) {
-      return SizedBox(width: width, height: width! / aspect, child: content);
+      return SizedBox(
+        width: width,
+        height: width! / aspect,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return PageViewportFit.framed(
+              viewport: Size(constraints.maxWidth, constraints.maxHeight),
+              pageSize: pageSize,
+              paper: paper,
+            );
+          },
+        ),
+      );
     }
     if (matchLiveFit) {
       return LayoutBuilder(
         builder: (context, constraints) {
-          final viewport = Size(constraints.maxWidth, constraints.maxHeight);
-          return Padding(
-            padding: PageViewportFit.paddingFor(viewport),
-            child: content,
+          return PageViewportFit.framed(
+            viewport: Size(constraints.maxWidth, constraints.maxHeight),
+            pageSize: pageSize,
+            paper: paper,
           );
         },
       );
     }
     return Center(
-      child: AspectRatio(aspectRatio: aspect, child: content),
+      child: AspectRatio(
+        aspectRatio: aspect,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return PageViewportFit.framed(
+              viewport: Size(constraints.maxWidth, constraints.maxHeight),
+              pageSize: pageSize,
+              paper: paper,
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -269,14 +275,6 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   /// Locks PageView / ListView while drawing, pinching, or zoomed.
   bool _scrollLock = false;
 
-  /// While true, every slot (incl. the active page) is a cheap bitmap/snapshot
-  /// so PageView jumpTo stays butter-smooth.
-  bool _flipLightweight = false;
-
-  /// After a flip, delay mounting the live [InkCanvas] by a couple of frames.
-  bool _liveArmed = true;
-  int _liveArmToken = 0;
-
   /// Swipe velocity (px/s, screen space) for natural page commits.
   double _swipeVelocity = 0;
   int _lastPanMicros = 0;
@@ -311,31 +309,6 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       widget.pages,
       widget.pageIndex,
     );
-  }
-
-  void _enterLightweightFlip() {
-    if (_flipLightweight) return;
-    setState(() {
-      _flipLightweight = true;
-      _liveArmed = false;
-    });
-  }
-
-  void _armLiveCanvasSoon() {
-    final token = ++_liveArmToken;
-    // Two frames: one for PageView settle composite, one for selectPage bind.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || token != _liveArmToken) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || token != _liveArmToken) return;
-        setState(() {
-          _flipLightweight = false;
-          _liveArmed = true;
-        });
-        PagePreviewCache.instance.setPaused(false);
-        _scheduleNeighborPreviews();
-      });
-    });
   }
 
   @Deprecated('Use setScrollLock')
@@ -400,19 +373,14 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       return;
     }
     if (oldWidget.pageIndex != widget.pageIndex) {
-      // Sidebar / external jumps: keep the flip on bitmaps until armed.
-      if (!_flipLightweight) {
-        _flipLightweight = true;
-        _liveArmed = false;
-      }
-      _armLiveCanvasSoon();
+      _scheduleNeighborPreviews();
       if (_ignorePageSync) return;
       if (_pageController != null && _pageController!.hasClients) {
         final current = _pageController!.page?.round() ?? widget.pageIndex;
         if (current != widget.pageIndex) {
           _pageController!.animateToPage(
             widget.pageIndex,
-            duration: const Duration(milliseconds: 280),
+            duration: const Duration(milliseconds: 260),
             curve: Curves.easeOutCubic,
           );
         }
@@ -454,7 +422,6 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       return;
     }
     if (target < 0 || target >= widget.pages.length) return;
-    _enterLightweightFlip();
     unawaited(_commitPage(target, animate: true));
   }
 
@@ -479,11 +446,10 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       final page = pc.page;
       final needsMove = page == null || (page - clamped).abs() > 0.001;
       if (needsMove) {
-        _enterLightweightFlip();
         if (animate) {
           await pc.animateToPage(
             clamped,
-            duration: const Duration(milliseconds: 280),
+            duration: const Duration(milliseconds: 260),
             curve: Curves.easeOutCubic,
           );
         } else {
@@ -492,12 +458,13 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       }
     }
     if (!mounted) return;
-    // Keep bitmap mode through the selectPage bind — live canvas arms later.
-    _enterLightweightFlip();
+    // Let the snap composite once, then bind — never unmount InkCanvas mid
+    // gesture (that killed left/right swipes).
     await SchedulerBinding.instance.endOfFrame;
     if (!mounted) return;
     _emitPage(clamped);
-    _armLiveCanvasSoon();
+    PagePreviewCache.instance.setPaused(false);
+    _scheduleNeighborPreviews();
   }
 
   Future<void> _requestAddPage() async {
@@ -517,8 +484,6 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
       // Absorb vertical movement at fit zoom so the page cannot drift.
       if (delta.dx.abs() < delta.dy.abs() * 0.85) return true;
-      // Drop the live canvas for the drag — only bitmaps move with the finger.
-      _enterLightweightFlip();
       PagePreviewCache.instance.setPaused(true);
 
       final now = DateTime.now().microsecondsSinceEpoch;
@@ -752,13 +717,11 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
                   ),
                 );
               }
-              // During a flip (or before live arm), every slot is a cheap
-              // snapshot/bitmap so scrolling never composites InkCanvas.
-              final showLive = index == widget.pageIndex &&
-                  _liveArmed &&
-                  !_flipLightweight;
+              // Active page keeps InkCanvas mounted for the whole gesture —
+              // unmounting mid-swipe broke left/right page flips. Neighbors
+              // use the same fit matrix so size stays stable while scrolling.
               return RepaintBoundary(
-                child: showLive
+                child: index == widget.pageIndex
                     ? widget.activePageBuilder(context, index)
                     : PageSnapshot(
                         page: widget.pages[index],
@@ -812,6 +775,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
                                 child: PageSnapshot(
                                   page: widget.pages[index],
                                   width: constraints.maxWidth * 0.92,
+                                  matchLiveFit: true,
                                 ),
                               ),
                             ),

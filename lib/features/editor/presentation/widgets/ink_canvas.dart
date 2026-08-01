@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../../../data/models/content_models.dart';
 import '../../domain/ink_engine.dart';
@@ -163,7 +165,10 @@ class InkCanvasState extends State<InkCanvas>
 
   Matrix4 _fitMatrix(Size viewport) {
     _fitScale = _computeFitScale(viewport);
-    return _matrixForScale(_fitScale, viewport);
+    if (widget.canvasMode == CanvasMode.infinite) {
+      return _matrixForScale(_fitScale, viewport);
+    }
+    return PageViewportFit.fitMatrix(viewport, widget.pageSize);
   }
 
   /// Centers [scale] in the viewport (no free translation).
@@ -413,6 +418,12 @@ class InkCanvasState extends State<InkCanvas>
 
   bool _isTouch(PointerEvent event) => event.kind == PointerDeviceKind.touch;
 
+  /// [Listener] wraps the gutter box; ink APIs expect page-local coords.
+  Offset _toPageLocal(Offset local) {
+    if (widget.canvasMode == CanvasMode.infinite) return local;
+    return local - const Offset(PageViewportFit.gutter / 2, PageViewportFit.gutter / 2);
+  }
+
   /// One finger draws (unless stylus-only mode). Stylus/mouse always draw.
   bool _canDrawWith(PointerEvent event) {
     if (widget.readOnly) return false;
@@ -535,7 +546,7 @@ class InkCanvasState extends State<InkCanvas>
       setState(() {});
       _updateScrollLock();
       widget.onPointerDown(
-        event.localPosition,
+        _toPageLocal(event.localPosition),
         isStylus:
             event.kind == PointerDeviceKind.stylus ||
             event.kind == PointerDeviceKind.invertedStylus,
@@ -585,7 +596,7 @@ class InkCanvasState extends State<InkCanvas>
 
     if (_drawing && event.pointer == _drawPointer) {
       widget.onPointerMove(
-        event.localPosition,
+        _toPageLocal(event.localPosition),
         pressure: event.pressure == 0 ? 0.5 : event.pressure,
       );
       return;
@@ -686,10 +697,19 @@ class InkCanvasState extends State<InkCanvas>
             _fittedPageSize = widget.pageSize;
             _fittedViewport = viewport;
             final matrix = _fitMatrix(viewport);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Apply before the next paint (same frame) so the page never
+            // flashes at scale=1 when the live canvas mounts.
+            SchedulerBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               _transform.value = matrix;
               _forceScrollUnlock();
+            });
+            // Also push immediately after this build phase.
+            scheduleMicrotask(() {
+              if (!mounted) return;
+              if (_fittedViewport == viewport) {
+                _transform.value = matrix;
+              }
             });
           } else if (viewportChanged) {
             final oldViewport = _fittedViewport!;
@@ -727,18 +747,21 @@ class InkCanvasState extends State<InkCanvas>
               : (_) {
                   _snapToFitIfNeeded();
                 },
+          // Listener fills the gutter too so left/right swipes starting on the
+          // margin still drive page browse. Drawing coords are shifted back
+          // into page space below.
           child: SizedBox(
             width: pageSize.width + (infinite ? 0 : 64),
             height: pageSize.height + (infinite ? 0 : 64),
-            child: Center(
-              child: GestureDetector(
-                onDoubleTap: widget.onDoubleTap,
-                child: Listener(
-                  behavior: HitTestBehavior.opaque,
-                  onPointerDown: _handlePointerDown,
-                  onPointerMove: _handlePointerMove,
-                  onPointerUp: _handlePointerUp,
-                  onPointerCancel: _handlePointerCancel,
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: _handlePointerDown,
+              onPointerMove: _handlePointerMove,
+              onPointerUp: _handlePointerUp,
+              onPointerCancel: _handlePointerCancel,
+              child: Center(
+                child: GestureDetector(
+                  onDoubleTap: widget.onDoubleTap,
                   child: Container(
                     width: pageSize.width,
                     height: pageSize.height,
@@ -776,7 +799,6 @@ class InkCanvasState extends State<InkCanvas>
                             paper: widget.paper,
                             pdfImage: widget.backgroundImage,
                           ),
-                        // Rebuild only ink while drawing — keep paper static.
                         if (!widget.hideInk)
                           AnimatedBuilder(
                             animation: Listenable.merge([
