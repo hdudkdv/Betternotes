@@ -116,7 +116,7 @@ class LanSyncController extends ChangeNotifier {
   StreamSubscription<List<NearbyDiscoveredHost>>? _hostsSub;
 
   late final String _deviceId;
-  String deviceName = 'BetterNotes';
+  String deviceName = 'Notis';
   String? sessionCode;
   String? notebookId;
   LanSyncRole? role;

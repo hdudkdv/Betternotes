@@ -49,15 +49,15 @@ class LegalDocumentScreen extends StatelessWidget {
 }
 
 const _privacyDe = '''
-Datenschutzerklärung – BetterNotes
+Datenschutzerklärung – Notis
 
 Stand: Juli 2026
 
 1. Verantwortlicher
-Für die Verarbeitung personenbezogener Daten im Zusammenhang mit der App BetterNotes ist der in der Impressum-Angabe genannte Anbieter verantwortlich. Kontaktdaten findest du unter „Impressum“.
+Für die Verarbeitung personenbezogener Daten im Zusammenhang mit der App Notis ist der in der Impressum-Angabe genannte Anbieter verantwortlich. Kontaktdaten findest du unter „Impressum“.
 
 2. Welche Daten wir verarbeiten
-BetterNotes ist offline-first. Ohne Anmeldung bleiben Notizbücher, Seiten, Zeitpläne, Noten und Karteikarten in der Regel nur lokal auf deinem Gerät.
+Notis ist offline-first. Ohne Anmeldung bleiben Notizbücher, Seiten, Zeitpläne, Noten und Karteikarten in der Regel nur lokal auf deinem Gerät.
 
 Optional und nur nach deiner Aktion können verarbeitet werden:
 • Konto- und Authentifizierungsdaten (z. B. Google- oder Apple-Anmeldung), wenn du dich anmeldest
@@ -69,7 +69,7 @@ Optional und nur nach deiner Aktion können verarbeitet werden:
 Bei „Nahe Sync“ (WLAN/Hotspot) werden Notizbuchdaten direkt zwischen Geräten im lokalen Netz ausgetauscht. Dafür ist keine Anmeldung nötig; die Verbindung läuft über dein lokales Netzwerk.
 
 Lehrerfunktionen:
-• Live-Unterricht überträgt im lokalen Netz Teilnehmername, Bearbeitungsfortschritt und – nur nach Zustimmung des Schülers – ob BetterNotes im Vordergrund ist. Eine automatische Wiederverbindung speichert Fach und Raum lokal und wird nur versucht, wenn mindestens eines der beiden Kriterien übereinstimmt. Die Lehrkraft prüft dies zusätzlich beim Handshake. Die App erfasst weder Namen noch Inhalte anderer geöffneter Apps.
+• Live-Unterricht überträgt im lokalen Netz Teilnehmername, Bearbeitungsfortschritt und – nur nach Zustimmung des Schülers – ob Notis im Vordergrund ist. Eine automatische Wiederverbindung speichert Fach und Raum lokal und wird nur versucht, wenn mindestens eines der beiden Kriterien übereinstimmt. Die Lehrkraft prüft dies zusätzlich beim Handshake. Die App erfasst weder Namen noch Inhalte anderer geöffneter Apps.
 • Audio-Erklärungen werden erst nach aktivem Start und erteilter Mikrofonberechtigung aufgenommen und zunächst lokal gespeichert. Eine automatische Transkription oder Verteilung erfolgt nur, wenn ein entsprechender Dienst konfiguriert und die erforderliche Einwilligung eingeholt wurde.
 • OER-Materialien werden bei freiwilliger Einreichung zusammen mit Fach, Klasse, Bundesland, Bearbeitungszeit und dem angemeldeten Profil zur Prüfung in die Cloud geladen. Sie werden erst nach Freigabe öffentlich gelistet.
 • Referendarsnachweise werden in der aktuellen lokalen Version nicht hochgeladen; gespeichert wird nur ein lokaler Bearbeitungsstatus. Ein späterer Prüfservice benötigt eine gesonderte Einwilligung und Löschfrist.
@@ -99,7 +99,7 @@ Diese Anbieter können Daten außerhalb der EU verarbeiten; es gelten deren Date
 Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch sowie das Recht, eine Einwilligung zu widerrufen. Außerdem kannst du dich bei einer Aufsichtsbehörde beschweren.
 
 8. Kinder
-BetterNotes richtet sich an Schüler:innen und Studierende. Wenn du unter 16 bist (bzw. unter dem in deinem Land geltenden Alter), nutze die App bitte nur mit Zustimmung einer erziehungsberechtigten Person, soweit erforderlich.
+Notis richtet sich an Schüler:innen und Studierende. Wenn du unter 16 bist (bzw. unter dem in deinem Land geltenden Alter), nutze die App bitte nur mit Zustimmung einer erziehungsberechtigten Person, soweit erforderlich.
 
 9. Änderungen
 Wir können diese Erklärung anpassen, wenn sich die App oder Rechtslage ändert. Die jeweils aktuelle Version findest du in den Einstellungen.
@@ -109,15 +109,15 @@ Siehe Impressum in den Einstellungen.
 ''';
 
 const _privacyEn = '''
-Privacy Policy – BetterNotes
+Privacy Policy – Notis
 
 Last updated: July 2026
 
 1. Controller
-The provider named in the Legal notice (Impressum) is responsible for personal data processed in connection with BetterNotes. Contact details are listed there.
+The provider named in the Legal notice (Impressum) is responsible for personal data processed in connection with Notis. Contact details are listed there.
 
 2. What we process
-BetterNotes is offline-first. Without signing in, notebooks, pages, planners, grades and flashcards usually stay only on your device.
+Notis is offline-first. Without signing in, notebooks, pages, planners, grades and flashcards usually stay only on your device.
 
 Optionally, and only after you choose to use a feature, we may process:
 • Account / authentication data (e.g. Google or Apple sign-in)
@@ -129,7 +129,7 @@ Optionally, and only after you choose to use a feature, we may process:
 With Nearby Sync (Wi‑Fi / hotspot), notebook data is exchanged directly between devices on your local network. No account is required; traffic stays on the local network.
 
 Teacher features:
-• Live classes transmit the participant name, progress and — only after the student's consent — whether BetterNotes is in the foreground. Automatic reconnection stores the subject and room locally and is attempted only if at least one criterion matches; the teacher also verifies this during the handshake. BetterNotes does not collect the names or contents of other open apps.
+• Live classes transmit the participant name, progress and — only after the student's consent — whether Notis is in the foreground. Automatic reconnection stores the subject and room locally and is attempted only if at least one criterion matches; the teacher also verifies this during the handshake. Notis does not collect the names or contents of other open apps.
 • Audio explanations are recorded only after the teacher starts recording and grants microphone permission, and remain local initially. Automated transcription or distribution occurs only when a suitable service is configured and the required consent has been obtained.
 • Voluntarily submitted OER material is uploaded for review together with subject, grade, state, duration and the signed-in profile. It is listed publicly only after approval.
 • The current local version does not upload trainee proof; it stores only a local review status. A later review service requires separate consent and a deletion period.
@@ -154,7 +154,7 @@ Depending on use, may include Firebase/Google (auth, Firestore, Storage), Apple/
 You may request access, rectification, erasure, restriction, portability and objection, and withdraw consent. You may lodge a complaint with a supervisory authority.
 
 8. Children
-BetterNotes is aimed at students. If you are under 16 (or the applicable age in your country), use the app only with guardian consent where required.
+Notis is aimed at students. If you are under 16 (or the applicable age in your country), use the app only with guardian consent where required.
 
 9. Changes
 We may update this policy when the app or law changes. The current version is available in Settings.
@@ -164,15 +164,15 @@ See the Legal notice (Impressum) in Settings.
 ''';
 
 const _termsDe = '''
-Allgemeine Nutzungsbedingungen (AGB) – BetterNotes
+Allgemeine Nutzungsbedingungen (AGB) – Notis
 
 Stand: Juli 2026
 
 1. Geltungsbereich
-Diese Bedingungen gelten für die Nutzung der App BetterNotes („App“) auf unterstützten Geräten.
+Diese Bedingungen gelten für die Nutzung der App Notis („App“) auf unterstützten Geräten.
 
 2. Leistungsbeschreibung
-BetterNotes ist eine Notiz- und Organisations-App für Schule und Studium (u. a. handschriftliche Notizen, Bibliothek, Planner, Karteikarten). Funktionen können sich weiterentwickeln. Manche Features (z. B. Cloud-Sync, Abos, Werbung) sind optional.
+Notis ist eine Notiz- und Organisations-App für Schule und Studium (u. a. handschriftliche Notizen, Bibliothek, Planner, Karteikarten). Funktionen können sich weiterentwickeln. Manche Features (z. B. Cloud-Sync, Abos, Werbung) sind optional.
 
 3. Konto und lokale Nutzung
 Die App ist grundsätzlich ohne Konto nutzbar. Für Cloud-Funktionen kann eine Anmeldung erforderlich sein. Du bist für Zugangsdaten und Gerätezugriff selbst verantwortlich.
@@ -207,15 +207,15 @@ Siehe Impressum.
 ''';
 
 const _termsEn = '''
-Terms of Use – BetterNotes
+Terms of Use – Notis
 
 Last updated: July 2026
 
 1. Scope
-These terms govern use of the BetterNotes app (“App”) on supported devices.
+These terms govern use of the Notis app (“App”) on supported devices.
 
 2. Service
-BetterNotes is a notes and organisation app for school and university (handwriting, library, planner, flashcards, and related tools). Features may evolve. Some capabilities (cloud sync, subscriptions, ads) are optional.
+Notis is a notes and organisation app for school and university (handwriting, library, planner, flashcards, and related tools). Features may evolve. Some capabilities (cloud sync, subscriptions, ads) are optional.
 
 3. Account and local use
 The App works without an account by default. Cloud features may require sign-in. You are responsible for credentials and device access.
@@ -254,7 +254,7 @@ Impressum
 
 Angaben gemäß § 5 TMG / § 18 MStV (soweit anwendbar)
 
-BetterNotes
+Notis
 [Vollständigen Namen / Firmennamen hier eintragen]
 [Straße und Hausnummer]
 [PLZ Ort]
@@ -281,7 +281,7 @@ Legal notice (Impressum)
 
 Information according to German Telemedia Act / applicable media law
 
-BetterNotes
+Notis
 [Full legal name / company name]
 [Street and number]
 [ZIP City]

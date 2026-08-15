@@ -1,49 +1,48 @@
 {
   "project_info": {
-    "project_number": "786794204952",
-    "firebase_url": "https://notizenapp-82537-default-rtdb.europe-west1.firebasedatabase.app",
-    "project_id": "notizenapp-82537",
-    "storage_bucket": "notizenapp-82537.firebasestorage.app"
+    "project_number": "471441564519",
+    "project_id": "notis-2dee0",
+    "storage_bucket": "notis-2dee0.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:786794204952:android:a11fad72b213039ec3d86d",
+        "mobilesdk_app_id": "1:471441564519:android:8f6f81842723b83c6305c2",
         "android_client_info": {
-          "package_name": "com.betternotes.betternotes"
+          "package_name": "com.notis.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "786794204952-5us82qsdrsatnm461m9es7am9qq3n1qu.apps.googleusercontent.com",
+          "client_id": "471441564519-ho80krlsqfnrepjffekbtpvgmjqm0aeh.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.betternotes.betternotes",
+            "package_name": "com.notis.app",
             "certificate_hash": "c78ea3407595c48de0b77d42a077be7bdc8cfabc"
           }
         },
         {
-          "client_id": "786794204952-ji73b2e1o5ojjb6h6hentob8orltk69l.apps.googleusercontent.com",
+          "client_id": "471441564519-vqi5qktbrh65u3l8n7q1iauhgmmd7aap.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBmqdKa0diSYjT6BBSDDwwfktr2cKpdh94"
+          "current_key": "AIzaSyB8MVj0D2QiVYC_HO9Yn6hJG2RSj8IR1u0"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "786794204952-ji73b2e1o5ojjb6h6hentob8orltk69l.apps.googleusercontent.com",
+              "client_id": "471441564519-vqi5qktbrh65u3l8n7q1iauhgmmd7aap.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "786794204952-rj8nqncl2ipqeet49urjrpb0er6t4bkb.apps.googleusercontent.com",
+              "client_id": "471441564519-852ue7rbppu18f584g5tnrh0j28pege5.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.betternotes.betternotes"
+                "bundle_id": "de.notis.app"
               }
             }
           ]

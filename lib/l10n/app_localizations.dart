@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'BetterNotes'**
+  /// **'Notis'**
   String get appTitle;
 
   /// No description provided for @newNotebook.
@@ -545,7 +545,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutBody.
   ///
   /// In en, this message translates to:
-  /// **'BetterNotes — Smart Text, Custom Paper, Deep Outline, global search, and offline-first sync queue.'**
+  /// **'Notis — Smart Text, Custom Paper, Deep Outline, global search, and offline-first sync queue.'**
   String get aboutBody;
 
   /// No description provided for @searchHint.
@@ -2834,6 +2834,78 @@ abstract class AppLocalizations {
   /// **'Plan & coins'**
   String get sectionSubscription;
 
+  /// No description provided for @upgradeToNotisPro.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Notis Pro'**
+  String get upgradeToNotisPro;
+
+  /// No description provided for @upgradeToNotisProHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly, yearly, or lifetime — managed through RevenueCat.'**
+  String get upgradeToNotisProHint;
+
+  /// No description provided for @notisProActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Notis Pro is active'**
+  String get notisProActive;
+
+  /// No description provided for @notisProInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Free plan'**
+  String get notisProInactive;
+
+  /// No description provided for @manageSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage subscription'**
+  String get manageSubscription;
+
+  /// No description provided for @manageSubscriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel, restore, or contact support in Customer Center.'**
+  String get manageSubscriptionHint;
+
+  /// No description provided for @restorePurchases.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore purchases'**
+  String get restorePurchases;
+
+  /// No description provided for @restorePurchasesSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Notis Pro was restored.'**
+  String get restorePurchasesSuccess;
+
+  /// No description provided for @restorePurchasesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No active purchase found.'**
+  String get restorePurchasesEmpty;
+
+  /// No description provided for @purchaseCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase cancelled.'**
+  String get purchaseCancelled;
+
+  /// No description provided for @purchaseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase failed: {message}'**
+  String purchaseFailed(String message);
+
+  /// No description provided for @paywallUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The paywall is not available on this device.'**
+  String get paywallUnavailable;
+
   /// No description provided for @sectionSupport.
   ///
   /// In en, this message translates to:
@@ -3119,7 +3191,7 @@ abstract class AppLocalizations {
   /// No description provided for @supportBody.
   ///
   /// In en, this message translates to:
-  /// **'BetterNotes stays usable offline. A coffee helps cover future server costs.'**
+  /// **'Notis stays usable offline. A coffee helps cover future server costs.'**
   String get supportBody;
 
   /// No description provided for @supportBuyCoffee.
@@ -4163,7 +4235,7 @@ abstract class AppLocalizations {
   /// No description provided for @roleWelcomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'How do you use BetterNotes?'**
+  /// **'How do you use Notis?'**
   String get roleWelcomeTitle;
 
   /// No description provided for @roleWelcomeBody.
@@ -4391,7 +4463,7 @@ abstract class AppLocalizations {
   /// No description provided for @teacherFocusCheckPrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Only reports whether BetterNotes is in the foreground during the session — never other apps or their content.'**
+  /// **'Only reports whether Notis is in the foreground during the session — never other apps or their content.'**
   String get teacherFocusCheckPrivacy;
 
   /// No description provided for @teacherWaitingParticipants.
@@ -4403,13 +4475,13 @@ abstract class AppLocalizations {
   /// No description provided for @teacherFocused.
   ///
   /// In en, this message translates to:
-  /// **'Active in BetterNotes'**
+  /// **'Active in Notis'**
   String get teacherFocused;
 
   /// No description provided for @teacherLeftApp.
   ///
   /// In en, this message translates to:
-  /// **'Left BetterNotes'**
+  /// **'Left Notis'**
   String get teacherLeftApp;
 
   /// No description provided for @teacherAllowWriting.
@@ -4799,7 +4871,7 @@ abstract class AppLocalizations {
   /// No description provided for @classroomAutoConnectBody.
   ///
   /// In en, this message translates to:
-  /// **'BetterNotes can look for “{criteria}” during the next lesson. It connects only when the subject or room matches. The teacher verifies these criteria again during the handshake.'**
+  /// **'Notis can look for “{criteria}” during the next lesson. It connects only when the subject or room matches. The teacher verifies these criteria again during the handshake.'**
   String classroomAutoConnectBody(String criteria);
 
   /// No description provided for @classroomAutoConnectSetting.

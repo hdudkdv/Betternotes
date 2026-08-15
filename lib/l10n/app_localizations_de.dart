@@ -9,7 +9,7 @@ class AppLocalizationsDe extends AppLocalizations {
   AppLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
-  String get appTitle => 'BetterNotes';
+  String get appTitle => 'Notis';
 
   @override
   String get newNotebook => 'Neues Notizbuch';
@@ -253,7 +253,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'BetterNotes — Smart Text, Papier-Editor, Gliederung, globale Suche und Offline-First Sync.';
+      'Notis — Smart Text, Papier-Editor, Gliederung, globale Suche und Offline-First Sync.';
 
   @override
   String get searchHint => 'Suchen oder @Fach @Klasse10 …';
@@ -1484,6 +1484,47 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sectionSubscription => 'Abo & Coins';
 
   @override
+  String get upgradeToNotisPro => 'Notis Pro holen';
+
+  @override
+  String get upgradeToNotisProHint =>
+      'Monatlich, jährlich oder einmalig — gesteuert über RevenueCat.';
+
+  @override
+  String get notisProActive => 'Notis Pro ist aktiv';
+
+  @override
+  String get notisProInactive => 'Kostenloser Plan';
+
+  @override
+  String get manageSubscription => 'Abo verwalten';
+
+  @override
+  String get manageSubscriptionHint =>
+      'Kündigen, wiederherstellen oder Support im Customer Center.';
+
+  @override
+  String get restorePurchases => 'Käufe wiederherstellen';
+
+  @override
+  String get restorePurchasesSuccess => 'Notis Pro wurde wiederhergestellt.';
+
+  @override
+  String get restorePurchasesEmpty => 'Kein aktiver Kauf gefunden.';
+
+  @override
+  String get purchaseCancelled => 'Kauf abgebrochen.';
+
+  @override
+  String purchaseFailed(String message) {
+    return 'Kauf fehlgeschlagen: $message';
+  }
+
+  @override
+  String get paywallUnavailable =>
+      'Die Paywall ist auf diesem Gerät nicht verfügbar.';
+
+  @override
   String get sectionSupport => 'Unterstützung';
 
   @override
@@ -1643,7 +1684,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get supportBody =>
-      'BetterNotes bleibt lokal nutzbar. Mit einem Kaffee hilfst du bei Serverkosten späterer Features.';
+      'Notis bleibt lokal nutzbar. Mit einem Kaffee hilfst du bei Serverkosten späterer Features.';
 
   @override
   String get supportBuyCoffee => 'Kaffee ausgeben';
@@ -2215,7 +2256,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get share => 'Teilen';
 
   @override
-  String get roleWelcomeTitle => 'Wie nutzt du BetterNotes?';
+  String get roleWelcomeTitle => 'Wie nutzt du Notis?';
 
   @override
   String get roleWelcomeBody =>
@@ -2348,17 +2389,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get teacherFocusCheckPrivacy =>
-      'Zeigt nur an, ob BetterNotes während der Session im Vordergrund ist – keine fremden Apps oder Inhalte.';
+      'Zeigt nur an, ob Notis während der Session im Vordergrund ist – keine fremden Apps oder Inhalte.';
 
   @override
   String get teacherWaitingParticipants =>
       'Warte auf Teilnehmer im lokalen Netzwerk. Für Tests kannst du Teilnehmer manuell hinzufügen.';
 
   @override
-  String get teacherFocused => 'In BetterNotes aktiv';
+  String get teacherFocused => 'In Notis aktiv';
 
   @override
-  String get teacherLeftApp => 'BetterNotes verlassen';
+  String get teacherLeftApp => 'Notis verlassen';
 
   @override
   String get teacherAllowWriting => 'Schreibrecht umschalten';
@@ -2582,7 +2623,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String classroomAutoConnectBody(String criteria) {
-    return 'BetterNotes kann beim nächsten Unterricht nach „$criteria“ suchen. Eine Verbindung wird nur aufgebaut, wenn Fach oder Raum übereinstimmt. Der Lehrer prüft diese Kriterien zusätzlich beim Handshake.';
+    return 'Notis kann beim nächsten Unterricht nach „$criteria“ suchen. Eine Verbindung wird nur aufgebaut, wenn Fach oder Raum übereinstimmt. Der Lehrer prüft diese Kriterien zusätzlich beim Handshake.';
   }
 
   @override

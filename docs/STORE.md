@@ -2,9 +2,9 @@
 
 ## Identifiers
 
-- Android application id: `com.betternotes.betternotes`
-- iOS bundle id: set in Xcode (`com.betternotes.betternotes` from Flutter create)
-- Display name: **BetterNotes**
+- Android application id: `com.notis.app`
+- iOS bundle id: `de.notis.app`
+- Display name: **Notis**
 
 ## Web / PWA
 

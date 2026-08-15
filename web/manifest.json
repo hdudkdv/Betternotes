@@ -1,6 +1,6 @@
 {
-  "name": "BetterNotes",
-  "short_name": "BetterNotes",
+  "name": "Notis",
+  "short_name": "Notis",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#F7F2E8",

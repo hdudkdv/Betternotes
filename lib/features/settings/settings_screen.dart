@@ -10,6 +10,7 @@ import '../../app/theme.dart';
 import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_repository.dart';
+import '../billing/revenuecat_billing.dart';
 import '../editor/domain/editor_gestures.dart';
 import '../editor/domain/ink_models.dart';
 import '../entitlements/entitlement_model.dart';
@@ -177,6 +178,25 @@ class SettingsScreen extends ConsumerWidget {
     covered.dispose();
   }
 
+  Future<void> _handlePurchaseOutcome(
+    BuildContext context,
+    WidgetRef ref,
+    PurchaseOutcome outcome,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final billing = ref.read(revenueCatBillingProvider);
+    final message = switch (outcome) {
+      PurchaseOutcome.success => billing.hasNotisPro
+          ? l10n.restorePurchasesSuccess
+          : l10n.restorePurchasesEmpty,
+      PurchaseOutcome.cancelled => l10n.purchaseCancelled,
+      PurchaseOutcome.unavailable => l10n.paywallUnavailable,
+      PurchaseOutcome.error => l10n.purchaseFailed(billing.error ?? ''),
+    };
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -184,6 +204,7 @@ class SettingsScreen extends ConsumerWidget {
     final sync = ref.watch(syncEngineProvider);
     final entitlements = ref.watch(entitlementProvider);
     final auth = ref.watch(authProvider);
+    final billing = ref.watch(revenueCatBillingProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings, style: AppTheme.headline())),
@@ -605,6 +626,56 @@ class SettingsScreen extends ConsumerWidget {
               ],
               ListTile(
                 contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  billing.hasNotisPro
+                      ? Icons.workspace_premium
+                      : Icons.workspace_premium_outlined,
+                ),
+                title: Text(
+                  billing.hasNotisPro
+                      ? l10n.notisProActive
+                      : l10n.upgradeToNotisPro,
+                  style: _label,
+                ),
+                subtitle: Text(
+                  billing.hasNotisPro
+                      ? l10n.manageSubscriptionHint
+                      : l10n.upgradeToNotisProHint,
+                  style: _body,
+                ),
+                onTap: billing.configured
+                    ? () async {
+                        if (billing.hasNotisPro) {
+                          await billing.presentCustomerCenter();
+                          return;
+                        }
+                        final outcome = await billing.presentPaywall();
+                        if (!context.mounted) return;
+                        await _handlePurchaseOutcome(context, ref, outcome);
+                      }
+                    : null,
+              ),
+              if (billing.configured && billing.hasNotisPro)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.manage_accounts_outlined),
+                  title: Text(l10n.manageSubscription, style: _label),
+                  subtitle: Text(l10n.manageSubscriptionHint, style: _body),
+                  onTap: () => billing.presentCustomerCenter(),
+                ),
+              if (billing.configured)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.restore),
+                  title: Text(l10n.restorePurchases, style: _label),
+                  onTap: () async {
+                    final outcome = await billing.restorePurchases();
+                    if (!context.mounted) return;
+                    await _handlePurchaseOutcome(context, ref, outcome);
+                  },
+                ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.storefront_outlined),
                 title: Text(l10n.marketplace, style: _label),
                 subtitle: Text(l10n.marketplaceHint, style: _body),
@@ -926,7 +997,7 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () {
                   showLicensePage(
                     context: context,
-                    applicationName: 'BetterNotes',
+                    applicationName: 'Notis',
                     applicationLegalese: l10n.aboutBody,
                   );
                 },

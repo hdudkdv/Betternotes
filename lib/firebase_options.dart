@@ -58,27 +58,23 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBmqdKa0diSYjT6BBSDDwwfktr2cKpdh94',
-    appId: '1:786794204952:android:a11fad72b213039ec3d86d',
-    messagingSenderId: '786794204952',
-    projectId: 'notizenapp-82537',
-    databaseURL:
-        'https://notizenapp-82537-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'notizenapp-82537.firebasestorage.app',
+    apiKey: 'AIzaSyB8MVj0D2QiVYC_HO9Yn6hJG2RSj8IR1u0',
+    appId: '1:471441564519:android:8f6f81842723b83c6305c2',
+    messagingSenderId: '471441564519',
+    projectId: 'notis-2dee0',
+    storageBucket: 'notis-2dee0.firebasestorage.app',
+    androidClientId:
+        '471441564519-ho80krlsqfnrepjffekbtpvgmjqm0aeh.apps.googleusercontent.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDDtjyolydXi6__x6ChVWmMtYyx5r3TDeE',
-    appId: '1:786794204952:ios:a4ccaafa3f6db81bc3d86d',
-    messagingSenderId: '786794204952',
-    projectId: 'notizenapp-82537',
-    databaseURL:
-        'https://notizenapp-82537-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'notizenapp-82537.firebasestorage.app',
-    androidClientId:
-        '786794204952-5us82qsdrsatnm461m9es7am9qq3n1qu.apps.googleusercontent.com',
+    apiKey: 'AIzaSyAlA8ZCty32nNAwOxg6T2TSlHNIlqnXsrw',
+    appId: '1:471441564519:ios:5255a010c86d17696305c2',
+    messagingSenderId: '471441564519',
+    projectId: 'notis-2dee0',
+    storageBucket: 'notis-2dee0.firebasestorage.app',
     iosClientId:
-        '786794204952-rj8nqncl2ipqeet49urjrpb0er6t4bkb.apps.googleusercontent.com',
-    iosBundleId: 'com.betternotes.betternotes',
+        '471441564519-852ue7rbppu18f584g5tnrh0j28pege5.apps.googleusercontent.com',
+    iosBundleId: 'de.notis.app',
   );
 }

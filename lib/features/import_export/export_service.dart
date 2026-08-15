@@ -68,6 +68,6 @@ class ExportService {
 
   String _safe(String title) =>
       title.replaceAll(RegExp(r'[^\w.\- ]+'), '_').trim().isEmpty
-      ? 'BetterNotes'
+      ? 'Notis'
       : title.replaceAll(RegExp(r'[^\w.\- ]+'), '_').trim();
 }

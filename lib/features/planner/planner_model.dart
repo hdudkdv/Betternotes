@@ -263,7 +263,7 @@ class PlannerEvent extends Equatable {
     return [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//BetterNotes//Planner//DE',
+      'PRODID:-//Notis//Planner//DE',
       'BEGIN:VEVENT',
       'UID:$uid',
       'DTSTAMP:${stamp(DateTime.now())}',

@@ -64,7 +64,7 @@ class LanSyncDiscovery {
     await stopAdvertising();
     if (kIsWeb) return;
     final safeName = serviceName.trim().isEmpty
-        ? 'BetterNotes'
+        ? 'Notis'
         : serviceName.trim();
     final service = BonsoirService(
       name: safeName.length > 60 ? safeName.substring(0, 60) : safeName,

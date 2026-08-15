@@ -151,7 +151,7 @@ class _BootAppState extends State<_BootApp> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             const Text(
-                              'BetterNotes konnte nicht starten',
+                              'Notis konnte nicht starten',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 22,

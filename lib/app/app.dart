@@ -6,7 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collection/collection.dart';
 
+import '../features/auth/auth_repository.dart';
+import '../features/billing/revenuecat_billing.dart';
 import '../features/editor/presentation/editor_screen.dart';
+import '../features/entitlements/entitlement_model.dart';
 import '../features/collaboration/collaboration_screen.dart';
 import '../features/lan_sync/nearby_sync_screen.dart';
 import '../features/flashcards/flashcard_deck_screen.dart';
@@ -225,6 +228,13 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(revenueCatBillingProvider).initialize(
+        appUserId: ref.read(authProvider).user?.uid,
+      );
+      final billing = ref.read(revenueCatBillingProvider);
+      if (billing.configured) {
+        await ref.read(entitlementProvider.notifier).setTier(billing.tier);
+      }
       final intake = ref.read(shareIntakeProvider);
       await intake.start();
       _shareSub = intake.pending.listen((files) {
@@ -326,6 +336,20 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
         unawaited(ref.read(lanSyncProvider).stopBrowsing());
       });
     }
+    ref.listen<String?>(
+      authProvider.select((auth) => auth.user?.uid),
+      (previous, next) {
+        if (previous == next) return;
+        unawaited(ref.read(revenueCatBillingProvider).syncAppUser(next));
+      },
+    );
+    ref.listen<AppTier>(
+      revenueCatBillingProvider.select((billing) => billing.tier),
+      (previous, next) {
+        if (!ref.read(revenueCatBillingProvider).configured) return;
+        unawaited(ref.read(entitlementProvider.notifier).setTier(next));
+      },
+    );
     ref.listen<int>(
       lanSyncProvider.select((controller) => controller.assignmentEventSeq),
       (previous, next) {
@@ -343,7 +367,7 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
       },
     );
     return MaterialApp.router(
-      title: 'BetterNotes',
+      title: 'Notis',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeFor(paletteFor(settings.look, Brightness.light)),
       darkTheme: AppTheme.themeFor(paletteFor(settings.look, Brightness.dark)),

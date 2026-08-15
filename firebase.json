@@ -9,17 +9,17 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "notizenapp-82537",
-          "appId": "1:786794204952:android:a11fad72b213039ec3d86d",
+          "projectId": "notis-2dee0",
+          "appId": "1:471441564519:android:8f6f81842723b83c6305c2",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "notizenapp-82537",
+          "projectId": "notis-2dee0",
           "configurations": {
-            "android": "1:786794204952:android:a11fad72b213039ec3d86d",
-            "ios": "1:786794204952:ios:a4ccaafa3f6db81bc3d86d",
+            "android": "1:471441564519:android:8f6f81842723b83c6305c2",
+            "ios": "1:471441564519:ios:5255a010c86d17696305c2",
             "web": "1:786794204952:web:077a37bbdc9c7cc8c3d86d"
           }
         }

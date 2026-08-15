@@ -13,7 +13,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.786794204952-rj8nqncl2ipqeet49urjrpb0er6t4bkb</string>
+				<string>com.googleusercontent.apps.471441564519-852ue7rbppu18f584g5tnrh0j28pege5</string>
 				<string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 			</array>
 		</dict>
@@ -24,7 +24,7 @@
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>BetterNotes Documents</string>
+			<string>Notis-Dokumente</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
@@ -53,13 +53,13 @@
 		</dict>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>BetterNotes can import photos you share into notebooks.</string>
+	<string>Notis importiert geteilte Fotos in Notizbücher.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>BetterNotes uses the camera to scan worksheets and exams into notebook pages.</string>
+	<string>Notis nutzt die Kamera, um Arbeitsblätter und Klausuren als Seiten einzuscannen.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>BetterNotes records teacher explanations only after you start a recording.</string>
+	<string>Notis nimmt Lehrer-Erklärungen nur auf, wenn du eine Aufnahme startest.</string>
 	<key>CFBundleDisplayName</key>
-	<string>BetterNotes</string>
+	<string>Notis</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -67,7 +67,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>BetterNotes</string>
+	<string>Notis</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -119,7 +119,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>BetterNotes findet Geräte in der Nähe und teilt Notizbücher über WLAN oder Hotspot.</string>
+	<string>Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN oder Hotspot.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_betternotes-nearby._tcp</string>
