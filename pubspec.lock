@@ -846,7 +846,7 @@ packages:
     source: hosted
     version: "0.13.0"
   meta:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: meta
       sha256: "23f08335362185a5ea2ad3a4e597f1375e78bce8a040df5c600c8d3552ef2394"
@@ -998,13 +998,13 @@ packages:
     source: hosted
     version: "2.4.7"
   pdfrx_engine:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: pdfrx_engine
-      sha256: "8043527245e4c35a2a3b7df8494c066b9efa97fe031945951e46b378318b3d5f"
+      sha256: ef8f8cfa64255bfc91a559dd2d32d7cfe7a0f8003bac297bbf9a0aed1182fae5
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.5"
+    version: "0.4.6"
   permission_handler:
     dependency: transitive
     description:
