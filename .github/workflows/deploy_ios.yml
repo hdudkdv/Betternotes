@@ -54,7 +54,26 @@ jobs:
           flutter precache --ios
 
       - name: Build iOS (release, no codesign)
-        run: flutter build ios --release --no-codesign
+        run: |
+          set -euo pipefail
+          # Flutter stable still preflights Xcode signing and fails without a
+          # Development Team, even with --no-codesign. Prepare the project,
+          # then compile unsigned via xcodebuild.
+          printf '\nCODE_SIGNING_ALLOWED=NO\nCODE_SIGNING_REQUIRED=NO\nCODE_SIGN_IDENTITY=\nDEVELOPMENT_TEAM=\n' >> ios/Flutter/Release.xcconfig
+          flutter build ios --release --no-codesign --config-only
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CONFIGURATION_BUILD_DIR="$PWD/build/ios/iphoneos" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            build
 
       - name: Compress Runner.app
         run: |
