@@ -562,6 +562,7 @@ void showLibraryCreateSheet(
   required VoidCallback onNotebook,
   required VoidCallback onInfinite,
   required VoidCallback onFlashcards,
+  VoidCallback? onScanPages,
 }) {
   final l10n = AppLocalizations.of(context)!;
   showModalBottomSheet<void>(
@@ -622,6 +623,19 @@ void showLibraryCreateSheet(
                   onInfinite();
                 },
               ),
+              if (onScanPages != null)
+                ListTile(
+                  leading: const Icon(Icons.document_scanner_outlined),
+                  title: Text(
+                    l10n.scanPages,
+                    style: AppTheme.body(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(l10n.scanPagesHint),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onScanPages();
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.style_outlined),
                 title: Text(

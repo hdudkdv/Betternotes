@@ -22,6 +22,7 @@ class InkCanvas extends StatefulWidget {
     required this.engine,
     required this.template,
     required this.pageSize,
+    this.pageId,
     required this.fingerPanZoom,
     required this.onPointerDown,
     required this.onPointerMove,
@@ -36,6 +37,7 @@ class InkCanvas extends StatefulWidget {
     this.onBrowsePan,
     this.onBrowsePanEnd,
     this.onScrollLockChanged,
+    this.onZoomedChanged,
     this.onTwoFingerTap,
     this.onThreeFingerSwipe,
     this.onDoubleTap,
@@ -44,6 +46,10 @@ class InkCanvas extends StatefulWidget {
   final InkEngine engine;
   final PageTemplate template;
   final Size pageSize;
+
+  /// When this changes the view snaps back to fit so the reveal after a
+  /// page flip matches the snapshot underneath.
+  final String? pageId;
   final ui.Image? backgroundImage;
   final PaperTemplate? paper;
   final CanvasMode canvasMode;
@@ -61,6 +67,9 @@ class InkCanvas extends StatefulWidget {
   /// Lock PageView/ListView while drawing or pinching (not merely zoomed —
   /// zoomed edge-swipes still drive the page strip).
   final ValueChanged<bool>? onScrollLockChanged;
+
+  /// Fit vs zoomed — the page strip hides the live canvas only at fit zoom.
+  final ValueChanged<bool>? onZoomedChanged;
 
   /// Two-finger tap (little movement) for configurable shortcuts.
   final VoidCallback? onTwoFingerTap;
@@ -97,6 +106,7 @@ class InkCanvasState extends State<InkCanvas>
   AnimationController? _viewAnim;
   bool _keyboardOpen = false;
   bool _scrollLockSent = false;
+  bool _zoomedSent = false;
   double? _pinchBaseDistance;
   double? _pinchBaseScale;
   Offset? _pinchFocalGlobal;
@@ -359,6 +369,19 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   @override
+  void didUpdateWidget(covariant InkCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageId != widget.pageId &&
+        widget.pageId != null &&
+        widget.canvasMode != CanvasMode.infinite) {
+      _fittedViewport = null;
+      _fittedPageSize = null;
+      _fitReady = false;
+      _zoomedSent = true; // force a false emit after the new fit lands
+    }
+  }
+
+  @override
   void dispose() {
     _viewAnim?.dispose();
     _transform.removeListener(_onTransformChanged);
@@ -377,15 +400,26 @@ class InkCanvasState extends State<InkCanvas>
     // Lock native list physics while drawing or pinching. Zoomed-in single
     // finger must stay free so edge-overscroll can flip pages (GoodNotes).
     final lock = _drawing || _pointerGlobal.length >= 2;
-    if (lock == _scrollLockSent) return;
-    _scrollLockSent = lock;
-    widget.onScrollLockChanged?.call(lock);
+    if (lock != _scrollLockSent) {
+      _scrollLockSent = lock;
+      widget.onScrollLockChanged?.call(lock);
+    }
+    final zoomed = _isZoomed;
+    if (zoomed != _zoomedSent) {
+      _zoomedSent = zoomed;
+      widget.onZoomedChanged?.call(zoomed);
+    }
   }
 
   void _forceScrollUnlock() {
     _scrollLockSent = true; // ensure the false below is emitted
     _scrollLockSent = false;
     widget.onScrollLockChanged?.call(false);
+    final zoomed = _isZoomed;
+    if (zoomed != _zoomedSent) {
+      _zoomedSent = zoomed;
+      widget.onZoomedChanged?.call(zoomed);
+    }
   }
 
   void _resetPinch() {
@@ -536,10 +570,9 @@ class InkCanvasState extends State<InkCanvas>
       }
       if (_isZoomed) {
         _applyPanDelta(delta);
-      } else {
-        // Fit zoom: any clear horizontal swipe flips pages.
-        _tryBrowsePan(delta);
       }
+      // Fit-zoom horizontal flips are owned by NotebookPagesViewport so the
+      // live canvas can unmount without killing the gesture.
       return;
     }
 
@@ -749,6 +782,10 @@ class InkCanvasState extends State<InkCanvas>
     _resetPinch();
     _panLastFocal = _pointerGlobal.isEmpty ? null : _focalGlobal();
     if (_pointerGlobal.isEmpty) {
+      if (_browseActive) {
+        widget.onBrowsePanEnd?.call();
+        _browseActive = false;
+      }
       _multiMaxPointers = 0;
       _multiTravel = 0;
       _snapToFitIfNeeded();
@@ -839,89 +876,107 @@ class InkCanvasState extends State<InkCanvas>
           child: SizedBox(
             width: pageSize.width + (infinite ? 0 : 64),
             height: pageSize.height + (infinite ? 0 : 64),
-            child: Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: _handlePointerDown,
-              onPointerMove: _handlePointerMove,
-              onPointerUp: _handlePointerUp,
-              onPointerCancel: _handlePointerCancel,
-              child: Center(
-                child: GestureDetector(
-                  onDoubleTap: widget.onDoubleTap,
-                  child: Container(
-                    width: pageSize.width,
-                    height: pageSize.height,
-                    decoration: BoxDecoration(
-                      boxShadow: infinite
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.45),
-                                blurRadius: 32,
-                                offset: const Offset(0, 18),
-                              ),
-                            ],
-                    ),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (infinite)
-                          CustomPaint(
-                            size: pageSize,
-                            isComplex: true,
-                            willChange: true,
-                            painter: PageBackgroundPainter(
-                              template: widget.template,
-                              pdfImage: widget.backgroundImage,
-                              paper: widget.paper,
-                              visibleWorldRect: visible,
-                              infinite: true,
-                            ),
-                          )
-                        else
-                          CachedPageBackground(
-                            pageSize: pageSize,
-                            template: widget.template,
-                            paper: widget.paper,
-                            pdfImage: widget.backgroundImage,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Drawing / browse listener sits under overlays so a stylus
+                // on a wheel, handle or button never starts an ink stroke.
+                Positioned.fill(
+                  child: Listener(
+                    behavior: HitTestBehavior.opaque,
+                    onPointerDown: _handlePointerDown,
+                    onPointerMove: _handlePointerMove,
+                    onPointerUp: _handlePointerUp,
+                    onPointerCancel: _handlePointerCancel,
+                    child: Center(
+                      child: GestureDetector(
+                        onDoubleTap: widget.onDoubleTap,
+                        child: Container(
+                          width: pageSize.width,
+                          height: pageSize.height,
+                          decoration: BoxDecoration(
+                            boxShadow: infinite
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.45,
+                                      ),
+                                      blurRadius: 32,
+                                      offset: const Offset(0, 18),
+                                    ),
+                                  ],
                           ),
-                        if (!widget.hideInk)
-                          AnimatedBuilder(
-                            animation: Listenable.merge([
-                              widget.engine,
-                              InkPainter.settledCacheTick,
-                            ]),
-                            builder: (context, _) {
-                              final erasing =
-                                  widget.engine.tool == InkTool.eraser;
-                              return CustomPaint(
-                                size: pageSize,
-                                isComplex: true,
-                                willChange: true,
-                                painter: InkPainter(
-                                  strokes: widget.engine.strokes,
-                                  activeStroke: widget.engine.activeStroke,
-                                  lassoPoints: widget.engine.lassoPoints,
-                                  selectedIds: widget.engine.selectedIds,
-                                  visibleWorldRect: infinite ? visible : null,
-                                  eraserCursor: erasing
-                                      ? widget.engine.eraserCursor
-                                      : null,
-                                  eraserRadius: erasing
-                                      ? widget.engine.width / 2
-                                      : null,
-                                  paintEpoch: widget.engine.paintEpoch,
-                                  cacheSettled: true,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              if (infinite)
+                                CustomPaint(
+                                  size: pageSize,
+                                  isComplex: true,
+                                  willChange: true,
+                                  painter: PageBackgroundPainter(
+                                    template: widget.template,
+                                    pdfImage: widget.backgroundImage,
+                                    paper: widget.paper,
+                                    visibleWorldRect: visible,
+                                    infinite: true,
+                                  ),
+                                )
+                              else
+                                CachedPageBackground(
+                                  pageSize: pageSize,
+                                  template: widget.template,
+                                  paper: widget.paper,
+                                  pdfImage: widget.backgroundImage,
                                 ),
-                              );
-                            },
+                              if (!widget.hideInk)
+                                AnimatedBuilder(
+                                  animation: Listenable.merge([
+                                    widget.engine,
+                                    InkPainter.settledCacheTick,
+                                  ]),
+                                  builder: (context, _) {
+                                    final erasing =
+                                        widget.engine.tool == InkTool.eraser;
+                                    return CustomPaint(
+                                      size: pageSize,
+                                      isComplex: true,
+                                      willChange: true,
+                                      painter: InkPainter(
+                                        strokes: widget.engine.strokes,
+                                        activeStroke:
+                                            widget.engine.activeStroke,
+                                        lassoPoints: widget.engine.lassoPoints,
+                                        selectedIds: widget.engine.selectedIds,
+                                        visibleWorldRect:
+                                            infinite ? visible : null,
+                                        eraserCursor: erasing
+                                            ? widget.engine.eraserCursor
+                                            : null,
+                                        eraserRadius: erasing
+                                            ? widget.engine.width / 2
+                                            : null,
+                                        paintEpoch: widget.engine.paintEpoch,
+                                        cacheSettled: true,
+                                      ),
+                                    );
+                                  },
+                                ),
+                            ],
                           ),
-                        if (widget.overlay != null) widget.overlay!,
-                      ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                if (widget.overlay != null)
+                  SizedBox(
+                    width: pageSize.width,
+                    height: pageSize.height,
+                    child: widget.overlay,
+                  ),
+              ],
             ),
           ),
         );

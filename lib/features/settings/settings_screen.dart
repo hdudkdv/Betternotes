@@ -18,6 +18,7 @@ import '../entitlements/rewarded_ad_service.dart';
 import '../import_export/import_export_providers.dart';
 import '../lan_sync/classroom_auto_connect.dart';
 import '../library/providers/library_providers.dart';
+import '../onboarding/app_tour.dart';
 import '../planner/education_settings.dart';
 import '../planner/planner_model.dart';
 import '../sync/sync_engine.dart';
@@ -76,6 +77,7 @@ class SettingsScreen extends ConsumerWidget {
     FeatureKeys.sessionCollab => l10n.featureSessionCollab,
     FeatureKeys.asyncCollab => l10n.featureAsyncCollab,
     FeatureKeys.whiteboard => l10n.featureWhiteboard,
+    FeatureKeys.cloudSync => l10n.featureCloudSync,
     _ => key,
   };
 
@@ -234,7 +236,38 @@ class SettingsScreen extends ConsumerWidget {
                     .read(settingsProvider.notifier)
                     .setUserRole(selection.first),
               ),
-              if (settings.isTeacher)
+              if (settings.isTeacher) ...[
+                const SizedBox(height: 12),
+                Text(l10n.setupTeacherTrack, style: _label),
+                const SizedBox(height: 6),
+                SegmentedButton<TeacherTrack>(
+                  segments: [
+                    ButtonSegment(
+                      value: TeacherTrack.studying,
+                      label: Text(l10n.teacherTrackStudying),
+                    ),
+                    ButtonSegment(
+                      value: TeacherTrack.qualified,
+                      label: Text(l10n.teacherTrackQualified),
+                    ),
+                  ],
+                  selected: {
+                    settings.teacherTrack ?? TeacherTrack.qualified,
+                  },
+                  onSelectionChanged: (selection) async {
+                    final track = selection.first;
+                    await ref
+                        .read(settingsProvider.notifier)
+                        .setTeacherTrack(track);
+                    await ref.read(settingsProvider.notifier).setEducationLevel(
+                      track == TeacherTrack.studying
+                          ? EducationLevel.university
+                          : settings.educationLevel == EducationLevel.university
+                          ? EducationLevel.sek2
+                          : settings.educationLevel,
+                    );
+                  },
+                ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.dashboard_outlined),
@@ -243,6 +276,17 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/teacher'),
                 ),
+              ],
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.tour_outlined),
+                title: Text(l10n.tutorialStart, style: _label),
+                subtitle: Text(l10n.tutorialOfferBody, style: _body),
+                onTap: () {
+                  ref.read(pendingAppTourProvider.notifier).state = true;
+                  context.go('/');
+                },
+              ),
               if (settings.userRole == AppUserRole.student &&
                   ref.watch(sharedPreferencesProvider).getBool(
                         ClassroomAutoConnect.askedKey,
@@ -559,6 +603,13 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 14),
               ],
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.storefront_outlined),
+                title: Text(l10n.marketplace, style: _label),
+                subtitle: Text(l10n.marketplaceHint, style: _body),
+                onTap: () => context.push('/marketplace'),
+              ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.monetization_on_outlined),

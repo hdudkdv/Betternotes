@@ -54,6 +54,8 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>BetterNotes can import photos you share into notebooks.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>BetterNotes uses the camera to scan worksheets and exams into notebook pages.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BetterNotes records teacher explanations only after you start a recording.</string>
 	<key>CFBundleDisplayName</key>

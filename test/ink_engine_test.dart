@@ -38,4 +38,17 @@ void main() {
     expect(stroke.hitsPoint(const Offset(25, 1), tolerance: 4), isTrue);
     expect(stroke.hitsPoint(const Offset(25, 40), tolerance: 4), isFalse);
   });
+
+  test('diagonal stroke does not hit from inside its bounding box', () {
+    final stroke = InkStroke(
+      id: 'diag',
+      tool: InkTool.pen,
+      colorValue: 0xFF000000,
+      width: 3,
+      points: const [StrokePoint(x: 0, y: 0), StrokePoint(x: 200, y: 200)],
+    );
+    expect(stroke.hitsPoint(const Offset(100, 100), tolerance: 6), isTrue);
+    expect(stroke.hitsPoint(const Offset(180, 20), tolerance: 6), isFalse);
+    expect(stroke.hitsPoint(const Offset(20, 180), tolerance: 6), isFalse);
+  });
 }

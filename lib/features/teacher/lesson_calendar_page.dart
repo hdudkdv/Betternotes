@@ -103,15 +103,29 @@ class _LessonCalendarPageState extends ConsumerState<LessonCalendarPage> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(
-                      attachment.kind == LessonAttachmentKind.whiteboard
-                          ? Icons.draw_outlined
-                          : Icons.attach_file_outlined,
+                      switch (attachment.kind) {
+                        LessonAttachmentKind.whiteboard =>
+                          Icons.draw_outlined,
+                        LessonAttachmentKind.notebook =>
+                          Icons.auto_stories_outlined,
+                        LessonAttachmentKind.flashcards =>
+                          Icons.style_outlined,
+                        LessonAttachmentKind.material =>
+                          Icons.attach_file_outlined,
+                        LessonAttachmentKind.assignment =>
+                          Icons.assignment_outlined,
+                      },
                     ),
                     title: Text(attachment.title),
                     subtitle: Text(
                       DateFormat.Hm().format(attachment.createdAt),
                     ),
-                    onTap: attachment.notebookId == null
+                    onTap: attachment.runId != null
+                        ? () {
+                            Navigator.pop(context, false);
+                            context.push('/teacher/assignment/${attachment.runId}');
+                          }
+                        : attachment.notebookId == null
                         ? null
                         : () {
                             Navigator.pop(context, false);

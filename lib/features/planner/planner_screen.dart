@@ -9,6 +9,8 @@ import '../../l10n/app_localizations.dart';
 import '../import_export/csv_service.dart';
 import '../import_export/subject_notebook_link.dart';
 import '../library/providers/library_providers.dart';
+import '../scanner/document_scanner_service.dart';
+import '../scanner/scan_into_notebook.dart';
 import '../timetable/timetable_model.dart';
 import 'education_settings.dart';
 import 'grade_attachment_store.dart';
@@ -293,6 +295,34 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     await ref
         .read(plannerProvider.notifier)
         .upsertEvent(event.copyWith(gradeId: grade.id));
+    if (!mounted) return;
+    final scan = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.paper,
+        title: Text(l10n.scanExam),
+        content: Text(l10n.scanExamBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.notNow),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.scanPages),
+          ),
+        ],
+      ),
+    );
+    if (scan == true && mounted) {
+      await scanIntoNotebook(
+        context,
+        ref,
+        suggestedTitle: event.title.trim().isEmpty
+            ? null
+            : event.title.trim(),
+      );
+    }
   }
 
   Future<void> _shareEvent(PlannerEvent event) async {
@@ -2189,6 +2219,12 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
+                  leading: const Icon(Icons.document_scanner_outlined),
+                  title: Text(l10n.scanPages),
+                  subtitle: Text(l10n.scanPagesHint),
+                  onTap: () => Navigator.pop(ctx, 'scanner'),
+                ),
+                ListTile(
                   leading: const Icon(Icons.photo_camera_rounded),
                   title: Text(l10n.scanWithCamera),
                   onTap: () => Navigator.pop(ctx, 'camera'),
@@ -2205,6 +2241,18 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
       },
     );
     if (choice == null || !mounted) return;
+    if (choice == 'scanner') {
+      final paths = await const DocumentScannerService().scanPages();
+      if (paths.isEmpty || !mounted) return;
+      final imported = <String>[];
+      for (final src in paths) {
+        final stored = await _scans.importFromPath(src);
+        if (stored != null) imported.add(stored);
+      }
+      if (imported.isEmpty || !mounted) return;
+      setState(() => _attachments = [..._attachments, ...imported]);
+      return;
+    }
     final path = choice == 'camera'
         ? await _scans.pickFromCamera()
         : await _scans.pickFromGallery();

@@ -92,6 +92,7 @@ NotePage pageFromEntity(PageEntity e) {
   List<Map<String, dynamic>> textMaps = [];
   List<Map<String, dynamic>> shapeMaps = [];
   List<Map<String, dynamic>> imageMaps = [];
+  String? searchIndex;
   if (decodedBlocks is List) {
     textMaps = [
       for (final item in decodedBlocks) Map<String, dynamic>.from(item as Map),
@@ -110,6 +111,7 @@ NotePage pageFromEntity(PageEntity e) {
       for (final item in (map['images'] as List? ?? const []))
         Map<String, dynamic>.from(item as Map),
     ];
+    searchIndex = map['searchIndex'] as String?;
   }
   return NotePage(
     id: e.uuid,
@@ -140,6 +142,7 @@ NotePage pageFromEntity(PageEntity e) {
       (orientation) => orientation.name == e.orientation,
       orElse: () => PageOrientation.portrait,
     ),
+    searchIndex: searchIndex,
   );
 }
 
@@ -155,6 +158,7 @@ void applyPageToEntity(NotePage p, PageEntity e) {
     'blocks': p.textBlocks.map((t) => t.toJson()).toList(),
     'shapes': p.shapes.map((s) => s.toJson()).toList(),
     'images': p.images.map((i) => i.toJson()).toList(),
+    'searchIndex': p.searchIndex,
   });
   e.paperTemplateId = p.paperTemplateId;
   e.customPaperJson = p.customPaper == null

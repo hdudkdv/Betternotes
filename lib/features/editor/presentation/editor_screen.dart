@@ -21,16 +21,20 @@ import '../../../shared/utils/page_size.dart';
 import '../../lan_sync/lan_sync_controller.dart';
 import '../../lan_sync/lan_sync_protocol.dart';
 import '../../lan_sync/classroom_auto_connect.dart';
+import '../../teacher/catalog/assignment_session.dart';
 import '../../teacher/teacher_models.dart';
 import '../../timetable/timetable_model.dart';
 import '../../library/providers/library_providers.dart';
 import '../../pdf/pdf_service.dart';
+import '../../scanner/document_scanner_service.dart';
+import '../../search/recognition/recognition_service.dart';
 import '../domain/drawing_aids.dart';
 import '../domain/editor_gestures.dart';
 import '../domain/ink_engine.dart';
 import '../domain/ink_models.dart';
 import '../domain/last_page_store.dart';
 import '../domain/paper_line_metrics.dart';
+import '../domain/shape_recognition.dart';
 import 'page_preview_cache.dart';
 import '../domain/text_block_registry.dart';
 import '../platform/pencil_gestures.dart';
@@ -57,6 +61,12 @@ import 'widgets/ruler_overlay.dart';
 import 'widgets/tool_wheel.dart';
 import '../../flashcards/create_flashcard_dialog.dart';
 import '../../import_export/import_export_providers.dart';
+import '../../tools/calculator/calculator_panel.dart';
+import '../../tools/calculator/calculator_store.dart';
+import '../../tools/calculator/function_plotter.dart';
+import '../../tools/editor_tool_panel.dart';
+import '../../tools/formula_book/formula_book_panel.dart';
+import '../../tools/formula_book/formula_book_store.dart';
 
 final editorControllerProvider = ChangeNotifierProvider.autoDispose
     .family<EditorController, String>((ref, notebookId) {
@@ -149,6 +159,8 @@ class EditorController extends ChangeNotifier {
   Offset _lassoAccum = Offset.zero;
   List<InkStroke>? _lassoBeforeMove;
   Offset? _shapeStart;
+  Timer? _shapeHoldTimer;
+  bool _convertedByHold = false;
 
   NotePage? get currentPage =>
       pages.isEmpty ? null : pages[pageIndex.clamp(0, pages.length - 1)];
@@ -218,6 +230,7 @@ class EditorController extends ChangeNotifier {
     pageIndex = index;
     _bindToken++;
     var page = pages[index];
+    drawingAids.bindPage(page.id, notify: false);
     // Quiet: avoid a second full-editor rebuild from the ink listener while
     // selectPage is already about to notify.
     ink.replaceStrokes(page.strokes, quiet: true);
@@ -301,7 +314,7 @@ class EditorController extends ChangeNotifier {
     // Keep guide chips in sync with overlay visibility.
     if (drawingAids.hasRuler) {
       ink.guide = DrawingGuide.ruler;
-    } else if (drawingAids.hasCompass) {
+    } else if (drawingAids.hasVisibleCompass) {
       ink.guide = DrawingGuide.compass;
     } else if (ink.guide != DrawingGuide.none) {
       ink.guide = DrawingGuide.none;
@@ -328,7 +341,7 @@ class EditorController extends ChangeNotifier {
     _saveTimer = Timer(const Duration(milliseconds: 450), _persistCurrent);
   }
 
-  Future<void> _persistCurrent() async {
+  Future<void> _persistCurrent({bool warmPreview = true}) async {
     _saveTimer?.cancel();
     final page = currentPage;
     if (page == null) return;
@@ -340,10 +353,24 @@ class EditorController extends ChangeNotifier {
       updatedAt: DateTime.now(),
     );
     pages[pageIndex] = updated;
-    // Replace the bitmap in place (no empty gap) once idle rendering finishes.
-    unawaited(PagePreviewCache.instance.ensure(updated, force: true));
+    // Don't rasterize during a page flip — that fights the swipe animation.
+    if (warmPreview) {
+      unawaited(PagePreviewCache.instance.ensure(updated, force: true));
+    }
     await repository.savePage(updated);
     onPagePersisted?.call(updated);
+    unawaited(_refreshSearchIndex(updated));
+  }
+
+  Future<void> persistForSearchIndex() => _persistCurrent();
+
+  Future<void> _refreshSearchIndex(NotePage page) async {
+    final indexed = await RecognitionService.instance.indexPage(page);
+    if (indexed == null || _disposed) return;
+    final i = pages.indexWhere((p) => p.id == page.id);
+    if (i < 0) return;
+    pages[i] = indexed;
+    await repository.savePage(indexed);
   }
 
   /// Re-reads pages from disk after a nearby-sync remote update.
@@ -363,14 +390,34 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Copy live ink into [pages] without disk I/O so the leaving snapshot
+  /// matches the canvas the moment a swipe hides it.
+  void syncActivePageMemory() {
+    final page = currentPage;
+    if (page == null) return;
+    final dirty = page.strokes.length != ink.strokes.length ||
+        page.shapes.length != shapes.length ||
+        page.images.length != images.length ||
+        page.textBlocks.length != textBlocks.length;
+    pages[pageIndex] = page.copyWith(
+      strokes: List.of(ink.strokes),
+      textBlocks: List.of(textBlocks),
+      shapes: List.of(shapes),
+      images: List.of(images),
+      updatedAt: dirty ? DateTime.now() : page.updatedAt,
+    );
+    if (dirty) {
+      PagePreviewCache.instance.invalidate(page.id);
+    }
+  }
+
   Future<void> selectPage(int index) async {
     if (index == pageIndex || index < 0 || index >= pages.length) return;
     final leavingPath = currentPage?.backgroundPdfPath;
     // Saving the page we leave takes its snapshot synchronously, so the swap
     // does not have to wait for the write to land.
-    unawaited(_persistCurrent());
-    // Unfixed aids leave with the page; fixed ruler/compass stay in place.
-    drawingAids.clearUnfixed();
+    unawaited(_persistCurrent(warmPreview: false));
+    // bindPage inside _bindPageContent parks a fixed compass on other pages.
     _bindPageContent(index);
     final page = currentPage;
     final arrivingPath = page?.backgroundPdfPath;
@@ -560,6 +607,21 @@ class EditorController extends ChangeNotifier {
     shapeKind = kind;
     ink.setTool(InkTool.shape);
     notifyListeners();
+  }
+
+  Future<int> importScannedImages(List<String> imagePaths) async {
+    await _persistCurrent();
+    final created = await pdfService.importScannedImages(
+      notebookId: notebookId,
+      imagePaths: imagePaths,
+    );
+    if (created.isEmpty) return 0;
+    pages = await repository.getPages(notebookId);
+    notebook = await repository.getNotebook(notebookId);
+    final idx = pages.indexWhere((p) => p.id == created.first.id);
+    await _bindPage(idx < 0 ? pageIndex : idx);
+    notifyListeners();
+    return created.length;
   }
 
   Future<void> importPdf() async {
@@ -769,6 +831,13 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void deleteImage(String id) {
+    images = [for (final i in images) if (i.id != id) i];
+    if (selectedImageId == id) selectedImageId = null;
+    notifyListeners();
+    _scheduleSave();
+  }
+
   Future<void> pickAndInsertImage() async {
     final page = currentPage;
     if (page == null) return;
@@ -797,6 +866,31 @@ class EditorController extends ChangeNotifier {
       localPath: dest,
       x: 80,
       y: 100,
+    );
+    images = [...images, element];
+    selectedImageId = element.id;
+    ink.setTool(InkTool.image);
+    notifyListeners();
+    _scheduleSave();
+  }
+
+  Future<void> insertPngBytes(
+    Uint8List bytes, {
+    double width = 320,
+    double height = 214,
+  }) async {
+    final page = currentPage;
+    if (page == null) return;
+    final dir = await repository.resolveFilesDir();
+    final dest = p.join(dir, 'images', '${const Uuid().v4()}_plot.png');
+    await createFileStore().writeBytes(dest, bytes);
+    final element = ImageElement.create(
+      pageId: page.id,
+      localPath: dest,
+      x: 72,
+      y: 88,
+      width: width,
+      height: height,
     );
     images = [...images, element];
     selectedImageId = element.id;
@@ -1056,6 +1150,8 @@ class EditorController extends ChangeNotifier {
       _lassoBeforeMove = List.of(ink.strokes);
       return;
     }
+    _shapeHoldTimer?.cancel();
+    _convertedByHold = false;
     ink.beginStroke(pagePoint, pressure: pressure);
   }
 
@@ -1080,10 +1176,42 @@ class EditorController extends ChangeNotifier {
       return;
     }
     ink.appendStroke(pagePoint, pressure: pressure);
+    _armShapeHold();
+  }
+
+  void _armShapeHold() {
+    _shapeHoldTimer?.cancel();
+    if (!ink.tool.isFreehand) return;
+    if (ink.activeStroke == null) return;
+    _shapeHoldTimer = Timer(const Duration(milliseconds: 520), _tryHoldRecognize);
+  }
+
+  void _tryHoldRecognize() {
+    if (_disposed) return;
+    final page = currentPage;
+    final stroke = ink.activeStroke;
+    if (page == null || stroke == null || !ink.tool.isFreehand) return;
+    final shape = ShapeRecognition.recognize(
+      stroke.points,
+      pageId: page.id,
+      colorValue: stroke.colorValue,
+      strokeWidth: stroke.width,
+    );
+    if (shape == null) return;
+    ink.cancelStroke();
+    shapes = [...shapes, shape];
+    _convertedByHold = true;
+    notifyListeners();
+    _scheduleSave();
   }
 
   void onPointerUp() {
     if (interactionMode == InteractionMode.read) return;
+    _shapeHoldTimer?.cancel();
+    if (_convertedByHold) {
+      _convertedByHold = false;
+      return;
+    }
 
     if (_shapeStart != null && draftShape != null) {
       final shape = draftShape!;
@@ -1115,6 +1243,7 @@ class EditorController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _saveTimer?.cancel();
+    _shapeHoldTimer?.cancel();
     ink.removeListener(_onInkChanged);
     drawingAids.removeListener(_onAidsChanged);
     unawaited(_persistCurrent());
@@ -1154,6 +1283,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   bool _toolWheelOpen = false;
   InkTool _previousTool = InkTool.pen;
   StreamSubscription<PencilHardwareEvent>? _pencilSub;
+  bool _calcOpen = false;
+  bool _calcPinned = false;
+  bool _bookOpen = false;
+  bool _bookPinned = false;
+  String? _toolPageId;
+  String? _bookChapterId;
 
   @override
   void initState() {
@@ -1169,6 +1304,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   void dispose() {
     unawaited(_pencilSub?.cancel());
     WidgetsBinding.instance.removeObserver(this);
+    final assignment = ref.read(studentAssignmentProvider);
+    if (assignment.active && assignment.testMode && !assignment.submitted) {
+      unawaited(ref.read(studentAssignmentProvider.notifier).leave('notebook'));
+    }
     super.dispose();
   }
 
@@ -1189,6 +1328,96 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       outlineId: widget.initialOutlineId,
     )),
   );
+
+  String _folderPath(List<LibraryFolder> folders, String? folderId) {
+    if (folderId == null) return '';
+    final byId = {for (final f in folders) f.id: f};
+    final parts = <String>[];
+    var current = byId[folderId];
+    final seen = <String>{};
+    while (current != null && seen.add(current.id)) {
+      parts.add(current.name);
+      current = current.parentId == null ? null : byId[current.parentId];
+    }
+    return parts.reversed.join('/');
+  }
+
+  void _closeEditorTools() {
+    if (!_calcOpen && !_bookOpen) return;
+    setState(() {
+      _calcOpen = false;
+      _bookOpen = false;
+      _calcPinned = false;
+      _bookPinned = false;
+      _toolPageId = null;
+    });
+  }
+
+  void _dismissUnpinnedTools() {
+    if ((_calcOpen && !_calcPinned) || (_bookOpen && !_bookPinned)) {
+      setState(() {
+        if (!_calcPinned) _calcOpen = false;
+        if (!_bookPinned) _bookOpen = false;
+        if (!_calcOpen && !_bookOpen) {
+          _toolPageId = null;
+          _calcPinned = false;
+          _bookPinned = false;
+        }
+      });
+    }
+  }
+
+  void _openCalculator(EditorController controller) {
+    setState(() {
+      _calcOpen = !_calcOpen;
+      if (_calcOpen) {
+        _calcPinned = false;
+        _toolPageId = controller.currentPage?.id;
+      } else if (!_bookOpen) {
+        _toolPageId = null;
+        _calcPinned = false;
+      }
+    });
+  }
+
+  void _openFormulaBook(EditorController controller) {
+    if (_bookOpen) {
+      setState(() {
+        _bookOpen = false;
+        _bookPinned = false;
+        if (!_calcOpen) _toolPageId = null;
+      });
+      return;
+    }
+    final store = FormulaBookStore(ref.read(sharedPreferencesProvider));
+    final book = store.load();
+    final last = store.lastChapterFor(controller.notebookId);
+    final folders = ref.read(allFoldersProvider).valueOrNull ?? const [];
+    final matched = FormulaBookStore.matchChapterId(
+      book: book,
+      subjectKey: controller.notebook?.subjectKey,
+      folderPath: _folderPath(folders, controller.notebook?.folderId),
+    );
+    final chapterId = last ?? matched;
+    if (chapterId != null) {
+      unawaited(store.setLastChapter(controller.notebookId, chapterId));
+    }
+    setState(() {
+      _bookOpen = true;
+      _bookPinned = false;
+      _bookChapterId = chapterId;
+      _toolPageId = controller.currentPage?.id;
+    });
+  }
+
+  Future<void> _insertFunctionPlot(
+    EditorController controller,
+    String expression,
+  ) async {
+    final bytes = await FunctionPlotter.renderPng(expression);
+    if (bytes == null || !mounted) return;
+    await controller.insertPngBytes(bytes);
+  }
 
   Future<void> _runGestureAction(EditorGestureAction action) async {
     if (action == EditorGestureAction.none) return;
@@ -1235,6 +1464,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final assignment = ref.read(studentAssignmentProvider);
+    if (assignment.active &&
+        assignment.testMode &&
+        !assignment.submitted &&
+        state != AppLifecycleState.resumed) {
+      unawaited(ref.read(studentAssignmentProvider.notifier).leave('pause'));
+    }
     final lan = ref.read(lanSyncProvider);
     if (lan.role != LanSyncRole.guest ||
         !lan.classroomFocusCheckEnabled ||
@@ -1345,6 +1581,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
               notebook: nb,
               pages: controller.pages,
             );
+      case ShareExportAction.indexHandwriting:
+        final page = controller.currentPage;
+        if (page == null) return;
+        await controller.persistForSearchIndex();
+        if (!context.mounted) return;
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.marketplaceInkOcrHint)),
+        );
       case ShareExportAction.savePageAsTemplate:
         final page = controller.currentPage;
         if (page == null) return;
@@ -1425,6 +1670,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     }
 
     final page = controller.currentPage!;
+    if ((_calcOpen || _bookOpen) &&
+        _toolPageId != null &&
+        page.id != _toolPageId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _closeEditorTools();
+      });
+    }
     final l10n = AppLocalizations.of(context)!;
     final reading = controller.interactionMode == InteractionMode.read;
     final classroomGuest =
@@ -1458,7 +1710,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       }
     }
     final presenting = controller.presentationMode;
-    final studying = controller.studyMode;
+    final assignment = ref.watch(studentAssignmentProvider);
+    final examLock =
+        assignment.active && assignment.testMode && !assignment.submitted;
+    final studying = controller.studyMode || examLock;
     final hideInk = studying && !controller.studyInkRevealed;
     final canvasMode = controller.notebook?.canvasMode ?? CanvasMode.page;
 
@@ -1505,6 +1760,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   readOnly: readOnly,
                   onPageChanged: controller.selectPage,
                   onReachEnd: () => _addPage(controller),
+                  onFlipStart: controller.syncActivePageMemory,
                   activePageBuilder: (context, index) {
                     final metrics = PaperLineMetrics.from(
                       paper: controller.activePaper,
@@ -1516,6 +1772,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     );
                     return InkCanvas(
                       key: index == controller.pageIndex ? _canvasKey : null,
+                      pageId: page.id,
                       engine: controller.ink,
                       template: page.template,
                       pageSize: NotePageSize.resolve(
@@ -1550,6 +1807,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                       onScrollLockChanged: (locked) => _pagesViewportKey
                           .currentState
                           ?.setScrollLock(locked),
+                      onZoomedChanged: (zoomed) => _pagesViewportKey
+                          .currentState
+                          ?.setZoomed(zoomed),
                       onTwoFingerTap: () => unawaited(
                         _runGestureAction(
                           ref.read(settingsProvider).twoFingerTapAction,
@@ -1566,7 +1826,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                     .threeFingerSwipeRightAction,
                         ),
                       ),
-                      onPointerDown: controller.onPointerDown,
+                      onPointerDown: (point, {required isStylus, pressure = 0.5}) {
+                        _dismissUnpinnedTools();
+                        controller.onPointerDown(
+                          point,
+                          isStylus: isStylus,
+                          pressure: pressure,
+                        );
+                      },
                       onPointerMove: controller.onPointerMove,
                       onPointerUp: controller.onPointerUp,
                       overlay: Stack(
@@ -1590,7 +1857,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                     !controller.drawingAids.ruler!.fixed,
                                   ),
                             ),
-                          if (controller.drawingAids.compass != null)
+                          if (controller.drawingAids.hasVisibleCompass)
                             CompassOverlay(
                               aid: controller.drawingAids.compass!,
                               pageSize: NotePageSize.resolve(
@@ -1614,6 +1881,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                     controller.ink.tool == InkTool.lasso),
                             onSelect: controller.selectImage,
                             onChanged: controller.updateImage,
+                            onDelete: controller.deleteImage,
                           ),
                           TextBlockLayer(
                             blocks: controller.textBlocks,
@@ -1672,10 +1940,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   onTextLayoutModeChanged: controller.setTextLayoutMode,
                   onAddText: () => controller.addTextBlock(text: l10n.newText),
                   onPickImage: controller.pickAndInsertImage,
+                  hasSelectedImage: controller.selectedImageId != null,
+                  onDeleteImage: controller.selectedImageId == null
+                      ? null
+                      : () => controller.deleteImage(controller.selectedImageId!),
                   onToggleRuler: controller.toggleRulerAid,
                   onToggleCompass: controller.toggleCompassAid,
                   rulerActive: controller.drawingAids.hasRuler,
-                  compassActive: controller.drawingAids.hasCompass,
+                  compassActive: controller.drawingAids.hasVisibleCompass,
                   formatBlock: textFormatTarget,
                   formatController: textFormatController,
                   onFormatBlockChanged: controller.updateTextBlock,
@@ -1980,6 +2252,51 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
               ),
             ),
           ),
+        if (_calcOpen && !presenting)
+          Positioned(
+            right: 12,
+            top: 56,
+            child: EditorToolPanel(
+              title: l10n.calculator,
+              pinned: _calcPinned,
+              onPin: () => setState(() => _calcPinned = !_calcPinned),
+              onClose: () => setState(() {
+                _calcOpen = false;
+                _calcPinned = false;
+                if (!_bookOpen) _toolPageId = null;
+              }),
+              child: CalculatorPanel(
+                key: ValueKey('calc_${widget.notebookId}'),
+                store: CalculatorStore(ref.read(sharedPreferencesProvider)),
+                notebookId: widget.notebookId,
+                onInsertPlot: (expr) => _insertFunctionPlot(controller, expr),
+              ),
+            ),
+          ),
+        if (_bookOpen && !presenting)
+          Positioned(
+            left: _sidebarOpen ? PageSidebar.width + 12 : 12,
+            top: 56,
+            child: EditorToolPanel(
+              title: l10n.formulaBook,
+              width: 400,
+              pinned: _bookPinned,
+              onPin: () => setState(() => _bookPinned = !_bookPinned),
+              onClose: () => setState(() {
+                _bookOpen = false;
+                _bookPinned = false;
+                if (!_calcOpen) _toolPageId = null;
+              }),
+              child: FormulaBookPanel(
+                key: ValueKey(
+                  'book_${widget.notebookId}_${_bookChapterId ?? ''}',
+                ),
+                store: FormulaBookStore(ref.read(sharedPreferencesProvider)),
+                notebookId: widget.notebookId,
+                initialChapterId: _bookChapterId,
+              ),
+            ),
+          ),
         if (_toolWheelOpen && !readOnly && !presenting)
           Positioned.fill(
             child: ToolWheelOverlay(
@@ -2016,6 +2333,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     controller.notebook?.defaultOrientation ??
                     PageOrientation.portrait,
                 onSelectTab: (id) {
+                  if (examLock) {
+                    unawaited(
+                      ref.read(studentAssignmentProvider.notifier).leave('notebook'),
+                    );
+                  }
                   ref.read(openNotebookTabsProvider.notifier).select(id);
                   context.go('/notebook/$id');
                 },
@@ -2024,17 +2346,28 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                       .read(openNotebookTabsProvider.notifier)
                       .close(id);
                   if (next == null) {
+                    refreshLibraryLists(ref);
                     context.go('/');
                   } else if (id == widget.notebookId) {
                     context.go('/notebook/$next');
                   }
                 },
-                onHome: () => context.go('/'),
+                onHome: () {
+                  if (examLock) {
+                    unawaited(
+                      ref.read(studentAssignmentProvider.notifier).leave('home'),
+                    );
+                  }
+                  refreshLibraryLists(ref);
+                  context.go('/');
+                },
                 onToggleSidebar: () =>
                     setState(() => _sidebarOpen = !_sidebarOpen),
                 onSearch: () => context.push('/search'),
                 onOutline: () => _openOutline(context, controller, l10n),
                 onPickImage: controller.pickAndInsertImage,
+                onCalculator: () => _openCalculator(controller),
+                onFormulaBook: () => _openFormulaBook(controller),
                 onAddPage: () => _addPage(controller),
                 onToggleLock: controller.toggleInteractionMode,
                 onToggleStudy: controller.toggleStudyMode,
@@ -2106,6 +2439,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
           }
           await dialog;
           progress.dispose();
+        }
+      case EditorMenuAction.scanPages:
+        if (!context.mounted) return;
+        try {
+          final paths = await const DocumentScannerService().scanPages();
+          if (paths.isEmpty) return;
+          final added = await controller.importScannedImages(paths);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.scanAddedPages(added))),
+          );
+        } catch (_) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.scanFailed)));
         }
       case EditorMenuAction.settings:
         if (context.mounted) context.push('/settings');

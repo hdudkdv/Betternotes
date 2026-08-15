@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,11 @@ import '../library/providers/library_providers.dart';
 import '../timetable/timetable_model.dart';
 import 'lesson_calendar_page.dart';
 import 'oer_material_repository.dart';
+import 'catalog/assignment_live_panel.dart';
+import 'catalog/assignment_session.dart';
+import 'catalog/assignments_page.dart';
+import 'catalog/catalog_models.dart';
+import 'catalog/catalog_store.dart';
 import 'teacher_models.dart';
 
 Future<void> saveWhiteboardToCurrentLesson(
@@ -82,6 +88,116 @@ Future<void> saveWhiteboardToCurrentLesson(
   }
 }
 
+Future<void> shareClassroomContent(BuildContext context, WidgetRef ref) async {
+  final l10n = AppLocalizations.of(context)!;
+  final lan = ref.read(lanSyncProvider);
+  if (!lan.classroomMode || lan.role != LanSyncRole.host || !lan.isActive) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.teacherStartClassBeforeDistribute)),
+    );
+    return;
+  }
+  final repo = ref.read(notebookRepositoryProvider);
+  final notebooks = await repo.getNotebooks();
+  final decks = await repo.getAllFlashcardDecks();
+  if (!context.mounted) return;
+  final choice = await showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          ListTile(
+            title: Text(
+              l10n.teacherShareContent,
+              style: AppTheme.headline(fontSize: 18),
+            ),
+            subtitle: Text(l10n.teacherShareContentHint),
+          ),
+          ListTile(
+            leading: const Icon(Icons.draw_outlined),
+            title: Text(l10n.teacherShareLiveBoard),
+            onTap: () => Navigator.pop(context, 'board'),
+          ),
+          for (final notebook in notebooks)
+            ListTile(
+              leading: const Icon(Icons.auto_stories_outlined),
+              title: Text(notebook.title),
+              subtitle: Text(l10n.teacherShareNotebook),
+              onTap: () => Navigator.pop(context, 'nb:${notebook.id}'),
+            ),
+          for (final deck in decks)
+            ListTile(
+              leading: const Icon(Icons.style_outlined),
+              title: Text(deck.title),
+              subtitle: Text(l10n.teacherShareFlashcards),
+              onTap: () => Navigator.pop(context, 'fc:${deck.id}'),
+            ),
+        ],
+      ),
+    ),
+  );
+  if (choice == null || !context.mounted) return;
+
+  final session = ref.read(teacherProvider).session;
+  final notifier = ref.read(teacherProvider.notifier);
+  final timetable = ref.read(timetableProvider);
+  if (choice == 'board') {
+    if (session?.notebookId != null) {
+      await lan.shareNotebookToClass(session!.notebookId!);
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.teacherDistributionSent)),
+      );
+    }
+    return;
+  }
+  if (choice.startsWith('nb:')) {
+    final id = choice.substring(3);
+    await lan.shareNotebookToClass(id);
+    final notebook = notebooks.where((n) => n.id == id).firstOrNull;
+    await notifier.attachToCurrentLesson(
+      timetable: timetable,
+      subject: session?.subject,
+      room: session?.room,
+      notebookId: session?.notebookId,
+      attachment: LessonAttachment(
+        id: const Uuid().v4(),
+        kind: LessonAttachmentKind.notebook,
+        title: notebook?.title ?? l10n.teacherShareNotebook,
+        createdAt: DateTime.now(),
+        notebookId: id,
+      ),
+    );
+  } else if (choice.startsWith('fc:')) {
+    final id = choice.substring(3);
+    final deck = decks.where((d) => d.id == id).firstOrNull;
+    if (deck != null) {
+      final cards = await repo.getFlashcards(id);
+      await lan.shareFlashcardsToClass(deck: deck, cards: cards);
+      await notifier.attachToCurrentLesson(
+        timetable: timetable,
+        subject: session?.subject,
+        room: session?.room,
+        notebookId: session?.notebookId,
+        attachment: LessonAttachment(
+          id: const Uuid().v4(),
+          kind: LessonAttachmentKind.flashcards,
+          title: deck.title,
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+  }
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.teacherDistributionSent)),
+    );
+  }
+}
+
 class TeacherScreen extends ConsumerStatefulWidget {
   const TeacherScreen({super.key});
 
@@ -112,6 +228,11 @@ class _TeacherScreenState extends ConsumerState<TeacherScreen> {
         label: l10n.teacherLessonCalendar,
       ),
       NavigationDestination(
+        icon: const Icon(Icons.assignment_outlined),
+        selectedIcon: const Icon(Icons.assignment_rounded),
+        label: l10n.teacherAssignments,
+      ),
+      NavigationDestination(
         icon: const Icon(Icons.inventory_2_outlined),
         selectedIcon: const Icon(Icons.inventory_2_rounded),
         label: l10n.teacherMaterials,
@@ -126,6 +247,7 @@ class _TeacherScreenState extends ConsumerState<TeacherScreen> {
       _Overview(onNavigate: (index) => setState(() => _index = index)),
       const _ClassroomPage(),
       const LessonCalendarPage(),
+      const AssignmentsPage(),
       const _MaterialsPage(),
       const _TeacherProfilePage(),
     ];
@@ -223,10 +345,18 @@ class _Overview extends ConsumerWidget {
               onTap: () => onNavigate(2),
             ),
             _FeatureCard(
+              icon: Icons.assignment_rounded,
+              title: l10n.teacherAssignments,
+              subtitle: l10n.teacherAssignmentCount(
+                ref.watch(catalogProvider).length,
+              ),
+              onTap: () => onNavigate(3),
+            ),
+            _FeatureCard(
               icon: Icons.inventory_2_rounded,
               title: l10n.teacherMaterials,
               subtitle: l10n.teacherMaterialCount(teacher.materials.length),
-              onTap: () => onNavigate(3),
+              onTap: () => onNavigate(4),
             ),
             _FeatureCard(
               icon: Icons.mic_rounded,
@@ -238,7 +368,7 @@ class _Overview extends ConsumerWidget {
               icon: Icons.badge_rounded,
               title: l10n.teacherTrainee,
               subtitle: l10n.teacherTraineeHint,
-              onTap: () => onNavigate(4),
+              onTap: () => onNavigate(5),
             ),
           ],
         ),
@@ -338,7 +468,7 @@ class _ClassroomPage extends ConsumerWidget {
               DropdownButtonFormField<String>(
                 initialValue: notebookId,
                 decoration: InputDecoration(
-                  labelText: l10n.teacherWhiteboardNotebook,
+                  labelText: l10n.teacherShareNotebook,
                 ),
                 items: [
                   for (final notebook in notebooks)
@@ -381,6 +511,7 @@ class _ClassroomPage extends ConsumerWidget {
         coverColor: 0xFF1D4E89,
       );
       notebookId = notebook.id;
+      refreshLibraryLists(ref);
     }
     final lan = ref.read(lanSyncProvider);
     await lan.startHost(
@@ -445,6 +576,14 @@ class _ClassroomPage extends ConsumerWidget {
           kind: signal.kind,
           value: signal.value,
         );
+      },
+    );
+    ref.listen<int>(
+      lanSyncProvider.select((controller) => controller.assignmentEventSeq),
+      (previous, next) {
+        final event = ref.read(lanSyncProvider).lastAssignmentEvent;
+        if (event == null) return;
+        ref.read(assignmentHostProvider.notifier).onLanEvent(event);
       },
     );
     final session = ref.watch(teacherProvider).session;
@@ -527,6 +666,12 @@ class _ClassroomPage extends ConsumerWidget {
                       ),
                     FilledButton.tonalIcon(
                       onPressed: () =>
+                          shareClassroomContent(context, ref),
+                      icon: const Icon(Icons.ios_share_outlined),
+                      label: Text(l10n.teacherShareContent),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: () =>
                           saveWhiteboardToCurrentLesson(context, ref),
                       icon: const Icon(Icons.bookmark_add_outlined),
                       label: Text(l10n.teacherSaveLessonMaterials),
@@ -568,6 +713,8 @@ class _ClassroomPage extends ConsumerWidget {
             ),
           ],
         ),
+        const AssignmentLivePanel(),
+        const SizedBox(height: 14),
         SwitchListTile(
           value: session.focusCheckEnabled,
           onChanged: (value) async {
@@ -1027,7 +1174,80 @@ class _TeacherProfilePage extends ConsumerWidget {
           l10n.teacherVerificationPrivacy,
           style: AppTheme.body(color: AppTheme.inkMuted),
         ),
+        const SizedBox(height: 20),
+        Text(l10n.teacherSchool, style: AppTheme.headline(fontSize: 20)),
+        const SizedBox(height: 8),
+        _TeacherSchoolCard(),
       ],
+    );
+  }
+}
+
+class _TeacherSchoolCard extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_TeacherSchoolCard> createState() => _TeacherSchoolCardState();
+}
+
+class _TeacherSchoolCardState extends ConsumerState<_TeacherSchoolCard> {
+  late final TextEditingController _name;
+  late final TextEditingController _code;
+
+  @override
+  void initState() {
+    super.initState();
+    final school = ref.read(teacherProvider).school;
+    _name = TextEditingController(text: school?.name ?? '');
+    _code = TextEditingController(text: school?.joinCode ?? '');
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _code.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            TextField(
+              controller: _name,
+              decoration: InputDecoration(labelText: l10n.teacherSchoolName),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _code,
+              decoration: InputDecoration(labelText: l10n.teacherSchoolCode),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.tonal(
+                onPressed: () async {
+                  final name = _name.text.trim();
+                  if (name.isEmpty) {
+                    await ref.read(teacherProvider.notifier).setSchool(null);
+                    return;
+                  }
+                  var code = _code.text.trim();
+                  final school = code.isEmpty
+                      ? TeacherSchool.create(name)
+                      : TeacherSchool(name: name, joinCode: code);
+                  _code.text = school.joinCode;
+                  await ref.read(teacherProvider.notifier).setSchool(school);
+                },
+                child: Text(l10n.save),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

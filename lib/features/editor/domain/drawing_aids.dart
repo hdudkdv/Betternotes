@@ -5,14 +5,43 @@ import 'package:flutter/foundation.dart';
 
 import '../../../shared/utils/page_units.dart';
 
-/// Interactive ruler / compass overlays that persist across page changes when
-/// fixed, and live in page coordinates so zoom/pan keeps them on the paper.
+/// Interactive ruler / compass overlays in page coordinates.
+///
+/// A **fixed ruler** stays on every page (resized to the new paper).
+/// A **fixed compass** stays only on the page it was pinned to.
 class DrawingAidsController extends ChangeNotifier {
   RulerAid? ruler;
   CompassAid? compass;
+  String? _pageId;
+  final Map<String, CompassAid> _fixedCompassByPage = {};
+
+  String? get pageId => _pageId;
 
   bool get hasRuler => ruler != null;
   bool get hasCompass => compass != null;
+  bool get hasVisibleCompass => compass != null;
+
+  /// Call on every page bind so a fixed compass stays on its own page only.
+  void bindPage(String pageId, {bool notify = true}) {
+    final previous = _pageId;
+    _pageId = pageId;
+    clearUnfixed();
+    final current = compass;
+    if (current != null &&
+        current.fixed &&
+        current.pageId != null &&
+        current.pageId != pageId) {
+      _fixedCompassByPage[current.pageId!] = current;
+      compass = _fixedCompassByPage.remove(pageId);
+    } else if (current == null) {
+      compass = _fixedCompassByPage.remove(pageId);
+    } else if (previous != pageId &&
+        current.fixed &&
+        current.pageId == pageId) {
+      // Already the right page.
+    }
+    if (notify) notifyListeners();
+  }
 
   void toggleRuler(Size pageSize) {
     if (ruler != null) {
@@ -25,11 +54,11 @@ class DrawingAidsController extends ChangeNotifier {
   }
 
   void toggleCompass(Size pageSize) {
-    if (compass != null) {
+    if (hasVisibleCompass) {
       compass = null;
     } else {
       ruler = null;
-      compass = CompassAid.defaults(pageSize);
+      compass = CompassAid.defaults(pageSize, pageId: _pageId);
     }
     notifyListeners();
   }
@@ -67,7 +96,11 @@ class DrawingAidsController extends ChangeNotifier {
   void setCompassFixed(bool fixed) {
     final c = compass;
     if (c == null) return;
-    compass = c.copyWith(fixed: fixed);
+    compass = c.copyWith(
+      fixed: fixed,
+      pageId: fixed ? _pageId : null,
+      clearPageId: !fixed,
+    );
     notifyListeners();
   }
 
@@ -87,6 +120,7 @@ class DrawingAidsController extends ChangeNotifier {
   /// Non-null only while an aid should constrain ink.
   Offset Function(Offset)? get activeConstraint {
     if (ruler != null) return constrainPoint;
+    if (!hasVisibleCompass) return null;
     final c = compass;
     if (c != null &&
         c.center != null &&
@@ -241,14 +275,16 @@ class CompassAid {
     this.armAngle = 0,
     this.phase = CompassPhase.placingCenter,
     this.fixed = false,
+    this.pageId,
   });
 
-  factory CompassAid.defaults(Size pageSize) {
+  factory CompassAid.defaults(Size pageSize, {String? pageId}) {
     return CompassAid(
       center: null,
       radiusMm: 30,
       armAngle: -math.pi / 4,
       phase: CompassPhase.placingCenter,
+      pageId: pageId,
     );
   }
 
@@ -257,6 +293,9 @@ class CompassAid {
   final double armAngle;
   final CompassPhase phase;
   final bool fixed;
+
+  /// Page this compass belongs to when [fixed] is true.
+  final String? pageId;
 
   double get radiusPt => PageUnits.mmToPt(radiusMm);
 
@@ -286,7 +325,9 @@ class CompassAid {
     double? armAngle,
     CompassPhase? phase,
     bool? fixed,
+    String? pageId,
     bool clearCenter = false,
+    bool clearPageId = false,
   }) {
     return CompassAid(
       center: clearCenter ? null : (center ?? this.center),
@@ -294,6 +335,7 @@ class CompassAid {
       armAngle: armAngle ?? this.armAngle,
       phase: phase ?? this.phase,
       fixed: fixed ?? this.fixed,
+      pageId: clearPageId ? null : (pageId ?? this.pageId),
     );
   }
 }

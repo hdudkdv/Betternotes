@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/notebook.dart';
 import '../../data/repositories/notebook_repository.dart';
 import '../../l10n/app_localizations.dart';
+import '../library/providers/library_providers.dart';
 import '../planner/planner_model.dart';
 
 /// Resolves a notebook linked to a subject (by subjectKey or folder title match).
@@ -80,6 +81,7 @@ Future<void> openNotebookForSubject({
       updatedAt: DateTime.now(),
     ),
   );
+  refreshLibraryLists(ref);
   if (!context.mounted) return;
   context.push('/notebook/${nb.id}');
 }

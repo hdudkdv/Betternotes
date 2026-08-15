@@ -39,6 +39,7 @@ class FirestoreSyncAdapter {
     'entitlementsV1',
     'toolPresetsV1',
     'userRole',
+    'teacherTrack',
     'teacherWorkspaceV1',
     'classroomAutoConnectSubject',
     'classroomAutoConnectRoom',
@@ -46,6 +47,8 @@ class FirestoreSyncAdapter {
   static const _appBoolStateKeys = <String>[
     'classroomAutoConnectEnabled',
     'classroomAutoConnectAsked',
+    'profileSetupCompleted',
+    'tutorialCompleted',
   ];
 
   String get _uid {

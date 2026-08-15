@@ -240,6 +240,7 @@ class NotebookPagesViewport extends StatefulWidget {
     required this.onPageChanged,
     required this.activePageBuilder,
     this.onReachEnd,
+    this.onFlipStart,
     this.readOnly = false,
   });
 
@@ -250,6 +251,9 @@ class NotebookPagesViewport extends StatefulWidget {
   final ValueChanged<int> onPageChanged;
   final Widget Function(BuildContext context, int index) activePageBuilder;
   final Future<void> Function()? onReachEnd;
+
+  /// Sync the leaving page into [pages] before the live canvas is hidden.
+  final VoidCallback? onFlipStart;
   final bool readOnly;
 
   @override
@@ -277,6 +281,19 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   /// Locks PageView / ListView while drawing or pinching.
   bool _scrollLock = false;
 
+  /// Live canvas is hidden; PageView only slides cached snapshots.
+  bool _flipping = false;
+  int _flipToken = 0;
+
+  /// When zoomed, fit-zoom parent browse stays off (canvas pans / edge-flips).
+  bool _zoomed = false;
+
+  /// Viewport-owned fit-zoom swipe (survives hiding the live canvas).
+  int? _browsePointer;
+  Offset? _browseDown;
+  Offset? _browseLastGlobal;
+  bool _committing = false;
+
   /// Swipe velocity (px/s, screen space) for natural page commits.
   double _swipeVelocity = 0;
   int _lastPanMicros = 0;
@@ -298,11 +315,19 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     setState(() => _scrollLock = locked);
     if (locked) {
       _swipeAccum = 0;
+      _browsePointer = null;
+      _browseDown = null;
+      _browseLastGlobal = null;
       PagePreviewCache.instance.setPaused(true);
-    } else {
+    } else if (!_flipping) {
       PagePreviewCache.instance.setPaused(false);
       _scheduleNeighborPreviews();
     }
+  }
+
+  void setZoomed(bool zoomed) {
+    if (_zoomed == zoomed) return;
+    _zoomed = zoomed;
   }
 
   void _scheduleNeighborPreviews() {
@@ -311,6 +336,85 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       widget.pages,
       widget.pageIndex,
     );
+  }
+
+  void _enterFlip() {
+    if (_flipping) return;
+    widget.onFlipStart?.call();
+    PagePreviewCache.instance.setPaused(true);
+    setState(() => _flipping = true);
+  }
+
+  bool _isBrowseKind(PointerEvent event) {
+    return event.kind == PointerDeviceKind.touch ||
+        event.kind == PointerDeviceKind.mouse ||
+        event.kind == PointerDeviceKind.trackpad;
+  }
+
+  void _onViewportPointerDown(PointerDownEvent event) {
+    if (_scrollLock || _zoomed) return;
+    if (!_isBrowseKind(event)) return;
+    _browsePointer = event.pointer;
+    _browseDown = event.position;
+    _browseLastGlobal = event.position;
+  }
+
+  void _onViewportPointerMove(PointerMoveEvent event) {
+    if (_scrollLock || _zoomed) return;
+    if (!_isBrowseKind(event)) return;
+    if (_browsePointer != null && event.pointer != _browsePointer) return;
+
+    if (_browsePointer == null) {
+      _browsePointer = event.pointer;
+      _browseDown = event.position;
+      _browseLastGlobal = event.position;
+      return;
+    }
+
+    final last = _browseLastGlobal ?? event.position;
+    _browseLastGlobal = event.position;
+    final delta = event.position - last;
+
+    if (!_flipping) {
+      final slop = event.position - (_browseDown ?? event.position);
+      if (slop.distance < 8) return;
+      if (slop.dx.abs() < slop.dy.abs() * 1.15) return;
+    }
+
+    handleBrowsePan(delta);
+  }
+
+  void _onViewportPointerUp(PointerUpEvent event) {
+    _finishViewportBrowse(event.pointer);
+  }
+
+  void _onViewportPointerCancel(PointerCancelEvent event) {
+    _finishViewportBrowse(event.pointer);
+  }
+
+  void _finishViewportBrowse(int pointer) {
+    if (_browsePointer != pointer) return;
+    final shouldCommit = _flipping || _swipeAccum.abs() > 1;
+    _browsePointer = null;
+    _browseDown = null;
+    _browseLastGlobal = null;
+    // Zoomed edge-flips are ended by InkCanvas so we do not double-commit.
+    if (shouldCommit && !_zoomed) {
+      handleBrowsePanEnd();
+    }
+  }
+
+  void _exitFlipSoon() {
+    final token = ++_flipToken;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || token != _flipToken) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || token != _flipToken) return;
+        setState(() => _flipping = false);
+        PagePreviewCache.instance.setPaused(false);
+        _scheduleNeighborPreviews();
+      });
+    });
   }
 
   @Deprecated('Use setScrollLock')
@@ -443,30 +547,34 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       return;
     }
 
-    final pc = _pageController;
-    if (pc != null && pc.hasClients) {
-      final page = pc.page;
-      final needsMove = page == null || (page - clamped).abs() > 0.001;
-      if (needsMove) {
-        if (animate) {
-          await pc.animateToPage(
-            clamped,
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-          );
-        } else {
-          pc.jumpToPage(clamped);
+    if (_committing) return;
+    _committing = true;
+    _enterFlip();
+    try {
+      final pc = _pageController;
+      if (pc != null && pc.hasClients) {
+        final page = pc.page;
+        final needsMove = page == null || (page - clamped).abs() > 0.001;
+        if (needsMove) {
+          if (animate) {
+            await pc.animateToPage(
+              clamped,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+            );
+          } else {
+            pc.jumpToPage(clamped);
+          }
         }
       }
+      if (!mounted) return;
+      await SchedulerBinding.instance.endOfFrame;
+      if (!mounted) return;
+      _emitPage(clamped);
+      _exitFlipSoon();
+    } finally {
+      _committing = false;
     }
-    if (!mounted) return;
-    // Let the snap composite once, then bind — never unmount InkCanvas mid
-    // gesture (that killed left/right swipes).
-    await SchedulerBinding.instance.endOfFrame;
-    if (!mounted) return;
-    _emitPage(clamped);
-    PagePreviewCache.instance.setPaused(false);
-    _scheduleNeighborPreviews();
   }
 
   Future<void> _requestAddPage() async {
@@ -486,6 +594,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
       // Absorb vertical movement at fit zoom so the page cannot drift.
       if (delta.dx.abs() < delta.dy.abs() * 0.85) return true;
+      _enterFlip();
       PagePreviewCache.instance.setPaused(true);
 
       final now = DateTime.now().microsecondsSinceEpoch;
@@ -700,37 +809,58 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     final showAddSlot = !widget.readOnly && widget.onReachEnd != null;
 
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
-      return ScrollConfiguration(
-        behavior: const _TouchOnlyScrollBehavior(),
-        child: NotificationListener<ScrollNotification>(
-          onNotification: _onPageScroll,
-          child: PageView.builder(
-            controller: _pageController,
-            physics: _scrollPhysics,
-            // Keep neighbors built so the next swipe already has layers ready.
-            allowImplicitScrolling: true,
-            itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= widget.pages.length) {
-                return Center(
-                  child: AddPageAffordance(
-                    axis: Axis.horizontal,
-                    onTap: () => _requestAddPage(),
-                  ),
-                );
-              }
-              // Active page keeps InkCanvas mounted for the whole gesture —
-              // unmounting mid-swipe broke left/right page flips. Neighbors
-              // use the same fit matrix so size stays stable while scrolling.
-              return RepaintBoundary(
-                child: index == widget.pageIndex
-                    ? widget.activePageBuilder(context, index)
-                    : PageSnapshot(
+      return Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: _onViewportPointerDown,
+        onPointerMove: _onViewportPointerMove,
+        onPointerUp: _onViewportPointerUp,
+        onPointerCancel: _onViewportPointerCancel,
+        child: ScrollConfiguration(
+          behavior: const _TouchOnlyScrollBehavior(),
+          child: NotificationListener<ScrollNotification>(
+            onNotification: _onPageScroll,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                PageView.builder(
+                  controller: _pageController,
+                  physics: _scrollPhysics,
+                  allowImplicitScrolling: true,
+                  itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index >= widget.pages.length) {
+                      return Center(
+                        child: AddPageAffordance(
+                          axis: Axis.horizontal,
+                          onTap: () => _requestAddPage(),
+                        ),
+                      );
+                    }
+                    // Every slot is a cached bitmap so the strip never
+                    // composites InkCanvas / InteractiveViewer while sliding.
+                    return RepaintBoundary(
+                      child: PageSnapshot(
                         page: widget.pages[index],
                         matchLiveFit: true,
                       ),
-              );
-            },
+                    );
+                  },
+                ),
+                if (widget.pageIndex < widget.pages.length)
+                  Positioned.fill(
+                    child: Offstage(
+                      offstage: _flipping,
+                      child: IgnorePointer(
+                        ignoring: _flipping,
+                        child: widget.activePageBuilder(
+                          context,
+                          widget.pageIndex,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       );

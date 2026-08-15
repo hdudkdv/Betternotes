@@ -6,6 +6,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/utils/page_units.dart';
 import '../../domain/drawing_aids.dart';
 import '../editor_chrome.dart';
+import 'stylus_pan.dart';
 
 /// Visual ruler in page coordinates — always spans page edge → edge.
 class RulerOverlay extends StatelessWidget {
@@ -22,6 +23,25 @@ class RulerOverlay extends StatelessWidget {
   final VoidCallback onToggleFixed;
   final bool readOnly;
 
+  void _moveBy(Offset delta) {
+    final next = aid.center + delta;
+    onChanged(
+      aid.copyWith(
+        center: Offset(
+          next.dx.clamp(0, aid.pageSize.width),
+          next.dy.clamp(0, aid.pageSize.height),
+        ),
+      ),
+    );
+  }
+
+  void _rotateFrom(Offset tip, {required bool fromStart}) {
+    final angle = fromStart
+        ? math.atan2(aid.center.dy - tip.dy, aid.center.dx - tip.dx)
+        : math.atan2(tip.dy - aid.center.dy, tip.dx - aid.center.dx);
+    onChanged(aid.copyWith(angle: angle));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -29,59 +49,40 @@ class RulerOverlay extends StatelessWidget {
       (aid.start.dx + aid.end.dx) / 2,
       (aid.start.dy + aid.end.dy) / 2,
     );
+    final length = aid.lengthPt;
+    const bodyHalf = RulerAid.edgeOffset + 18;
+
     return Stack(
       fit: StackFit.expand,
       children: [
         IgnorePointer(
           child: CustomPaint(
-            // Painter needs page size for edge clipping / ticks.
             size: aid.pageSize,
             painter: _RulerPainter(aid: aid),
           ),
         ),
         if (!readOnly) ...[
+          // Full ruler body — drag anywhere on the strip to move it.
           Positioned(
-            left: mid.dx - 40,
-            top: mid.dy - 40,
-            width: 80,
-            height: 80,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onPanUpdate: (d) {
-                final next = aid.center + d.delta;
-                onChanged(
-                  aid.copyWith(
-                    center: Offset(
-                      next.dx.clamp(0, aid.pageSize.width),
-                      next.dy.clamp(0, aid.pageSize.height),
-                    ),
-                  ),
-                );
-              },
-              child: const SizedBox.expand(),
+            left: mid.dx - length / 2,
+            top: mid.dy - bodyHalf,
+            width: length,
+            height: bodyHalf * 2,
+            child: Transform.rotate(
+              angle: aid.angle,
+              child: StylusPan(
+                onPanUpdate: _moveBy,
+                child: const ColoredBox(color: Color(0x01FFFFFF)),
+              ),
             ),
           ),
           _Handle(
             at: aid.end,
-            onDrag: (delta) {
-              final tip = aid.end + delta;
-              final angle = math.atan2(
-                tip.dy - aid.center.dy,
-                tip.dx - aid.center.dx,
-              );
-              onChanged(aid.copyWith(angle: angle));
-            },
+            onDrag: (delta) => _rotateFrom(aid.end + delta, fromStart: false),
           ),
           _Handle(
             at: aid.start,
-            onDrag: (delta) {
-              final tip = aid.start + delta;
-              final angle = math.atan2(
-                aid.center.dy - tip.dy,
-                aid.center.dx - tip.dx,
-              );
-              onChanged(aid.copyWith(angle: angle));
-            },
+            onDrag: (delta) => _rotateFrom(aid.start + delta, fromStart: true),
           ),
         ],
         Positioned(
@@ -135,20 +136,25 @@ class _Handle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: at.dx - 14,
-      top: at.dy - 14,
-      child: GestureDetector(
-        onPanUpdate: (d) => onDrag(d.delta),
+      left: at.dx - 22,
+      top: at.dy - 22,
+      child: StylusPan(
+        onPanUpdate: onDrag,
         child: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: EditorChrome.selected,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: const [
-              BoxShadow(color: Colors.black38, blurRadius: 6),
-            ],
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          child: Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: EditorChrome.selected,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: const [
+                BoxShadow(color: Colors.black38, blurRadius: 6),
+              ],
+            ),
           ),
         ),
       ),
@@ -185,7 +191,6 @@ class _RulerPainter extends CustomPainter {
         ..strokeWidth = 1.2,
     );
 
-    // Drawing edge (ink snaps here).
     canvas.drawLine(
       start - normal * half,
       end - normal * half,
@@ -203,7 +208,6 @@ class _RulerPainter extends CustomPainter {
       final isCm = index % 10 == 0;
       final isHalf = index % 5 == 0;
       final tick = isCm ? 11.0 : (isHalf ? 7.0 : 4.0);
-      // Ticks grow upward into the ruler body from the drawing edge.
       final edge = along - normal * half;
       final tip = along - normal * (half - tick);
       canvas.drawLine(
@@ -226,7 +230,6 @@ class _RulerPainter extends CustomPainter {
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        // Numbers sit below the ticks (outside the ruler, past the blue edge).
         final anchor = along - normal * (half + 3);
         canvas.save();
         canvas.translate(anchor.dx, anchor.dy);

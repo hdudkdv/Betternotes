@@ -256,7 +256,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'BetterNotes — Smart Text, Papier-Editor, Gliederung, globale Suche und Offline-First Sync.';
 
   @override
-  String get searchHint => 'Notizbücher, Text, Gliederung, Tags suchen…';
+  String get searchHint => 'Suchen oder @Fach @Klasse10 …';
 
   @override
   String get searchEmpty => 'Tippe, um in allen Notizen zu suchen.';
@@ -471,7 +471,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tapToFlip => 'Tippen zum Umdrehen';
 
   @override
-  String get searchEverything => 'Ordner, Notizbücher, Kapitel suchen…';
+  String get searchEverything => 'Suchen oder @Wirtschaft addition …';
 
   @override
   String get shareExport => 'Teilen & exportieren';
@@ -2264,7 +2264,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get teacherOverviewHint =>
-      'Live-Sessions, Stundenkalender, Materialien und Audio-Erklärungen an einem Ort.';
+      'Live-Sessions, Aufgaben, Stundenkalender, Materialien und Audio-Erklärungen an einem Ort.';
 
   @override
   String get teacherLiveClass => 'Live-Unterricht';
@@ -2596,4 +2596,490 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get classroomAutoConnectMismatch =>
       'Automatische Verbindung abgelehnt: Fach und Raum stimmen nicht überein.';
+
+  @override
+  String get marketplace => 'Marketplace';
+
+  @override
+  String get marketplaceHint =>
+      'Optionale Funktionen, die nicht jede:r braucht. Käufe kommen später — hier siehst du, was geplant ist.';
+
+  @override
+  String get marketplaceComingSoon =>
+      'Kauf und Freischaltung folgen in einem späteren Update.';
+
+  @override
+  String get marketplaceSoonBadge => 'Bald';
+
+  @override
+  String get marketplaceInkOcrHint =>
+      'Handschrift und Fotos werden lokal erkannt und nur als unsichtbarer Suchindex gespeichert.';
+
+  @override
+  String get marketplaceCloudHint =>
+      'Premium-Cloud-Relay, wenn kein P2P-Kanal in der Nähe ist.';
+
+  @override
+  String get featureCloudSync => 'Cloud-Sync';
+
+  @override
+  String get scanPages => 'Seiten scannen';
+
+  @override
+  String get scanPagesHint =>
+      'System-Dokumentenscanner — Blätter werden zu Seiten.';
+
+  @override
+  String get scanExam => 'Klausur scannen?';
+
+  @override
+  String get scanExamBody =>
+      'Die Klausur oder den Test jetzt abfotografieren und als Seiten ins Notizbuch legen.';
+
+  @override
+  String scannedNotebookTitle(String date) {
+    return 'Scan $date';
+  }
+
+  @override
+  String get scanFailed => 'Scanner konnte nicht geöffnet werden.';
+
+  @override
+  String scanAddedPages(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gescannte Seiten hinzugefügt',
+      one: '1 gescannte Seite hinzugefügt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get searchAtHint =>
+      'Mit @ nur in einem Fach, Ordner oder Schuljahr suchen';
+
+  @override
+  String get pinTool => 'Anpinnen';
+
+  @override
+  String get calculator => 'Taschenrechner';
+
+  @override
+  String get calculatorHint => 'z. B. 2+3*4 oder sin(x)';
+
+  @override
+  String get calculatorEquals => '=';
+
+  @override
+  String get calculatorPlot => 'Funktion einfügen';
+
+  @override
+  String get calculatorHistory => 'Letzte Rechnungen';
+
+  @override
+  String get formulaBook => 'Tafelwerk';
+
+  @override
+  String get formulaTerm => 'Begriff';
+
+  @override
+  String get formulaValue => 'Formel / Wert';
+
+  @override
+  String get formulaAddRow => 'Zeile hinzufügen';
+
+  @override
+  String get continueAction => 'Weiter';
+
+  @override
+  String get setupStudentTitle => 'Dein Lernweg';
+
+  @override
+  String get setupStudentBody =>
+      'Damit Notizen, Noten und das neue Halbjahr zu dir passen.';
+
+  @override
+  String get setupTeacherTitle => 'Dein Lehrerprofil';
+
+  @override
+  String get setupTeacherBody =>
+      'Bist du noch im Studium oder schon im Schuldienst?';
+
+  @override
+  String get setupTeacherTrack => 'Status';
+
+  @override
+  String get teacherTrackStudying => 'Im Studium';
+
+  @override
+  String get teacherTrackStudyingHint =>
+      'Semesterstart: neues Notizbuch, Kapitel nach Wahl übernehmen.';
+
+  @override
+  String get teacherTrackQualified => 'Schon fertig';
+
+  @override
+  String get teacherTrackQualifiedHint =>
+      'Für den Unterricht — inkl. Teilen von Notizbüchern und Material.';
+
+  @override
+  String get newTermNotebook =>
+      'Neues Notizbuch für dieses Halbjahr / Semester';
+
+  @override
+  String importChaptersBodyTerm(String title, String period) {
+    return 'Welche Kapitel aus „$title“ sollen nach $period mitkommen?';
+  }
+
+  @override
+  String termWinterHalbjahr(String year) {
+    return '1. Halbjahr $year';
+  }
+
+  @override
+  String termSummerHalbjahr(String year) {
+    return '2. Halbjahr $year';
+  }
+
+  @override
+  String termWinterSemester(String year) {
+    return 'Wintersemester $year';
+  }
+
+  @override
+  String termSummerSemester(String year) {
+    return 'Sommersemester $year';
+  }
+
+  @override
+  String get teacherShareContent => 'Inhalte teilen';
+
+  @override
+  String get teacherShareContentHint =>
+      'Whiteboard, Notizbücher, Karteikarten oder Dateien an die Klasse senden.';
+
+  @override
+  String get teacherShareLiveBoard => 'Aktuelle Tafel senden';
+
+  @override
+  String get teacherShareNotebook => 'Notizbuch teilen';
+
+  @override
+  String get teacherShareFlashcards => 'Karteikarten teilen';
+
+  @override
+  String get tutorialOfferTitle => 'Kurzes Tutorial?';
+
+  @override
+  String get tutorialOfferBody =>
+      'Wir zeigen dir die wichtigsten Stellen der App in ein paar Schritten.';
+
+  @override
+  String get tutorialStart => 'Tutorial starten';
+
+  @override
+  String get tutorialSkip => 'Jetzt nicht';
+
+  @override
+  String get tutorialNext => 'Weiter';
+
+  @override
+  String get tutorialDone => 'Fertig';
+
+  @override
+  String get tourLibraryTitle => 'Deine Bibliothek';
+
+  @override
+  String get tourLibraryBody =>
+      'Hier liegen alle Notizbücher, Ordner und Karteikarten. Wische, um zu öffnen.';
+
+  @override
+  String get tourCreateTitle => 'Neu anlegen';
+
+  @override
+  String get tourCreateBody =>
+      'Über Plus erstellst du Notizbücher, Ordner oder Karteikarten.';
+
+  @override
+  String get tourSearchTitle => 'Suche mit @';
+
+  @override
+  String get tourSearchBody =>
+      'Tippe z. B. @Wirtschaft addition, um nur in einem Fach zu suchen.';
+
+  @override
+  String get tourSettingsTitle => 'Einstellungen';
+
+  @override
+  String get tourSettingsBody =>
+      'Rolle, Bundesland, Stift-Gesten und das Tutorial findest du hier wieder.';
+
+  @override
+  String get tourTeacherTitle => 'Lehrerbereich';
+
+  @override
+  String get tourTeacherBody =>
+      'Starte den Unterricht und teile Tafel, Notizbücher oder Material mit der Klasse.';
+
+  @override
+  String get tourEditorTitle => 'Im Notizbuch';
+
+  @override
+  String get tourEditorBody =>
+      'Oben liegen Stift, Radierer, Taschenrechner und Tafelwerk. Seiten wischst du zur Seite.';
+
+  @override
+  String get teacherAssignments => 'Aufgaben';
+
+  @override
+  String get teacherAssignmentsHint =>
+      'Arbeitsblätter und Tests im Editor anlegen. PDF-Scans werden in Aufgaben umgewandelt – bitte prüfen.';
+
+  @override
+  String teacherAssignmentCount(int count) {
+    return '$count Einträge im Katalog';
+  }
+
+  @override
+  String get teacherNewAssignment => 'Neue Aufgabe';
+
+  @override
+  String get teacherUntitledAssignment => 'Ohne Titel';
+
+  @override
+  String get teacherImportPdf => 'Aus PDF übernehmen';
+
+  @override
+  String get teacherImportPdfHint =>
+      'Seiten werden gelesen und in bearbeitbare Aufgaben zerlegt.';
+
+  @override
+  String get teacherImportScan => 'Scannen und übernehmen';
+
+  @override
+  String get teacherImportScanHint =>
+      'Foto oder Scanner, danach als Entwurf im Editor prüfen.';
+
+  @override
+  String get teacherImportedScanTitle => 'Scan';
+
+  @override
+  String get teacherReviewBanner =>
+      'Text und Struktur stammen aus dem Scan. Bitte prüfen, anpassen und bestätigen, bevor du die Aufgabe einsetzt.';
+
+  @override
+  String get teacherConfirmDraft => 'Entwurf bestätigen';
+
+  @override
+  String get teacherNeedsReview => 'Bitte prüfen';
+
+  @override
+  String get teacherAnswerKind => 'Antwortart';
+
+  @override
+  String get teacherAnswerText => 'Freitext';
+
+  @override
+  String get teacherAnswerMc => 'Multiple Choice';
+
+  @override
+  String get teacherAnswerCalc => 'Rechnung';
+
+  @override
+  String get teacherAnswerMatch => 'Zuordnung';
+
+  @override
+  String get teacherTaskParts => 'Aufgabenteile';
+
+  @override
+  String get teacherAddPartText => 'Text';
+
+  @override
+  String get teacherAddPartImage => 'Bild';
+
+  @override
+  String get teacherAddPartLink => 'Link';
+
+  @override
+  String get teacherSampleAnswer => 'Musterlösung';
+
+  @override
+  String get teacherCalcResult => 'Endergebnis';
+
+  @override
+  String get teacherCalcTolerance => 'Toleranz';
+
+  @override
+  String get teacherMaxPoints => 'Punkte';
+
+  @override
+  String get teacherKindTask => 'Aufgabe';
+
+  @override
+  String get teacherKindTest => 'Test';
+
+  @override
+  String get teacherKindExam => 'Klausur';
+
+  @override
+  String get teacherCatalogKind => 'Art';
+
+  @override
+  String get teacherCatalogVisibility => 'Sichtbarkeit';
+
+  @override
+  String get teacherVisibilityPrivate => 'Nur ich';
+
+  @override
+  String get teacherVisibilitySchool => 'Nur Schule';
+
+  @override
+  String get teacherVisibilityPublic => 'Öffentlich';
+
+  @override
+  String get teacherSuggestedDuration => 'Vorschlag Dauer (Min.)';
+
+  @override
+  String get teacherNoAssignments =>
+      'Noch keine Aufgaben. Lege eine an oder übernimm ein PDF bzw. einen Scan.';
+
+  @override
+  String get teacherImporting => 'Wird in den Editor umgewandelt…';
+
+  @override
+  String get teacherImportFailed => 'Umwandlung fehlgeschlagen';
+
+  @override
+  String get teacherAddTask => 'Aufgabe hinzufügen';
+
+  @override
+  String get teacherCorrectOption => 'Richtige Antwort markieren';
+
+  @override
+  String get teacherMatchLeft => 'Links';
+
+  @override
+  String get teacherMatchRight => 'Rechts';
+
+  @override
+  String get teacherDeleteTask => 'Aufgabe löschen';
+
+  @override
+  String get teacherTags => 'Schlagworte';
+
+  @override
+  String get teacherTasksHeading => 'Aufgaben';
+
+  @override
+  String teacherTaskNumber(int number) {
+    return 'Aufgabe $number';
+  }
+
+  @override
+  String teacherTaskCount(int count) {
+    return '$count Aufgaben';
+  }
+
+  @override
+  String get teacherSchool => 'Schule';
+
+  @override
+  String get teacherSchoolName => 'Schulname';
+
+  @override
+  String get teacherSchoolCode => 'Schul-Beitrittscode';
+
+  @override
+  String get assignmentTitle => 'Aufgabe';
+
+  @override
+  String get assignmentWaiting => 'Warte auf eine Aufgabe vom Lehrer.';
+
+  @override
+  String get assignmentSubmit => 'Fertig — abgeben';
+
+  @override
+  String get assignmentSubmitted =>
+      'Abgegeben. Der Arbeitsbereich ist gesperrt.';
+
+  @override
+  String get assignmentLocked =>
+      'Die Zeit ist abgelaufen. Warte auf eine Verlängerung oder das Einsammeln.';
+
+  @override
+  String get assignmentYourAnswer => 'Deine Antwort';
+
+  @override
+  String get assignmentImportNotebook => 'In ein Notizbuch übernehmen';
+
+  @override
+  String get assignmentStart => 'Aufgabe starten';
+
+  @override
+  String get assignmentStartHint =>
+      'Wähle eine bestätigte Vorlage und sende sie als eigene Seite an die Klasse.';
+
+  @override
+  String get assignmentTestMode => 'Testmodus (Rechner und Tafelwerk sperren)';
+
+  @override
+  String get assignmentExtend5 => '+5 Minuten';
+
+  @override
+  String get assignmentExtend10 => '+10 Minuten';
+
+  @override
+  String get assignmentCollect => 'Einsammeln';
+
+  @override
+  String get assignmentAllowImport => 'Import erlauben';
+
+  @override
+  String get assignmentResults => 'Ergebnisse';
+
+  @override
+  String get assignmentPrint => 'Drucken ohne Lösung';
+
+  @override
+  String assignmentClassAverage(int percent) {
+    return 'Klassenschnitt $percent %';
+  }
+
+  @override
+  String assignmentSubmittedCount(int done, int total) {
+    return 'Abgegeben: $done/$total';
+  }
+
+  @override
+  String get assignmentTopProblems => 'Häufigste Probleme';
+
+  @override
+  String get assignmentNoProblems => 'Noch keine ausgewerteten Probleme.';
+
+  @override
+  String get assignmentGroups => 'Ähnliche Fehlerbilder';
+
+  @override
+  String get assignmentSubmissions => 'Abgaben';
+
+  @override
+  String get assignmentEarly => 'früh abgegeben';
+
+  @override
+  String get assignmentOnCollect => 'eingesammelt';
+
+  @override
+  String get assignmentCorrection => 'Korrektur an das Gerät senden';
+
+  @override
+  String get assignmentLeaveSignals => 'Verlassen / Fokus verloren';
+
+  @override
+  String get assignmentPoolLocked =>
+      'Tauschbörse: Teile einmal öffentlich, um andere öffentliche Aufgaben zu sehen.';
+
+  @override
+  String get assignmentPoolUnlocked =>
+      'Tauschbörse ist offen. Öffentliche Einträge anderer Lehrer erscheinen, sobald die Cloud verbunden ist.';
 }

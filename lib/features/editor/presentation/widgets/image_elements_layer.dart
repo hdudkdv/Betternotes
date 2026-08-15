@@ -14,6 +14,7 @@ class ImageElementsLayer extends StatelessWidget {
     required this.editable,
     required this.onSelect,
     required this.onChanged,
+    this.onDelete,
   });
 
   final List<ImageElement> images;
@@ -21,6 +22,7 @@ class ImageElementsLayer extends StatelessWidget {
   final bool editable;
   final ValueChanged<String?> onSelect;
   final ValueChanged<ImageElement> onChanged;
+  final ValueChanged<String>? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -40,18 +42,47 @@ class ImageElementsLayer extends StatelessWidget {
                       ),
                     )
                   : null,
-              child: Container(
-                width: image.width,
-                height: image.height,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: selectedId == image.id
-                        ? EditorChrome.toolbarSelected
-                        : Colors.transparent,
-                    width: 2,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: image.width,
+                    height: image.height,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: selectedId == image.id
+                            ? EditorChrome.toolbarSelected
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: _buildImage(image.localPath),
                   ),
-                ),
-                child: _buildImage(image.localPath),
+                  if (editable &&
+                      selectedId == image.id &&
+                      onDelete != null)
+                    Positioned(
+                      right: -10,
+                      top: -10,
+                      child: Material(
+                        color: const Color(0xE6C62828),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => onDelete!(image.id),
+                          child: const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),

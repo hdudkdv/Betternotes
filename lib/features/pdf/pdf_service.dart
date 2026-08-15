@@ -114,6 +114,48 @@ class PdfService {
     return _repository.addPages(notebookId: notebookId, drafts: drafts);
   }
 
+  /// Turns system-scanner / camera images into notebook pages.
+  Future<List<NotePage>> importScannedImages({
+    required String notebookId,
+    required List<String> imagePaths,
+  }) async {
+    if (imagePaths.isEmpty) return const [];
+    final notebook = await _repository.getNotebook(notebookId);
+    final paperFormat = notebook?.defaultPaperFormat ?? PaperFormat.a4;
+    final orientation =
+        notebook?.defaultOrientation ?? PageOrientation.portrait;
+    final filesDir = await _repository.resolveFilesDir();
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final drafts = <NotePageDraft>[];
+    for (var i = 0; i < imagePaths.length; i++) {
+      final src = imagePaths[i];
+      String imagePath = src;
+      try {
+        if (kIsWeb) {
+          final bytes = await _files.readBytes(src);
+          imagePath = 'memory:${base64Encode(bytes)}';
+        } else {
+          final bytes = await _files.readBytes(src);
+          final outPath = p.join(
+            filesDir,
+            '${notebookId}_scan_${stamp}_${i + 1}.jpg',
+          );
+          await _files.writeBytes(outPath, bytes);
+          imagePath = outPath;
+        }
+      } catch (_) {}
+      drafts.add(
+        NotePageDraft(
+          template: PageTemplate.blank,
+          backgroundPdfPath: imagePath,
+          paperFormat: paperFormat,
+          orientation: orientation,
+        ),
+      );
+    }
+    return _repository.addPages(notebookId: notebookId, drafts: drafts);
+  }
+
   Future<Uint8List> buildNotebookPdfBytes(
     Notebook notebook,
     List<NotePage> pages, {

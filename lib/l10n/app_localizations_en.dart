@@ -255,7 +255,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'BetterNotes — Smart Text, Custom Paper, Deep Outline, global search, and offline-first sync queue.';
 
   @override
-  String get searchHint => 'Search notebooks, text, outline, tags…';
+  String get searchHint => 'Search or @Subject @Grade10 …';
 
   @override
   String get searchEmpty => 'Type to search across all notes.';
@@ -469,7 +469,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapToFlip => 'Tap to flip';
 
   @override
-  String get searchEverything => 'Search folders, notebooks, chapters…';
+  String get searchEverything => 'Search or @Economics addition …';
 
   @override
   String get shareExport => 'Share & export';
@@ -2254,7 +2254,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teacherOverviewHint =>
-      'Live sessions, lesson calendar, materials, and audio explanations in one place.';
+      'Live sessions, assignments, lesson calendar, materials, and audio explanations in one place.';
 
   @override
   String get teacherLiveClass => 'Live class';
@@ -2581,4 +2581,488 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get classroomAutoConnectMismatch =>
       'Automatic connection rejected: neither subject nor room matches.';
+
+  @override
+  String get marketplace => 'Marketplace';
+
+  @override
+  String get marketplaceHint =>
+      'Optional add-ons that not everyone needs. Purchases come later — this is the catalog.';
+
+  @override
+  String get marketplaceComingSoon =>
+      'Purchase and unlock will arrive in a later update.';
+
+  @override
+  String get marketplaceSoonBadge => 'Soon';
+
+  @override
+  String get marketplaceInkOcrHint =>
+      'Handwriting and photos are recognized on-device and stored only as a hidden search index.';
+
+  @override
+  String get marketplaceCloudHint =>
+      'Premium cloud relay when no nearby P2P channel is available.';
+
+  @override
+  String get featureCloudSync => 'Cloud sync';
+
+  @override
+  String get scanPages => 'Scan pages';
+
+  @override
+  String get scanPagesHint =>
+      'System document scanner — sheets become notebook pages.';
+
+  @override
+  String get scanExam => 'Scan the exam?';
+
+  @override
+  String get scanExamBody =>
+      'Photograph the test now and add the pages to a notebook.';
+
+  @override
+  String scannedNotebookTitle(String date) {
+    return 'Scan $date';
+  }
+
+  @override
+  String get scanFailed => 'Could not open the scanner.';
+
+  @override
+  String scanAddedPages(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count scanned pages',
+      one: 'Added 1 scanned page',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get searchAtHint =>
+      'Use @ to search only in a subject, folder, or school year';
+
+  @override
+  String get pinTool => 'Pin';
+
+  @override
+  String get calculator => 'Calculator';
+
+  @override
+  String get calculatorHint => 'e.g. 2+3*4 or sin(x)';
+
+  @override
+  String get calculatorEquals => '=';
+
+  @override
+  String get calculatorPlot => 'Insert graph';
+
+  @override
+  String get calculatorHistory => 'Recent calculations';
+
+  @override
+  String get formulaBook => 'Formula book';
+
+  @override
+  String get formulaTerm => 'Term';
+
+  @override
+  String get formulaValue => 'Formula / value';
+
+  @override
+  String get formulaAddRow => 'Add row';
+
+  @override
+  String get continueAction => 'Continue';
+
+  @override
+  String get setupStudentTitle => 'Your path';
+
+  @override
+  String get setupStudentBody =>
+      'So notes, grades, and the next term match how you learn.';
+
+  @override
+  String get setupTeacherTitle => 'Your teacher profile';
+
+  @override
+  String get setupTeacherBody => 'Are you still studying or already teaching?';
+
+  @override
+  String get setupTeacherTrack => 'Status';
+
+  @override
+  String get teacherTrackStudying => 'In studies';
+
+  @override
+  String get teacherTrackStudyingHint =>
+      'When a semester starts you can create a new notebook and keep chosen chapters.';
+
+  @override
+  String get teacherTrackQualified => 'Already qualified';
+
+  @override
+  String get teacherTrackQualifiedHint =>
+      'For class — including sharing notebooks and materials.';
+
+  @override
+  String get newTermNotebook => 'Create a notebook for this term';
+
+  @override
+  String importChaptersBodyTerm(String title, String period) {
+    return 'Which chapters from “$title” should carry over to $period?';
+  }
+
+  @override
+  String termWinterHalbjahr(String year) {
+    return '1st term $year';
+  }
+
+  @override
+  String termSummerHalbjahr(String year) {
+    return '2nd term $year';
+  }
+
+  @override
+  String termWinterSemester(String year) {
+    return 'Winter semester $year';
+  }
+
+  @override
+  String termSummerSemester(String year) {
+    return 'Summer semester $year';
+  }
+
+  @override
+  String get teacherShareContent => 'Share content';
+
+  @override
+  String get teacherShareContentHint =>
+      'Send the board, notebooks, flashcards, or files to the class.';
+
+  @override
+  String get teacherShareLiveBoard => 'Send the current board';
+
+  @override
+  String get teacherShareNotebook => 'Share notebook';
+
+  @override
+  String get teacherShareFlashcards => 'Share flashcards';
+
+  @override
+  String get tutorialOfferTitle => 'A short tour?';
+
+  @override
+  String get tutorialOfferBody =>
+      'A few steps that point out the main parts of the app.';
+
+  @override
+  String get tutorialStart => 'Start tutorial';
+
+  @override
+  String get tutorialSkip => 'Not now';
+
+  @override
+  String get tutorialNext => 'Next';
+
+  @override
+  String get tutorialDone => 'Done';
+
+  @override
+  String get tourLibraryTitle => 'Your library';
+
+  @override
+  String get tourLibraryBody =>
+      'Notebooks, folders, and flashcards live here. Tap a cover to open it.';
+
+  @override
+  String get tourCreateTitle => 'Create something';
+
+  @override
+  String get tourCreateBody =>
+      'Use plus to add a notebook, folder, or flashcard deck.';
+
+  @override
+  String get tourSearchTitle => 'Search with @';
+
+  @override
+  String get tourSearchBody =>
+      'Try @Economics addition to search inside one subject only.';
+
+  @override
+  String get tourSettingsTitle => 'Settings';
+
+  @override
+  String get tourSettingsBody =>
+      'Role, state, stylus gestures, and this tutorial are here.';
+
+  @override
+  String get tourTeacherTitle => 'Teacher tools';
+
+  @override
+  String get tourTeacherBody =>
+      'Start class and share the board, notebooks, or materials.';
+
+  @override
+  String get tourEditorTitle => 'Inside a notebook';
+
+  @override
+  String get tourEditorBody =>
+      'The toolbar has pen, eraser, calculator, and the formula book. Swipe to change pages.';
+
+  @override
+  String get teacherAssignments => 'Assignments';
+
+  @override
+  String get teacherAssignmentsHint =>
+      'Build worksheets in the editor. PDF scans become draft tasks you should review.';
+
+  @override
+  String teacherAssignmentCount(int count) {
+    return '$count items in the catalog';
+  }
+
+  @override
+  String get teacherNewAssignment => 'New assignment';
+
+  @override
+  String get teacherUntitledAssignment => 'Untitled';
+
+  @override
+  String get teacherImportPdf => 'Import from PDF';
+
+  @override
+  String get teacherImportPdfHint =>
+      'Pages are read and split into editable tasks.';
+
+  @override
+  String get teacherImportScan => 'Scan and import';
+
+  @override
+  String get teacherImportScanHint =>
+      'Camera or scanner, then review the draft in the editor.';
+
+  @override
+  String get teacherImportedScanTitle => 'Scan';
+
+  @override
+  String get teacherReviewBanner =>
+      'Text and structure come from the scan. Please review, edit if needed, and confirm before you use this assignment.';
+
+  @override
+  String get teacherConfirmDraft => 'Confirm draft';
+
+  @override
+  String get teacherNeedsReview => 'Needs review';
+
+  @override
+  String get teacherAnswerKind => 'Answer type';
+
+  @override
+  String get teacherAnswerText => 'Free text';
+
+  @override
+  String get teacherAnswerMc => 'Multiple choice';
+
+  @override
+  String get teacherAnswerCalc => 'Calculation';
+
+  @override
+  String get teacherAnswerMatch => 'Matching';
+
+  @override
+  String get teacherTaskParts => 'Task parts';
+
+  @override
+  String get teacherAddPartText => 'Text';
+
+  @override
+  String get teacherAddPartImage => 'Image';
+
+  @override
+  String get teacherAddPartLink => 'Link';
+
+  @override
+  String get teacherSampleAnswer => 'Sample answer';
+
+  @override
+  String get teacherCalcResult => 'Final result';
+
+  @override
+  String get teacherCalcTolerance => 'Tolerance';
+
+  @override
+  String get teacherMaxPoints => 'Points';
+
+  @override
+  String get teacherKindTask => 'Task';
+
+  @override
+  String get teacherKindTest => 'Test';
+
+  @override
+  String get teacherKindExam => 'Exam';
+
+  @override
+  String get teacherCatalogKind => 'Kind';
+
+  @override
+  String get teacherCatalogVisibility => 'Visibility';
+
+  @override
+  String get teacherVisibilityPrivate => 'Only me';
+
+  @override
+  String get teacherVisibilitySchool => 'School only';
+
+  @override
+  String get teacherVisibilityPublic => 'Public';
+
+  @override
+  String get teacherSuggestedDuration => 'Suggested duration (min.)';
+
+  @override
+  String get teacherNoAssignments =>
+      'No assignments yet. Create one or import a PDF or scan.';
+
+  @override
+  String get teacherImporting => 'Converting into the editor…';
+
+  @override
+  String get teacherImportFailed => 'Could not convert this file';
+
+  @override
+  String get teacherAddTask => 'Add task';
+
+  @override
+  String get teacherCorrectOption => 'Mark the correct answer';
+
+  @override
+  String get teacherMatchLeft => 'Left';
+
+  @override
+  String get teacherMatchRight => 'Right';
+
+  @override
+  String get teacherDeleteTask => 'Delete task';
+
+  @override
+  String get teacherTags => 'Tags';
+
+  @override
+  String get teacherTasksHeading => 'Tasks';
+
+  @override
+  String teacherTaskNumber(int number) {
+    return 'Task $number';
+  }
+
+  @override
+  String teacherTaskCount(int count) {
+    return '$count tasks';
+  }
+
+  @override
+  String get teacherSchool => 'School';
+
+  @override
+  String get teacherSchoolName => 'School name';
+
+  @override
+  String get teacherSchoolCode => 'School join code';
+
+  @override
+  String get assignmentTitle => 'Assignment';
+
+  @override
+  String get assignmentWaiting => 'Waiting for an assignment from the teacher.';
+
+  @override
+  String get assignmentSubmit => 'Done — submit';
+
+  @override
+  String get assignmentSubmitted => 'Submitted. This workspace is locked.';
+
+  @override
+  String get assignmentLocked =>
+      'Time is up. Wait for extra time or collection.';
+
+  @override
+  String get assignmentYourAnswer => 'Your answer';
+
+  @override
+  String get assignmentImportNotebook => 'Add to a notebook';
+
+  @override
+  String get assignmentStart => 'Start assignment';
+
+  @override
+  String get assignmentStartHint =>
+      'Pick a confirmed template and send it to the class as its own page.';
+
+  @override
+  String get assignmentTestMode =>
+      'Test mode (lock calculator and formula book)';
+
+  @override
+  String get assignmentExtend5 => '+5 minutes';
+
+  @override
+  String get assignmentExtend10 => '+10 minutes';
+
+  @override
+  String get assignmentCollect => 'Collect';
+
+  @override
+  String get assignmentAllowImport => 'Allow import';
+
+  @override
+  String get assignmentResults => 'Results';
+
+  @override
+  String get assignmentPrint => 'Print without solutions';
+
+  @override
+  String assignmentClassAverage(int percent) {
+    return 'Class average $percent %';
+  }
+
+  @override
+  String assignmentSubmittedCount(int done, int total) {
+    return 'Submitted: $done/$total';
+  }
+
+  @override
+  String get assignmentTopProblems => 'Most common problems';
+
+  @override
+  String get assignmentNoProblems => 'No graded problems yet.';
+
+  @override
+  String get assignmentGroups => 'Similar error patterns';
+
+  @override
+  String get assignmentSubmissions => 'Submissions';
+
+  @override
+  String get assignmentEarly => 'submitted early';
+
+  @override
+  String get assignmentOnCollect => 'collected';
+
+  @override
+  String get assignmentCorrection => 'Send a correction to this device';
+
+  @override
+  String get assignmentLeaveSignals => 'Left / lost focus';
+
+  @override
+  String get assignmentPoolLocked =>
+      'Exchange: publish once to browse other public assignments.';
+
+  @override
+  String get assignmentPoolUnlocked =>
+      'Exchange is unlocked. Other teachers\' public items appear once cloud sync is connected.';
 }

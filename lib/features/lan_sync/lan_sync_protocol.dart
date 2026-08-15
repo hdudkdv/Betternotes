@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../../data/models/content_models.dart';
 
 /// Wire protocol version for nearby / LAN notebook sync.
-const int kLanSyncProtocolVersion = 2;
+const int kLanSyncProtocolVersion = 3;
 
 /// Default TCP port for nearby sessions (guest only needs host IP + code).
 const int kLanSyncPort = 47821;
@@ -70,12 +70,25 @@ abstract final class LanSyncMessage {
     required List<Map<String, dynamic>> pages,
     required List<Map<String, dynamic>> outline,
     int assetCount = 0,
+    String mode = 'live',
   }) => {
     'type': 'snapshot',
     'notebook': notebook,
     'pages': pages,
     'outline': outline,
     'assetCount': assetCount,
+    'mode': mode,
+  };
+
+  static Map<String, dynamic> libraryShare({
+    required String kind,
+    required Map<String, dynamic> payload,
+    String? title,
+  }) => {
+    'type': 'library_share',
+    'kind': kind,
+    'payload': payload,
+    if (title != null) 'title': title,
   };
 
   static Map<String, dynamic> assetsDone() => {'type': 'assets_done'};
@@ -117,6 +130,77 @@ abstract final class LanSyncMessage {
     if (focusCheckEnabled != null) 'focusCheckEnabled': focusCheckEnabled,
     if (materialUrl != null) 'materialUrl': materialUrl,
     if (materialTitle != null) 'materialTitle': materialTitle,
+  };
+
+  static Map<String, dynamic> assignmentStart(Map<String, dynamic> payload) => {
+    'type': 'assignment_start',
+    'protocol': kLanSyncProtocolVersion,
+    ...payload,
+  };
+
+  static Map<String, dynamic> assignmentProgress({
+    required String deviceId,
+    required String deviceName,
+    required String runId,
+    required int percent,
+    required List<String> doneTaskIds,
+  }) => {
+    'type': 'assignment_progress',
+    'deviceId': deviceId,
+    'deviceName': deviceName,
+    'runId': runId,
+    'percent': percent,
+    'doneTaskIds': doneTaskIds,
+  };
+
+  static Map<String, dynamic> assignmentExtend({
+    required String runId,
+    required String endsAt,
+  }) => {
+    'type': 'assignment_extend',
+    'runId': runId,
+    'endsAt': endsAt,
+  };
+
+  static Map<String, dynamic> assignmentCollect({required String runId}) => {
+    'type': 'assignment_collect',
+    'runId': runId,
+  };
+
+  static Map<String, dynamic> assignmentAllowImport({
+    required String runId,
+  }) => {
+    'type': 'assignment_allow_import',
+    'runId': runId,
+  };
+
+  static Map<String, dynamic> assignmentSubmit(Map<String, dynamic> payload) => {
+    'type': 'assignment_submit',
+    ...payload,
+  };
+
+  static Map<String, dynamic> assignmentLeave({
+    required String deviceId,
+    required String deviceName,
+    required String runId,
+    required String kind,
+  }) => {
+    'type': 'assignment_leave',
+    'deviceId': deviceId,
+    'deviceName': deviceName,
+    'runId': runId,
+    'kind': kind,
+  };
+
+  static Map<String, dynamic> assignmentReturn({
+    required String runId,
+    required String targetDeviceId,
+    required String correctionText,
+  }) => {
+    'type': 'assignment_return',
+    'runId': runId,
+    'targetDeviceId': targetDeviceId,
+    'correctionText': correctionText,
   };
 
   static Map<String, dynamic> ping() => {'type': 'ping'};

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../../features/search/fuzzy_match.dart';
+import '../../features/search/search_query.dart';
 import '../models/content_models.dart';
 import '../models/notebook.dart';
 
@@ -136,8 +138,9 @@ mixin ContentExtrasMixin {
   }
 
   Future<List<SearchHit>> globalSearch(String query) async {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) return [];
+    final parsed = ParsedSearchQuery.parse(query);
+    if (parsed.isEmpty) return [];
+    final q = parsed.text.trim().toLowerCase();
     final hits = <SearchHit>[];
     final folders = await getAllFolders();
     final folderById = {for (final folder in folders) folder.id: folder};
@@ -161,7 +164,7 @@ mixin ContentExtrasMixin {
 
     for (final folder in folders) {
       final name = folder.name;
-      if (name.toLowerCase().contains(q)) {
+      if (q.isNotEmpty && FuzzyMatch.matches(q, name)) {
         final parent = folderPath(folder.parentId);
         hits.add(
           SearchHit(
@@ -180,11 +183,15 @@ mixin ContentExtrasMixin {
 
     final notebooks = await getNotebooks();
     for (final nb in notebooks) {
-      final nbFolderPath = withTrailingSlash(folderPath(nb.folderId));
+      final rawFolderPath = folderPath(nb.folderId);
+      if (!parsed.matchesScope(notebook: nb, folderPath: rawFolderPath)) {
+        continue;
+      }
+      final nbFolderPath = withTrailingSlash(rawFolderPath);
       final nbPath = withTrailingSlash(
         nbFolderPath.isEmpty ? nb.title : '$nbFolderPath$nb.title',
       );
-      if (nb.title.toLowerCase().contains(q)) {
+      if (q.isEmpty || FuzzyMatch.matches(q, nb.title)) {
         hits.add(
           SearchHit(
             kind: 'notebook',
@@ -194,14 +201,15 @@ mixin ContentExtrasMixin {
             folderId: nb.folderId,
             subtitle: 'Notebook',
             path: nbFolderPath.isEmpty ? null : nbFolderPath,
-            exactMatch: nb.title.toLowerCase() == q,
+            exactMatch: q.isNotEmpty && nb.title.toLowerCase() == q,
           ),
         );
       }
+      if (q.isEmpty) continue;
 
       final outline = await getOutline(nb.id);
       for (final node in outline) {
-        if (node.title.toLowerCase().contains(q)) {
+        if (FuzzyMatch.matches(q, node.title)) {
           hits.add(
             SearchHit(
               kind: 'outline',
@@ -223,7 +231,7 @@ mixin ContentExtrasMixin {
       for (final page in pages) {
         for (final block in page.textBlocks) {
           final text = block.plainText;
-          if (text.toLowerCase().contains(q)) {
+          if (FuzzyMatch.matches(q, text)) {
             hits.add(
               SearchHit(
                 kind: 'text',
@@ -235,6 +243,27 @@ mixin ContentExtrasMixin {
                 subtitle: nb.title,
                 path: nbPath,
                 exactMatch: text.trim().toLowerCase() == q,
+              ),
+            );
+          }
+        }
+        final index = page.searchIndex?.trim() ?? '';
+        if (index.isNotEmpty && FuzzyMatch.matches(q, index)) {
+          final already = hits.any(
+            (h) => h.pageId == page.id && h.notebookId == nb.id,
+          );
+          if (!already) {
+            hits.add(
+              SearchHit(
+                kind: 'text',
+                snippet: _indexSnippet(index, q),
+                notebookId: nb.id,
+                notebookTitle: nb.title,
+                folderId: nb.folderId,
+                pageId: page.id,
+                subtitle: nb.title,
+                path: nbPath,
+                exactMatch: index.toLowerCase() == q,
               ),
             );
           }
@@ -262,6 +291,7 @@ mixin ContentExtrasMixin {
 
     final decks = await getAllFlashcardDecks();
     for (final deck in decks) {
+      if (q.isEmpty) break;
       final deckFolderPath = withTrailingSlash(folderPath(deck.folderId));
       if (deck.title.toLowerCase().contains(q)) {
         hits.add(
@@ -303,6 +333,19 @@ mixin ContentExtrasMixin {
       return a.snippet.toLowerCase().compareTo(b.snippet.toLowerCase());
     });
     return hits;
+  }
+
+  String _indexSnippet(String index, String query) {
+    final lower = index.toLowerCase();
+    final q = query.toLowerCase();
+    final at = lower.indexOf(q);
+    if (at < 0) {
+      return index.length > 80 ? '${index.substring(0, 80)}…' : index;
+    }
+    final start = at > 20 ? at - 20 : 0;
+    final end = (at + q.length + 40).clamp(0, index.length);
+    final slice = index.substring(start, end);
+    return '${start > 0 ? '…' : ''}$slice${end < index.length ? '…' : ''}';
   }
 
   Future<List<LibraryFolder>> getFolders({String? parentId}) async {

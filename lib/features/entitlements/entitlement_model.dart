@@ -19,6 +19,7 @@ abstract final class FeatureKeys {
   static const sessionCollab = 'sessionCollab';
   static const asyncCollab = 'asyncCollab';
   static const whiteboard = 'whiteboard';
+  static const cloudSync = 'cloudSync';
 
   static const all = <String>[
     premiumPaper,
@@ -30,12 +31,13 @@ abstract final class FeatureKeys {
     sessionCollab,
     asyncCollab,
     whiteboard,
+    cloudSync,
   ];
 
   static int coinCost(String key) => switch (key) {
     premiumPaper || premiumCover => 20,
     pdfCompress => 30,
-    handwritingOcr || audioTranscription => 50,
+    handwritingOcr || audioTranscription || cloudSync => 50,
     whiteboard => 80,
     sessionCollab => 40,
     asyncCollab => 100,
@@ -78,6 +80,7 @@ class EntitlementState extends Equatable {
           FeatureKeys.premiumCover,
           FeatureKeys.pdfCompress,
           FeatureKeys.sessionCollab,
+          FeatureKeys.cloudSync,
         }.contains(feature);
       case AppTier.proPlus:
         return feature != FeatureKeys.whiteboard;

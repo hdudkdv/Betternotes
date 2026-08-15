@@ -37,6 +37,14 @@ class GradeAttachmentStore {
     return _writeTemp(bytes, file.extension ?? 'jpg');
   }
 
+  /// Copies a system-scanner image into the grade inbox.
+  Future<String?> importFromPath(String path) async {
+    if (path.isEmpty) return null;
+    final bytes = await _store.readBytes(path);
+    final ext = p.extension(path).replaceAll('.', '');
+    return _writeTemp(bytes, ext.isEmpty ? 'jpg' : ext);
+  }
+
   Future<String?> pickFromCamera() async {
     final picker = ImagePicker();
     final shot = await picker.pickImage(

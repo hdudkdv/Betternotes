@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,9 +10,13 @@ import '../../../data/models/notebook.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../editor/providers/open_tabs_provider.dart';
 import '../../search/global_search_screen.dart';
+import '../../scanner/scan_into_notebook.dart';
+import '../../search/search_at_hints.dart';
+import '../../search/search_query.dart';
+import '../../onboarding/app_tour.dart';
 import '../../planner/planner_screen.dart';
-import '../../planner/school_year.dart';
 import '../../planner/school_year_rollover.dart';
+import '../../lan_sync/lan_sync_controller.dart';
 import '../../timetable/timetable_screen.dart';
 import '../providers/library_providers.dart';
 import 'widgets/library_create_dialogs.dart';
@@ -28,8 +34,24 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
+  final _searchFieldKey = GlobalKey();
+  final _createButtonKey = GlobalKey();
+  final _settingsButtonKey = GlobalKey();
+  final _teacherButtonKey = GlobalKey();
   final Set<String> _rolloverDismissed = {};
   bool _rolloverLoaded = false;
+  int _tourIndex = 0;
+  bool _routeWasCurrent = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final current = ModalRoute.of(context)?.isCurrent ?? true;
+    if (current && !_routeWasCurrent) {
+      refreshLibraryLists(ref);
+    }
+    _routeWasCurrent = current;
+  }
 
   @override
   void dispose() {
@@ -48,11 +70,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Future<void> _dismissRollover(SchoolYearRolloverCandidate candidate) async {
-    final key = SchoolYearRollover.dismissKey(
-      candidate.source.id,
-      SchoolYear.current(),
-    );
-    setState(() => _rolloverDismissed.add(key));
+    setState(() => _rolloverDismissed.add(candidate.dismissKey));
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setStringList(
       'bn_school_year_rollover_dismissed',
@@ -71,10 +89,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         if (node.depth == 0) node.title,
     ];
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final periodLabel =
+        candidate.term?.label(l10n) ??
+        (candidate.nextClass == null
+            ? l10n.newTermNotebook
+            : l10n.schoolClassValue(candidate.nextClass!));
     final selected = await promptSchoolYearChapterImport(
       context,
       source: source,
-      nextClass: candidate.nextClass,
+      periodLabel: periodLabel,
       chapterTitles: chapterTitles,
     );
     if (selected == null || !mounted) return;
@@ -84,7 +108,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       coverColor: source.coverColor,
       template: source.defaultTemplate,
       folderId: source.folderId ?? ref.read(currentFolderIdProvider),
-      schoolClass: candidate.nextClass,
+      schoolClass: candidate.nextClass ?? source.schoolClass,
       canvasMode: source.canvasMode,
       paperFormat: source.defaultPaperFormat,
       orientation: source.defaultOrientation,
@@ -106,7 +130,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
 
     await _dismissRollover(candidate);
-    ref.invalidate(notebooksProvider);
+    refreshLibraryLists(ref);
+    await ref.read(notebooksProvider.future);
     if (!mounted) return;
     ref.read(openNotebookTabsProvider.notifier).open(notebook.id);
     context.push('/notebook/${notebook.id}');
@@ -146,7 +171,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       notebook = notebook.copyWith(isFavorite: true, updatedAt: DateTime.now());
       await ref.read(notebookRepositoryProvider).updateNotebook(notebook);
     }
-    ref.invalidate(notebooksProvider);
+    refreshLibraryLists(ref);
+    await ref.read(notebooksProvider.future);
     if (!mounted) return;
     ref.read(openNotebookTabsProvider.notifier).open(notebook.id);
     context.push('/notebook/${notebook.id}');
@@ -250,7 +276,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
     ref.invalidate(foldersProvider);
     ref.invalidate(allFoldersProvider);
-    ref.invalidate(notebooksProvider);
+    refreshLibraryLists(ref);
     ref.invalidate(flashcardDecksProvider);
   }
 
@@ -297,6 +323,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       onNotebook: () => _createNotebook(),
       onInfinite: () => _createNotebook(initialMode: CanvasMode.infinite),
       onFlashcards: _createFlashcards,
+      onScanPages: () => scanIntoNotebook(context, ref),
     );
   }
 
@@ -389,7 +416,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             clearSubjectKey: subject.isEmpty,
           ),
         );
-    ref.invalidate(notebooksProvider);
+    refreshLibraryLists(ref);
   }
 
   Future<void> _delete(Notebook notebook) async {
@@ -416,7 +443,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     );
     if (ok != true) return;
     await ref.read(notebookRepositoryProvider).deleteNotebook(notebook.id);
-    ref.invalidate(notebooksProvider);
+    ref.read(openNotebookTabsProvider.notifier).close(notebook.id);
+    refreshLibraryLists(ref);
+    await ref.read(notebooksProvider.future);
   }
 
   IconData _hitIcon(String kind) {
@@ -459,7 +488,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final query = ref.watch(libraryQueryProvider);
-    final searching = query.trim().length >= 2;
+    final parsedQuery = ParsedSearchQuery.parse(query);
+    final searching = parsedQuery.hasFilters || parsedQuery.text.trim().length >= 2;
     final folderId = ref.watch(currentFolderIdProvider);
     final allFolders = ref.watch(allFoldersProvider).valueOrNull ?? [];
     LibraryFolder? currentFolder;
@@ -476,6 +506,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final decksAsync = ref.watch(flashcardDecksProvider);
     final searchAsync = ref.watch(librarySearchProvider);
     final appSettings = ref.watch(settingsProvider);
+    final tourActive = ref.watch(pendingAppTourProvider);
+    ref.listen<LanSyncController>(lanSyncProvider, (previous, next) {
+      final event = next.lastEvent;
+      if (event == null) return;
+      if (event.kind == LanSyncEventKind.notebookUpdated &&
+          event.message == 'shared') {
+        refreshLibraryLists(ref);
+      }
+    });
     final width = MediaQuery.sizeOf(context).width;
     final crossAxisCount = width >= 1200
         ? 5
@@ -485,7 +524,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ? 3
         : 2;
 
-    return Scaffold(
+    final scaffold = Scaffold(
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: _dismissSearchFocus,
@@ -539,6 +578,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               actions: [
                 if (appSettings.isTeacher)
                   IconButton(
+                    key: _teacherButtonKey,
                     tooltip: l10n.teacherWorkspace,
                     onPressed: () => context.push('/teacher'),
                     icon: const Icon(Icons.co_present_outlined),
@@ -549,6 +589,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: const Icon(Icons.file_open_outlined),
                 ),
                 IconButton(
+                  tooltip: l10n.marketplace,
+                  onPressed: () => context.push('/marketplace'),
+                  icon: const Icon(Icons.storefront_outlined),
+                ),
+                IconButton(
+                  key: _settingsButtonKey,
                   tooltip: l10n.settings,
                   onPressed: () => context.push('/settings'),
                   icon: const Icon(Icons.tune_rounded),
@@ -559,32 +605,52 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocus,
-                  textInputAction: TextInputAction.search,
-                  onTapOutside: (_) => _dismissSearchFocus(),
-                  onChanged: (v) {
-                    ref.read(libraryQueryProvider.notifier).state = v;
-                    setState(() {});
-                  },
-                  onSubmitted: (_) => _submitSearch(),
-                  decoration: InputDecoration(
-                    hintText: l10n.searchEverything,
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              ref.read(libraryQueryProvider.notifier).state =
-                                  '';
-                              _dismissSearchFocus();
-                              setState(() {});
-                            },
-                            icon: const Icon(Icons.close),
-                          ),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      key: _searchFieldKey,
+                      controller: _searchController,
+                      focusNode: _searchFocus,
+                      textInputAction: TextInputAction.search,
+                      onTapOutside: (_) => _dismissSearchFocus(),
+                      onChanged: (v) {
+                        ref.read(libraryQueryProvider.notifier).state = v;
+                        setState(() {});
+                      },
+                      onSubmitted: (_) => _submitSearch(),
+                      decoration: InputDecoration(
+                        hintText: l10n.searchEverything,
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchController.text.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  ref.read(libraryQueryProvider.notifier).state =
+                                      '';
+                                  _dismissSearchFocus();
+                                  setState(() {});
+                                },
+                                icon: const Icon(Icons.close),
+                              ),
+                      ),
+                    ),
+                    SearchAtHints(
+                      query: _searchController.text,
+                      folders: allFolders,
+                      notebooks:
+                          ref.watch(notebooksProvider).valueOrNull ?? const [],
+                      onInsert: (next) {
+                        _searchController.value = TextEditingValue(
+                          text: next,
+                          selection: TextSelection.collapsed(offset: next.length),
+                        );
+                        ref.read(libraryQueryProvider.notifier).state = next;
+                        setState(() {});
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -859,7 +925,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                         isFavorite: !notebook.isFavorite,
                                       ),
                                     );
-                                ref.invalidate(notebooksProvider);
+                                refreshLibraryLists(ref);
                               },
                               onRename: () => _rename(notebook),
                               onDelete: () => _delete(notebook),
@@ -881,6 +947,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        key: _createButtonKey,
         onPressed: () {
           _dismissSearchFocus();
           _showCreateMenu();
@@ -888,6 +955,55 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         icon: const Icon(Icons.add),
         label: Text(l10n.create),
       ),
+    );
+
+    if (!tourActive) return scaffold;
+    final steps = [
+      AppTourStep(title: l10n.tourLibraryTitle, body: l10n.tourLibraryBody),
+      AppTourStep(
+        title: l10n.tourCreateTitle,
+        body: l10n.tourCreateBody,
+        key: _createButtonKey,
+      ),
+      AppTourStep(
+        title: l10n.tourSearchTitle,
+        body: l10n.tourSearchBody,
+        key: _searchFieldKey,
+      ),
+      AppTourStep(
+        title: l10n.tourSettingsTitle,
+        body: l10n.tourSettingsBody,
+        key: _settingsButtonKey,
+      ),
+      if (appSettings.isTeacher)
+        AppTourStep(
+          title: l10n.tourTeacherTitle,
+          body: l10n.tourTeacherBody,
+          key: _teacherButtonKey,
+        ),
+      AppTourStep(title: l10n.tourEditorTitle, body: l10n.tourEditorBody),
+    ];
+    final index = _tourIndex.clamp(0, steps.length - 1);
+    return Stack(
+      children: [
+        scaffold,
+        AppTourOverlay(
+          steps: steps,
+          index: index,
+          onSkip: () {
+            setState(() => _tourIndex = 0);
+            unawaited(markTutorialSeen(ref));
+          },
+          onNext: () {
+            if (index >= steps.length - 1) {
+              setState(() => _tourIndex = 0);
+              unawaited(markTutorialSeen(ref));
+            } else {
+              setState(() => _tourIndex = index + 1);
+            }
+          },
+        ),
+      ],
     );
   }
 }

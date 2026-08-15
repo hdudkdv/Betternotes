@@ -14,6 +14,7 @@ enum ShareExportAction {
   sharePageAsImage,
   sharePdfForGoodNotes,
   savePageAsTemplate,
+  indexHandwriting,
 }
 
 Future<ShareExportAction?> showShareExportSheet(BuildContext context) {
@@ -88,6 +89,11 @@ Future<ShareExportAction?> showShareExportSheet(BuildContext context) {
                 icon: Icons.document_scanner_outlined,
                 title: l10n.featureHandwritingOcr,
                 unlocked: entitlements.hasAccess(FeatureKeys.handwritingOcr),
+                unlockedHint: l10n.marketplaceInkOcrHint,
+                onUnlocked: () => Navigator.pop(
+                  context,
+                  ShareExportAction.indexHandwriting,
+                ),
                 onUnlock: () => runRewardedUnlock(
                   context: context,
                   ref: ref,
@@ -120,12 +126,16 @@ class _GatedExtraTile extends StatelessWidget {
     required this.title,
     required this.unlocked,
     required this.onUnlock,
+    this.onUnlocked,
+    this.unlockedHint,
   });
 
   final IconData icon;
   final String title;
   final bool unlocked;
   final VoidCallback onUnlock;
+  final VoidCallback? onUnlocked;
+  final String? unlockedHint;
 
   @override
   Widget build(BuildContext context) {
@@ -133,18 +143,21 @@ class _GatedExtraTile extends StatelessWidget {
     return EditorSheetTile(
       icon: icon,
       label: title,
-      subtitle: unlocked ? l10n.comingSoonGate : l10n.rewardedAdDemoBadge,
+      subtitle: unlocked
+          ? (unlockedHint ?? l10n.comingSoonGate)
+          : l10n.rewardedAdDemoBadge,
       trailing: Icon(
         unlocked ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
         size: 20,
         color: EditorChrome.onDarkMuted,
       ),
       onTap: unlocked
-          ? () {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(l10n.comingSoonGate)));
-            }
+          ? (onUnlocked ??
+                () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.comingSoonGate)),
+                  );
+                })
           : onUnlock,
     );
   }

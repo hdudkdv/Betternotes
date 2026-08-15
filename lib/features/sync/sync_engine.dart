@@ -9,10 +9,13 @@ import 'package:uuid/uuid.dart';
 
 import '../../data/models/content_models.dart';
 import '../../data/repositories/notebook_repository.dart';
+import '../entitlements/entitlement_model.dart';
 import '../library/providers/library_providers.dart';
 import 'firebase_bootstrap.dart';
 import 'firestore_sync_adapter.dart';
+import 'crdt_delta.dart';
 import 'sync_merge.dart';
+import 'transport_manager.dart';
 
 enum SyncStatus {
   idle,
@@ -27,7 +30,12 @@ enum SyncStatus {
 
 /// Offline-first sync engine with local queue and CRDT-oriented merge stubs.
 class SyncEngine extends ChangeNotifier {
-  SyncEngine(this._repo, this._preferences, this._firebaseAvailable) {
+  SyncEngine(
+    this._repo,
+    this._preferences,
+    this._firebaseAvailable, {
+    TransportManager? transport,
+  }) : _transport = transport {
     _refresh();
     _timer = Timer.periodic(const Duration(seconds: 20), (_) => flush());
   }
@@ -35,6 +43,7 @@ class SyncEngine extends ChangeNotifier {
   final NotebookRepository _repo;
   final SharedPreferences _preferences;
   final bool _firebaseAvailable;
+  final TransportManager? _transport;
   Timer? _timer;
   FirestoreSyncAdapter? _adapter;
   bool syncing = false;
@@ -63,6 +72,13 @@ class SyncEngine extends ChangeNotifier {
 
   Future<void> flush() async {
     if (syncing) return;
+    final route = _transport?.routeAfterLocalPersist();
+    if (route == TransportRoute.p2p && _transport?.cloudPremium != true) {
+      // Live P2P already carries deltas; park cloud until premium + no P2P.
+      syncStatus = SyncStatus.upToDate;
+      await _refresh();
+      return;
+    }
     if (!_firebaseAvailable) {
       syncStatus = SyncStatus.firebaseNotConfigured;
       await _refresh();
@@ -149,6 +165,20 @@ class SyncEngine extends ChangeNotifier {
     }
   }
 
+  Future<void> enqueueDelta(CrdtDelta delta) async {
+    await _repo.enqueueSyncOp(
+      SyncOp(
+        id: delta.id,
+        entityType: 'crdt',
+        entityId: delta.notebookId,
+        payloadJson: jsonEncode(delta.toJson()),
+        createdAt: delta.createdAt,
+      ),
+    );
+    await _refresh();
+    await flush();
+  }
+
   Future<void> enqueueManualCheckpoint(String notebookId) async {
     await _repo.enqueueSyncOp(
       SyncOp(
@@ -174,9 +204,17 @@ class SyncEngine extends ChangeNotifier {
 }
 
 final syncEngineProvider = ChangeNotifierProvider<SyncEngine>((ref) {
+  final transport = ref.read(transportManagerProvider);
+  final entitlements = ref.read(entitlementProvider);
+  final firebase = ref.watch(firebaseBootstrapProvider).available;
+  transport.setCloud(
+    premium: entitlements.hasAccess(FeatureKeys.cloudSync),
+    reachable: firebase && FirebaseAuth.instance.currentUser != null,
+  );
   return SyncEngine(
     ref.watch(notebookRepositoryProvider),
     ref.watch(sharedPreferencesProvider),
-    ref.watch(firebaseBootstrapProvider).available,
+    firebase,
+    transport: transport,
   );
 });

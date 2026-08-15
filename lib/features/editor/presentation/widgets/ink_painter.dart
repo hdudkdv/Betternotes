@@ -328,8 +328,8 @@ class InkPainter extends CustomPainter {
     }
   }
 
-  /// Graphite pencil: rich grain on committed strokes (Picture-cached),
-  /// lighter preview while the stroke is still live.
+  /// Graphite pencil: a tapered ribbon + directional flakes.
+  /// Settled strokes are Picture-cached; live strokes stay sparse.
   void _paintPencilStroke(
     Canvas canvas,
     InkStroke stroke, {
@@ -339,64 +339,60 @@ class InkPainter extends CustomPainter {
     if (points.isEmpty) return;
 
     if (points.length == 1) {
-      _paintPencilStamp(
+      _paintPencilFlake(
         canvas,
         points.first.offset,
         stroke.width,
         points.first.pressure.clamp(0.05, 1.0),
         stroke.color,
+        angle: 0.4,
         seed: stroke.id.hashCode ^ points.first.t,
         rich: !live,
       );
       return;
     }
 
-    final path = _smoothPath(points);
     var pressureSum = 0.0;
     for (final p in points) {
       pressureSum += p.pressure;
     }
     final avgP = (pressureSum / points.length).clamp(0.05, 1.0);
+    final path = _smoothPath(points);
 
-    // One soft underlay (single blur — not per grain).
+    if (!live) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = stroke.color.withValues(alpha: 0.11 + avgP * 0.08)
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..strokeWidth = stroke.width * 1.62
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke.width * 0.38),
+      );
+    }
+
+    _paintPencilRibbon(canvas, points, stroke, live: live);
+
     canvas.drawPath(
       path,
       Paint()
-        ..color = stroke.color.withValues(alpha: 0.11 + avgP * 0.12)
+        ..color = stroke.color.withValues(alpha: live ? 0.22 : 0.28 + avgP * 0.12)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = stroke.width * 1.3
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke.width * 0.5),
+        ..strokeWidth = stroke.width * (0.42 + avgP * 0.18),
     );
 
-    // Side graphite ribbons (settled only) — cheap extra texture.
     if (!live) {
-      _paintPencilJitterRibbon(canvas, points, stroke, side: -1.0);
-      _paintPencilJitterRibbon(canvas, points, stroke, side: 1.0);
+      _paintPencilEdge(canvas, points, stroke, side: -1);
+      _paintPencilEdge(canvas, points, stroke, side: 1);
     }
 
-    // Pressure-varying core ribbon.
-    final corePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    for (var i = 1; i < points.length; i++) {
-      final a = points[i - 1];
-      final b = points[i];
-      final pressure = ((a.pressure + b.pressure) / 2).clamp(0.05, 1.0);
-      corePaint
-        ..color = stroke.color.withValues(alpha: 0.2 + pressure * 0.48)
-        ..strokeWidth = stroke.width * (0.5 + pressure * 0.4);
-      canvas.drawLine(a.offset, b.offset, corePaint);
-    }
-
-    // Grain stamps. Settled strokes are cached → can be dense & detailed.
-    // Live strokes stay sparse so the pen feels smooth.
     final step = live
-        ? math.max(2.8, stroke.width * 0.95)
-        : math.max(0.7, stroke.width * 0.32);
-    final grainPaint = Paint();
+        ? math.max(3.2, stroke.width * 1.05)
+        : math.max(1.15, stroke.width * 0.55);
+    final flake = Paint();
     var distance = 0.0;
     for (var i = 1; i < points.length; i++) {
       final a = points[i - 1];
@@ -404,8 +400,7 @@ class InkPainter extends CustomPainter {
       final segment = b.offset - a.offset;
       final len = segment.distance;
       if (len < 0.001) continue;
-      final dir = segment / len;
-      final normal = Offset(-dir.dy, dir.dx);
+      final angle = math.atan2(segment.dy, segment.dx);
       var d = 0.0;
       while (d < len) {
         final t = d / len;
@@ -413,18 +408,18 @@ class InkPainter extends CustomPainter {
         final pressure =
             (a.pressure + (b.pressure - a.pressure) * t).clamp(0.05, 1.0);
         final seed = stroke.id.hashCode ^
-            ((distance + d) * 1000).round() ^
-            (i * 73856093);
-        _paintPencilStamp(
+            ((distance + d) * 97).round() ^
+            (i * 19349663);
+        _paintPencilFlake(
           canvas,
           pos,
           stroke.width,
           pressure,
           stroke.color,
-          normal: normal,
+          angle: angle,
           seed: seed,
           rich: !live,
-          reuse: grainPaint,
+          reuse: flake,
         );
         d += step;
       }
@@ -432,7 +427,50 @@ class InkPainter extends CustomPainter {
     }
   }
 
-  void _paintPencilJitterRibbon(
+  void _paintPencilRibbon(
+    Canvas canvas,
+    List<StrokePoint> points,
+    InkStroke stroke, {
+    required bool live,
+  }) {
+    final left = <Offset>[];
+    final right = <Offset>[];
+    for (var i = 0; i < points.length; i++) {
+      final curr = points[i];
+      Offset dir;
+      if (i == 0) {
+        dir = points[1].offset - curr.offset;
+      } else if (i == points.length - 1) {
+        dir = curr.offset - points[i - 1].offset;
+      } else {
+        dir = points[i + 1].offset - points[i - 1].offset;
+      }
+      final len = dir.distance;
+      if (len < 1e-4) continue;
+      final n = Offset(-dir.dy / len, dir.dx / len);
+      final half = stroke.width *
+          (0.28 + curr.pressure.clamp(0.05, 1.0) * 0.28);
+      left.add(curr.offset + n * half);
+      right.add(curr.offset - n * half);
+    }
+    if (left.length < 2) return;
+    final fill = Path()..moveTo(left.first.dx, left.first.dy);
+    for (final p in left.skip(1)) {
+      fill.lineTo(p.dx, p.dy);
+    }
+    for (var i = right.length - 1; i >= 0; i--) {
+      fill.lineTo(right[i].dx, right[i].dy);
+    }
+    fill.close();
+    canvas.drawPath(
+      fill,
+      Paint()
+        ..color = stroke.color.withValues(alpha: live ? 0.34 : 0.42)
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  void _paintPencilEdge(
     Canvas canvas,
     List<StrokePoint> points,
     InkStroke stroke, {
@@ -447,12 +485,12 @@ class InkPainter extends CustomPainter {
       final len = seg.distance;
       if (len < 0.001) continue;
       final normal = Offset(-seg.dy / len, seg.dx / len) * side;
-      final seed = stroke.id.hashCode ^ (i * 17) ^ side.hashCode;
-      final rng = math.Random(seed);
-      final offset = stroke.width * (0.18 + rng.nextDouble() * 0.22);
+      final seed = stroke.id.hashCode ^ (i * 29) ^ side.hashCode;
+      final offset = stroke.width * (0.22 + _hash01(seed) * 0.16);
       final p = b + normal * offset;
       if (!started) {
-        path.moveTo((a + normal * offset).dx, (a + normal * offset).dy);
+        final start = a + normal * offset;
+        path.moveTo(start.dx, start.dy);
         started = true;
       }
       path.lineTo(p.dx, p.dy);
@@ -461,51 +499,62 @@ class InkPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = stroke.color.withValues(alpha: 0.1)
+        ..color = stroke.color.withValues(alpha: side < 0 ? 0.16 : 0.09)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = stroke.width * 0.45,
+        ..strokeWidth = stroke.width * 0.22,
     );
   }
 
-  void _paintPencilStamp(
+  void _paintPencilFlake(
     Canvas canvas,
     Offset center,
     double width,
     double pressure,
     Color color, {
-    Offset normal = Offset.zero,
+    required double angle,
     required int seed,
     required bool rich,
     Paint? reuse,
   }) {
-    final rng = math.Random(seed);
-    final density = rich ? (5 + (pressure * 8).round()) : (2 + (pressure * 3).round());
-    final baseAlpha = (0.16 + pressure * 0.55).clamp(0.1, 0.78);
-    final spread = width * (0.45 + (1 - pressure) * 0.35);
     final paint = reuse ?? Paint();
-
-    // Soft core without MaskFilter — blur-per-stamp was the FPS killer.
-    paint.color = color.withValues(alpha: baseAlpha * (rich ? 0.5 : 0.4));
-    canvas.drawCircle(center, width * (0.26 + pressure * 0.16), paint);
-
-    final n = normal == Offset.zero
-        ? Offset(rng.nextDouble() - 0.5, rng.nextDouble() - 0.5)
-        : normal;
-    final nLen = n.distance;
-    final nUnit = nLen < 1e-6 ? const Offset(0, 1) : n / nLen;
-    final tangent = Offset(-nUnit.dy, nUnit.dx);
-
-    for (var i = 0; i < density; i++) {
-      final along = (rng.nextDouble() - 0.5) * width * (rich ? 0.4 : 0.3);
-      final across = (rng.nextDouble() - 0.5) * spread;
-      final p = center + tangent * along + nUnit * across;
-      final r = width * (rich ? (0.05 + rng.nextDouble() * 0.15) : (0.07 + rng.nextDouble() * 0.1));
-      final a = baseAlpha * (0.35 + rng.nextDouble() * 0.65);
-      paint.color = color.withValues(alpha: a.clamp(0.05, 0.85));
-      canvas.drawCircle(p, r, paint);
+    final jitter = _hash01(seed);
+    final jitter2 = _hash01(seed ^ 0x9E3779B9);
+    final alpha = (0.20 + pressure * 0.48).clamp(0.14, 0.74);
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(angle + (jitter - 0.5) * 0.22);
+    paint.color = color.withValues(alpha: alpha * (rich ? 0.62 : 0.42));
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset.zero,
+        width: width * (1.02 + pressure * 0.32),
+        height: width * (0.20 + pressure * 0.10),
+      ),
+      paint,
+    );
+    if (rich) {
+      paint.color = color.withValues(alpha: alpha * 0.38);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset((jitter2 - 0.5) * width * 0.28, 0),
+          width: width * 0.52,
+          height: width * 0.11,
+        ),
+        paint,
+      );
     }
+    canvas.restore();
+  }
+
+  /// Cheap 0..1 hash — avoids allocating [math.Random] per flake.
+  static double _hash01(int seed) {
+    var x = seed | 1;
+    x = (x ^ (x << 13)) & 0x7fffffff;
+    x = (x ^ (x >> 17)) & 0x7fffffff;
+    x = (x ^ (x << 5)) & 0x7fffffff;
+    return (x & 0xffff) / 0xffff;
   }
 
   static double _fountainWidthFactor(double pressure) {

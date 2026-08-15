@@ -11,6 +11,7 @@ import '../../editor/domain/editor_gestures.dart';
 import '../../editor/domain/ink_models.dart';
 import '../../pdf/pdf_service.dart';
 import '../../planner/education_settings.dart';
+import '../../search/search_query.dart';
 
 final notebookRepositoryProvider = Provider<NotebookRepository>((ref) {
   return LocalDatabase.repository;
@@ -24,9 +25,21 @@ final libraryQueryProvider = StateProvider<String>((ref) => '');
 
 final currentFolderIdProvider = StateProvider<String?>((ref) => null);
 
+/// Bump to force every library list to refetch (create / delete / rename).
+final libraryEpochProvider = StateProvider<int>((ref) => 0);
+
+void refreshLibraryLists(WidgetRef ref) {
+  ref.read(libraryEpochProvider.notifier).state++;
+  ref.invalidate(notebooksProvider);
+  ref.invalidate(foldersProvider);
+  ref.invalidate(allFoldersProvider);
+  ref.invalidate(flashcardDecksProvider);
+}
+
 final notebooksProvider = FutureProvider.autoDispose<List<Notebook>>((
   ref,
 ) async {
+  ref.watch(libraryEpochProvider);
   final folderId = ref.watch(currentFolderIdProvider);
   final repo = ref.watch(notebookRepositoryProvider);
   final all = await repo.getNotebooks();
@@ -36,6 +49,7 @@ final notebooksProvider = FutureProvider.autoDispose<List<Notebook>>((
 final foldersProvider = FutureProvider.autoDispose<List<LibraryFolder>>((
   ref,
 ) async {
+  ref.watch(libraryEpochProvider);
   final folderId = ref.watch(currentFolderIdProvider);
   final repo = ref.watch(notebookRepositoryProvider);
   return repo.getFolders(parentId: folderId);
@@ -53,7 +67,9 @@ final librarySearchProvider = FutureProvider.autoDispose<List<SearchHit>>((
   ref,
 ) async {
   final query = ref.watch(libraryQueryProvider);
-  if (query.trim().length < 2) return [];
+  final parsed = ParsedSearchQuery.parse(query);
+  if (parsed.isEmpty) return [];
+  if (!parsed.hasFilters && parsed.text.trim().length < 2) return [];
   return ref.watch(notebookRepositoryProvider).globalSearch(query);
 });
 
@@ -64,6 +80,9 @@ final allFoldersProvider = FutureProvider.autoDispose<List<LibraryFolder>>((
 });
 
 enum AppUserRole { student, teacher }
+
+/// Teachers still studying vs already qualified.
+enum TeacherTrack { studying, qualified }
 
 class AppSettings {
   const AppSettings({
@@ -79,6 +98,8 @@ class AppSettings {
     this.look = AppLook.studio,
     this.themeMode = ThemeMode.system,
     this.userRole,
+    this.teacherTrack,
+    this.profileSetupCompleted = false,
     this.pencilDoubleTapAction = EditorGestureAction.toggleEraser,
     this.pencilSqueezeAction = EditorGestureAction.openToolWheel,
     this.twoFingerTapAction = EditorGestureAction.undo,
@@ -119,7 +140,15 @@ class AppSettings {
   /// Null until the first-start role choice has been completed.
   final AppUserRole? userRole;
 
+  /// Only set for teachers after the profile step.
+  final TeacherTrack? teacherTrack;
+
+  /// True after role + school/study details are saved.
+  final bool profileSetupCompleted;
+
   bool get hasCompletedRoleOnboarding => userRole != null;
+  bool get hasCompletedProfileSetup =>
+      userRole != null && profileSetupCompleted;
   bool get isTeacher => userRole == AppUserRole.teacher;
 
   Locale? get localeOverride {
@@ -146,7 +175,10 @@ class AppSettings {
     AppLook? look,
     ThemeMode? themeMode,
     AppUserRole? userRole,
+    TeacherTrack? teacherTrack,
+    bool? profileSetupCompleted,
     bool clearUserRole = false,
+    bool clearTeacherTrack = false,
     EditorGestureAction? pencilDoubleTapAction,
     EditorGestureAction? pencilSqueezeAction,
     EditorGestureAction? twoFingerTapAction,
@@ -166,6 +198,11 @@ class AppSettings {
       look: look ?? this.look,
       themeMode: themeMode ?? this.themeMode,
       userRole: clearUserRole ? null : (userRole ?? this.userRole),
+      teacherTrack: clearTeacherTrack
+          ? null
+          : (teacherTrack ?? this.teacherTrack),
+      profileSetupCompleted:
+          profileSetupCompleted ?? this.profileSetupCompleted,
       pencilDoubleTapAction:
           pencilDoubleTapAction ?? this.pencilDoubleTapAction,
       pencilSqueezeAction: pencilSqueezeAction ?? this.pencilSqueezeAction,
@@ -217,6 +254,15 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
                   (role) => role.name == _prefs.getString('userRole'),
                   orElse: () => AppUserRole.student,
                 ),
+          teacherTrack: _prefs.getString('teacherTrack') == null
+              ? null
+              : TeacherTrack.values.firstWhere(
+                  (track) => track.name == _prefs.getString('teacherTrack'),
+                  orElse: () => TeacherTrack.qualified,
+                ),
+          profileSetupCompleted:
+              _prefs.getBool('profileSetupCompleted') ??
+              _prefs.getString('userRole') != null,
           pencilDoubleTapAction: EditorGestureActionX.parse(
             _prefs.getString('gesturePencilDoubleTap'),
             EditorGestureAction.toggleEraser,
@@ -300,6 +346,21 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> setUserRole(AppUserRole value) async {
     state = state.copyWith(userRole: value);
     await _prefs.setString('userRole', value.name);
+  }
+
+  Future<void> setTeacherTrack(TeacherTrack? value) async {
+    if (value == null) {
+      state = state.copyWith(clearTeacherTrack: true);
+      await _prefs.remove('teacherTrack');
+      return;
+    }
+    state = state.copyWith(teacherTrack: value);
+    await _prefs.setString('teacherTrack', value.name);
+  }
+
+  Future<void> completeProfileSetup() async {
+    state = state.copyWith(profileSetupCompleted: true);
+    await _prefs.setBool('profileSetupCompleted', true);
   }
 
   Future<void> setGestureAction(

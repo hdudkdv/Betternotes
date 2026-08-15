@@ -16,6 +16,7 @@ enum EditorMenuAction {
   outline,
   paperCreator,
   importPdf,
+  scanPages,
   importAnyFile,
   settings,
   collaborate,
@@ -62,6 +63,8 @@ class EditorTopBar extends StatelessWidget {
     required this.onSearch,
     required this.onOutline,
     required this.onPickImage,
+    required this.onCalculator,
+    required this.onFormulaBook,
     required this.onAddPage,
     required this.onToggleLock,
     required this.onToggleStudy,
@@ -86,6 +89,8 @@ class EditorTopBar extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onOutline;
   final VoidCallback onPickImage;
+  final VoidCallback onCalculator;
+  final VoidCallback onFormulaBook;
   final VoidCallback onAddPage;
   final VoidCallback onToggleLock;
   final VoidCallback onToggleStudy;
@@ -132,6 +137,8 @@ class EditorTopBar extends StatelessWidget {
             onSearch: onSearch,
             onOutline: onOutline,
             onPickImage: onPickImage,
+            onCalculator: onCalculator,
+            onFormulaBook: onFormulaBook,
             onAddPage: onAddPage,
             onToggleLock: onToggleLock,
             onToggleStudy: onToggleStudy,
@@ -158,6 +165,8 @@ class _ToolRow extends StatelessWidget {
     required this.onSearch,
     required this.onOutline,
     required this.onPickImage,
+    required this.onCalculator,
+    required this.onFormulaBook,
     required this.onAddPage,
     required this.onToggleLock,
     required this.onToggleStudy,
@@ -177,6 +186,8 @@ class _ToolRow extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onOutline;
   final VoidCallback onPickImage;
+  final VoidCallback onCalculator;
+  final VoidCallback onFormulaBook;
   final VoidCallback onAddPage;
   final VoidCallback onToggleLock;
   final VoidCallback onToggleStudy;
@@ -276,6 +287,20 @@ class _ToolRow extends StatelessWidget {
                           icon: Icons.change_history_rounded,
                           label: l10n.shapes,
                           enabled: !locked && !studyMode,
+                        ),
+                        _BarIcon(
+                          icon: Icons.calculate_outlined,
+                          tooltip: l10n.calculator,
+                          label: l10n.calculator,
+                          enabled: !locked && !studyMode,
+                          onTap: onCalculator,
+                        ),
+                        _BarIcon(
+                          icon: Icons.menu_book_outlined,
+                          tooltip: l10n.formulaBook,
+                          label: l10n.formulaBook,
+                          enabled: !locked && !studyMode,
+                          onTap: onFormulaBook,
                         ),
                         _BarIcon(
                           icon: Icons.add_photo_alternate_outlined,

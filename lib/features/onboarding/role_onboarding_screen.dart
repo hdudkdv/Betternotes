@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../import_export/import_export_providers.dart';
 import '../library/providers/library_providers.dart';
 
 class RoleOnboardingScreen extends ConsumerStatefulWidget {
@@ -24,9 +23,7 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
     try {
       await ref.read(settingsProvider.notifier).setUserRole(role);
       if (!mounted) return;
-      final pending = ref.read(shareIntakeProvider).peekPending;
-      // Redirect also handles this; go() makes the transition immediate.
-      context.go(pending != null && pending.isNotEmpty ? '/import' : '/');
+      context.go('/setup');
     } catch (_) {
       if (mounted) setState(() => _busy = false);
     }

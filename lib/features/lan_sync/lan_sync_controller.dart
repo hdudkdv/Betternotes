@@ -13,6 +13,8 @@ import '../../data/models/notebook.dart';
 import '../../data/repositories/notebook_repository.dart';
 import '../library/providers/library_providers.dart';
 import '../sync/sync_merge.dart';
+import '../sync/transport_manager.dart';
+import 'classroom_beacon.dart';
 import 'lan_sync_assets.dart';
 import 'lan_sync_discovery.dart';
 import 'lan_sync_protocol.dart';
@@ -28,6 +30,7 @@ enum LanSyncEventKind {
   error,
   hostsChanged,
   classroomSignal,
+  assignment,
 }
 
 class LanSyncEvent {
@@ -56,6 +59,16 @@ class LanClassroomSignal {
   final String deviceName;
   final String kind;
   final Object? value;
+}
+
+class LanAssignmentEvent {
+  const LanAssignmentEvent({
+    required this.type,
+    required this.payload,
+  });
+
+  final String type;
+  final Map<String, dynamic> payload;
 }
 
 class _IncomingAsset {
@@ -128,6 +141,9 @@ class LanSyncController extends ChangeNotifier {
   String? classroomMaterialTitle;
   LanClassroomSignal? lastClassroomSignal;
   int classroomSignalSeq = 0;
+  LanAssignmentEvent? lastAssignmentEvent;
+  int assignmentEventSeq = 0;
+  Map<String, dynamic>? _activeAssignmentStart;
   final Map<String, bool> _peerWritePermissions = {};
   bool _applyingRemote = false;
   bool _disposed = false;
@@ -138,6 +154,7 @@ class LanSyncController extends ChangeNotifier {
   List<Map<String, dynamic>>? _pendingPages;
   List<Map<String, dynamic>>? _pendingOutline;
   int _pendingAssetCount = 0;
+  bool _pendingLibraryImport = false;
   final Map<String, _IncomingAsset> _incomingAssets = {};
   final Map<String, String> _assetKeyToPath = {};
 
@@ -147,14 +164,14 @@ class LanSyncController extends ChangeNotifier {
       phase == LanSyncPhase.syncing ||
       phase == LanSyncPhase.connecting;
 
+  String get deviceId => _deviceId;
+
   bool get canBroadcast =>
       isActive &&
       notebookId != null &&
       (role == LanSyncRole.guest
           ? _transport.hasClient
           : _transport.peers.isNotEmpty);
-
-  String get deviceId => _deviceId;
 
   void _emit(LanSyncEvent event) {
     lastEvent = event;
@@ -258,6 +275,14 @@ class LanSyncController extends ChangeNotifier {
         notebookTitle: notebook?.title,
         classroomSubject: this.classroomSubject,
         classroomRoom: this.classroomRoom,
+        classroomBeacon: this.classroomSubject != null ||
+                this.classroomRoom != null
+            ? ClassroomBeacon.hash(
+                room: this.classroomRoom ?? '',
+                subject: this.classroomSubject ?? '',
+                at: DateTime.now(),
+              )
+            : null,
       );
       _emit(LanSyncEvent(
         kind: LanSyncEventKind.status,
@@ -390,6 +415,7 @@ class LanSyncController extends ChangeNotifier {
     _pendingPages = null;
     _pendingOutline = null;
     _pendingAssetCount = 0;
+    _pendingLibraryImport = false;
     _incomingAssets.clear();
     _assetKeyToPath.clear();
   }
@@ -499,6 +525,141 @@ class LanSyncController extends ChangeNotifier {
     );
   }
 
+  /// Sends a notebook into students' libraries without replacing the live board.
+  Future<void> shareNotebookToClass(String id) async {
+    if (role != LanSyncRole.host || !canBroadcast) return;
+    final notebook = await _repository.getNotebook(id);
+    if (notebook == null) return;
+    final pages = await _repository.getPages(id);
+    final outline = await _repository.getOutline(id);
+    final packed = await packPageAssets(pages);
+    await _transport.broadcast(
+      LanSyncMessage.snapshot(
+        notebook: notebook.toJson(),
+        pages: packed.pagesJson,
+        outline: [for (final n in outline) n.toJson()],
+        assetCount: packed.assets.length,
+        mode: 'library',
+      ),
+    );
+    await _sendAssets(null, packed.assets);
+  }
+
+  Future<void> startAssignment(Map<String, dynamic> payload) async {
+    if (role != LanSyncRole.host || !classroomMode) return;
+    _activeAssignmentStart = payload;
+    await _transport.broadcast(LanSyncMessage.assignmentStart(payload));
+  }
+
+  Future<void> extendAssignment({
+    required String runId,
+    required DateTime endsAt,
+  }) async {
+    if (role != LanSyncRole.host || !classroomMode) return;
+    final payload = LanSyncMessage.assignmentExtend(
+      runId: runId,
+      endsAt: endsAt.toIso8601String(),
+    );
+    if (_activeAssignmentStart != null) {
+      _activeAssignmentStart = {
+        ..._activeAssignmentStart!,
+        'endsAt': endsAt.toIso8601String(),
+      };
+    }
+    await _transport.broadcast(payload);
+  }
+
+  Future<void> collectAssignment(String runId) async {
+    if (role != LanSyncRole.host || !classroomMode) return;
+    await _transport.broadcast(LanSyncMessage.assignmentCollect(runId: runId));
+  }
+
+  Future<void> allowAssignmentImport(String runId) async {
+    if (role != LanSyncRole.host || !classroomMode) return;
+    if (_activeAssignmentStart != null) {
+      _activeAssignmentStart = {
+        ..._activeAssignmentStart!,
+        'allowImport': true,
+      };
+    }
+    await _transport.broadcast(
+      LanSyncMessage.assignmentAllowImport(runId: runId),
+    );
+  }
+
+  Future<void> returnAssignmentCorrection({
+    required String runId,
+    required String targetDeviceId,
+    required String correctionText,
+  }) async {
+    if (role != LanSyncRole.host || !classroomMode) return;
+    await _transport.broadcast(
+      LanSyncMessage.assignmentReturn(
+        runId: runId,
+        targetDeviceId: targetDeviceId,
+        correctionText: correctionText,
+      ),
+    );
+  }
+
+  Future<void> sendAssignmentProgress({
+    required String runId,
+    required int percent,
+    required List<String> doneTaskIds,
+  }) async {
+    if (role != LanSyncRole.guest || !isActive) return;
+    await _transport.broadcast(
+      LanSyncMessage.assignmentProgress(
+        deviceId: _deviceId,
+        deviceName: deviceName,
+        runId: runId,
+        percent: percent,
+        doneTaskIds: doneTaskIds,
+      ),
+    );
+  }
+
+  Future<void> sendAssignmentSubmit(Map<String, dynamic> payload) async {
+    if (role != LanSyncRole.guest || !isActive) return;
+    await _transport.broadcast(LanSyncMessage.assignmentSubmit(payload));
+  }
+
+  Future<void> sendAssignmentLeave(String runId, String kind) async {
+    if (role != LanSyncRole.guest || !isActive) return;
+    await _transport.broadcast(
+      LanSyncMessage.assignmentLeave(
+        deviceId: _deviceId,
+        deviceName: deviceName,
+        runId: runId,
+        kind: kind,
+      ),
+    );
+  }
+
+  void _emitAssignment(String type, Map<String, dynamic> payload) {
+    lastAssignmentEvent = LanAssignmentEvent(type: type, payload: payload);
+    assignmentEventSeq++;
+    _emit(LanSyncEvent(kind: LanSyncEventKind.assignment, message: type));
+    notifyListeners();
+  }
+
+  Future<void> shareFlashcardsToClass({
+    required FlashcardDeck deck,
+    required List<Flashcard> cards,
+  }) async {
+    if (role != LanSyncRole.host || !canBroadcast) return;
+    await _transport.broadcast(
+      LanSyncMessage.libraryShare(
+        kind: 'flashcards',
+        title: deck.title,
+        payload: {
+          'deck': deck.toJson(),
+          'cards': [for (final card in cards) card.toJson()],
+        },
+      ),
+    );
+  }
+
   Future<void> noteLocalNotebookSaved(Notebook notebook) async {
     if (_applyingRemote || !canBroadcast) return;
     if (notebook.id != notebookId) return;
@@ -562,6 +723,8 @@ class LanSyncController extends ChangeNotifier {
         _emit(LanSyncEvent(kind: LanSyncEventKind.error, message: errorMessage));
       case 'snapshot':
         await _handleSnapshot(message);
+      case 'library_share':
+        await _handleLibraryShare(message);
       case 'asset_meta':
         _handleAssetMeta(message);
       case 'asset_chunk':
@@ -577,6 +740,15 @@ class LanSyncController extends ChangeNotifier {
         _handleClassroomSignal(message);
       case 'classroom_command':
         _handleClassroomCommand(message);
+      case 'assignment_start':
+      case 'assignment_progress':
+      case 'assignment_extend':
+      case 'assignment_collect':
+      case 'assignment_allow_import':
+      case 'assignment_submit':
+      case 'assignment_leave':
+      case 'assignment_return':
+        _handleAssignmentMessage(type!, message);
       case 'ping':
         if (peer is LanPeerConnection) {
           await _transport.sendTo(peer, LanSyncMessage.pong());
@@ -688,6 +860,12 @@ class LanSyncController extends ChangeNotifier {
           focusCheckEnabled: classroomFocusCheckEnabled,
         ),
       );
+      if (_activeAssignmentStart != null) {
+        await _transport.sendTo(
+          peer,
+          LanSyncMessage.assignmentStart(_activeAssignmentStart!),
+        );
+      }
     }
   }
 
@@ -703,6 +881,7 @@ class LanSyncController extends ChangeNotifier {
   }
 
   Future<void> _handleSnapshot(Map<String, dynamic> message) async {
+    _pendingLibraryImport = message['mode']?.toString() == 'library';
     _pendingNotebook = Map<String, dynamic>.from(message['notebook'] as Map);
     _pendingPages = (message['pages'] as List? ?? const [])
         .map((e) => Map<String, dynamic>.from(e as Map))
@@ -738,8 +917,13 @@ class LanSyncController extends ChangeNotifier {
     asset.chunks[index] = base64Decode(data);
     if (!asset.isComplete) return;
 
-    final notebookId =
-        this.notebookId ?? _pendingNotebook?['id']?.toString() ?? 'unknown';
+    final notebookId = _pendingLibraryImport
+        ? (_pendingNotebook?['id']?.toString() ??
+              this.notebookId ??
+              'unknown')
+        : (this.notebookId ??
+              _pendingNotebook?['id']?.toString() ??
+              'unknown');
     final path = await writeNearbyAsset(
       repository: _repository,
       notebookId: notebookId,
@@ -771,11 +955,15 @@ class LanSyncController extends ChangeNotifier {
     _pendingNotebook = null;
     _pendingPages = null;
     _pendingOutline = null;
+    final importCopy = _pendingLibraryImport;
+    _pendingLibraryImport = false;
 
     _applyingRemote = true;
     try {
       final notebook = Notebook.fromJson(notebookJson);
-      notebookId = notebook.id;
+      if (!importCopy) {
+        notebookId = notebook.id;
+      }
       await _repository.upsertRemoteNotebook(notebook);
       for (final pageJson in pagesJson) {
         final remapped = remapPageAssetPaths(pageJson, _assetKeyToPath);
@@ -802,12 +990,24 @@ class LanSyncController extends ChangeNotifier {
         for (final n in outlineJson) OutlineNode.fromJson(n),
       ];
       await _repository.saveOutline(notebook.id, outline);
-      phase = LanSyncPhase.connected;
-      await stopBrowsing();
-      _emit(LanSyncEvent(
-        kind: LanSyncEventKind.snapshotApplied,
-        notebookId: notebook.id,
-      ));
+      if (importCopy) {
+        _emit(
+          LanSyncEvent(
+            kind: LanSyncEventKind.notebookUpdated,
+            notebookId: notebook.id,
+            message: 'shared',
+          ),
+        );
+      } else {
+        phase = LanSyncPhase.connected;
+        await stopBrowsing();
+        _emit(
+          LanSyncEvent(
+            kind: LanSyncEventKind.snapshotApplied,
+            notebookId: notebook.id,
+          ),
+        );
+      }
     } catch (e) {
       phase = LanSyncPhase.error;
       errorMessage = '$e';
@@ -896,6 +1096,28 @@ class LanSyncController extends ChangeNotifier {
     }
   }
 
+  Future<void> _handleLibraryShare(Map<String, dynamic> message) async {
+    if (role != LanSyncRole.guest) return;
+    final kind = message['kind']?.toString();
+    final payload = Map<String, dynamic>.from(message['payload'] as Map? ?? {});
+    if (kind == 'flashcards') {
+      final deckJson = Map<String, dynamic>.from(payload['deck'] as Map);
+      final deck = FlashcardDeck.fromJson(deckJson);
+      await _repository.updateFlashcardDeck(deck);
+      for (final item in payload['cards'] as List? ?? const []) {
+        await _repository.saveFlashcard(
+          Flashcard.fromJson(Map<String, dynamic>.from(item as Map)),
+        );
+      }
+      _emit(
+        LanSyncEvent(
+          kind: LanSyncEventKind.notebookUpdated,
+          message: 'shared',
+        ),
+      );
+    }
+  }
+
   void _handleClassroomSignal(Map<String, dynamic> message) {
     if (role != LanSyncRole.host || !classroomMode) return;
     lastClassroomSignal = LanClassroomSignal(
@@ -911,6 +1133,27 @@ class LanSyncController extends ChangeNotifier {
         message: lastClassroomSignal!.deviceId,
       ),
     );
+  }
+
+  void _handleAssignmentMessage(String type, Map<String, dynamic> message) {
+    final hostOnly = type == 'assignment_progress' ||
+        type == 'assignment_submit' ||
+        type == 'assignment_leave';
+    final guestOnly = type == 'assignment_start' ||
+        type == 'assignment_extend' ||
+        type == 'assignment_collect' ||
+        type == 'assignment_allow_import' ||
+        type == 'assignment_return';
+    if (hostOnly && (role != LanSyncRole.host || !classroomMode)) return;
+    if (guestOnly && role != LanSyncRole.guest) return;
+    if (type == 'assignment_return') {
+      final target = message['targetDeviceId']?.toString();
+      if (target != null && target != '*' && target != _deviceId) return;
+    }
+    _emitAssignment(type, message);
+    if (role == LanSyncRole.host && classroomMode && hostOnly) {
+      unawaited(_transport.broadcast(message));
+    }
   }
 
   void _handleClassroomCommand(Map<String, dynamic> message) {
@@ -946,6 +1189,19 @@ class LanSyncController extends ChangeNotifier {
 
 final lanSyncProvider = ChangeNotifierProvider<LanSyncController>((ref) {
   final controller = LanSyncController(ref.watch(notebookRepositoryProvider));
-  ref.onDispose(controller.dispose);
+  final transport = ref.read(transportManagerProvider);
+  void syncRoute() {
+    transport.setP2pActive(
+      controller.phase == LanSyncPhase.connected ||
+          controller.phase == LanSyncPhase.hosting ||
+          controller.phase == LanSyncPhase.syncing,
+    );
+  }
+
+  controller.addListener(syncRoute);
+  ref.onDispose(() {
+    controller.removeListener(syncRoute);
+    controller.dispose();
+  });
   return controller;
 });

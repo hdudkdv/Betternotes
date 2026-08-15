@@ -434,7 +434,7 @@ class InkEngine extends ChangeNotifier {
         final next = <InkStroke>[];
         var changed = false;
         for (final s in _strokes) {
-          if (!s.hitsPoint(point, tolerance: radius + 8)) {
+          if (!s.hitsPoint(point, tolerance: radius)) {
             next.add(s);
             continue;
           }
@@ -454,8 +454,7 @@ class InkEngine extends ChangeNotifier {
         final next = <InkStroke>[];
         var changed = false;
         for (final s in _strokes) {
-          if (!s.boundingBox.inflate(radius + 8).contains(point) &&
-              !s.hitsPoint(point, tolerance: radius)) {
+          if (!s.hitsPoint(point, tolerance: radius)) {
             next.add(s);
             continue;
           }

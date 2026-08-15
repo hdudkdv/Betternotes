@@ -141,18 +141,21 @@ class InkStroke extends Equatable {
     return Rect.fromLTRB(minX - pad, minY - pad, maxX + pad, maxY + pad);
   }
 
-  bool hitsPoint(Offset point, {double tolerance = 8}) {
-    final box = boundingBox.inflate(tolerance);
-    if (!box.contains(point)) return false;
+  /// True only when [point] is within [tolerance] of the polyline itself.
+  /// The bounding box is a cull, never a hit — a diagonal stroke must not
+  /// erase when the tip is merely inside the rectangle around the line.
+  bool hitsPoint(Offset point, {double tolerance = 0}) {
+    final raw = tolerance + paintWidth / 2;
+    final hitR = raw < 0.75 ? 0.75 : raw;
+    if (!boundingBox.inflate(hitR).contains(point)) return false;
+    if (points.length == 1) {
+      return (points.first.offset - point).distance <= hitR;
+    }
     for (var i = 0; i < points.length - 1; i++) {
-      final a = points[i].offset;
-      final b = points[i + 1].offset;
-      if (_distanceToSegment(point, a, b) <= tolerance + width / 2) {
+      if (_distanceToSegment(point, points[i].offset, points[i + 1].offset) <=
+          hitR) {
         return true;
       }
-    }
-    if (points.length == 1) {
-      return (points.first.offset - point).distance <= tolerance + width / 2;
     }
     return false;
   }
@@ -275,17 +278,45 @@ class InkStroke extends Equatable {
         bestI = i;
       }
     }
-    if (bestI < 0 || bestD > hitR + 12) return [this];
+    if (bestI < 0 || bestD > hitR) return [this];
 
-    final window = (points.length * 0.12).clamp(8, 48).round();
-    final start = (bestI - window).clamp(0, points.length);
-    final end = (bestI + window + 1).clamp(0, points.length);
+    bool inBand(int i) {
+      if ((points[i].offset - center).distance <= hitR) return true;
+      if (i > 0 &&
+          _distanceToSegment(
+                center,
+                points[i - 1].offset,
+                points[i].offset,
+              ) <=
+              hitR) {
+        return true;
+      }
+      if (i < points.length - 1 &&
+          _distanceToSegment(
+                center,
+                points[i].offset,
+                points[i + 1].offset,
+              ) <=
+              hitR) {
+        return true;
+      }
+      return false;
+    }
+
+    var start = bestI;
+    var end = bestI;
+    while (start > 0 && inBand(start - 1)) {
+      start--;
+    }
+    while (end < points.length - 1 && inBand(end + 1)) {
+      end++;
+    }
     final result = <InkStroke>[];
     if (start >= 2) {
       result.add(copyWith(id: newId(), points: points.sublist(0, start)));
     }
-    if (end <= points.length - 2) {
-      result.add(copyWith(id: newId(), points: points.sublist(end)));
+    if (end + 1 <= points.length - 2) {
+      result.add(copyWith(id: newId(), points: points.sublist(end + 1)));
     }
     return result;
   }

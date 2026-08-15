@@ -551,7 +551,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search notebooks, text, outline, tags…'**
+  /// **'Search or @Subject @Grade10 …'**
   String get searchHint;
 
   /// No description provided for @searchEmpty.
@@ -971,7 +971,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchEverything.
   ///
   /// In en, this message translates to:
-  /// **'Search folders, notebooks, chapters…'**
+  /// **'Search or @Economics addition …'**
   String get searchEverything;
 
   /// No description provided for @shareExport.
@@ -4247,7 +4247,7 @@ abstract class AppLocalizations {
   /// No description provided for @teacherOverviewHint.
   ///
   /// In en, this message translates to:
-  /// **'Live sessions, lesson calendar, materials, and audio explanations in one place.'**
+  /// **'Live sessions, assignments, lesson calendar, materials, and audio explanations in one place.'**
   String get teacherOverviewHint;
 
   /// No description provided for @teacherLiveClass.
@@ -4819,6 +4819,858 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Automatic connection rejected: neither subject nor room matches.'**
   String get classroomAutoConnectMismatch;
+
+  /// No description provided for @marketplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Marketplace'**
+  String get marketplace;
+
+  /// No description provided for @marketplaceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional add-ons that not everyone needs. Purchases come later — this is the catalog.'**
+  String get marketplaceHint;
+
+  /// No description provided for @marketplaceComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase and unlock will arrive in a later update.'**
+  String get marketplaceComingSoon;
+
+  /// No description provided for @marketplaceSoonBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Soon'**
+  String get marketplaceSoonBadge;
+
+  /// No description provided for @marketplaceInkOcrHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Handwriting and photos are recognized on-device and stored only as a hidden search index.'**
+  String get marketplaceInkOcrHint;
+
+  /// No description provided for @marketplaceCloudHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium cloud relay when no nearby P2P channel is available.'**
+  String get marketplaceCloudHint;
+
+  /// No description provided for @featureCloudSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud sync'**
+  String get featureCloudSync;
+
+  /// No description provided for @scanPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan pages'**
+  String get scanPages;
+
+  /// No description provided for @scanPagesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'System document scanner — sheets become notebook pages.'**
+  String get scanPagesHint;
+
+  /// No description provided for @scanExam.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the exam?'**
+  String get scanExam;
+
+  /// No description provided for @scanExamBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Photograph the test now and add the pages to a notebook.'**
+  String get scanExamBody;
+
+  /// No description provided for @scannedNotebookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan {date}'**
+  String scannedNotebookTitle(String date);
+
+  /// No description provided for @scanFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the scanner.'**
+  String get scanFailed;
+
+  /// No description provided for @scanAddedPages.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 scanned page} other{Added {count} scanned pages}}'**
+  String scanAddedPages(num count);
+
+  /// No description provided for @searchAtHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use @ to search only in a subject, folder, or school year'**
+  String get searchAtHint;
+
+  /// No description provided for @pinTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get pinTool;
+
+  /// No description provided for @calculator.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculator'**
+  String get calculator;
+
+  /// No description provided for @calculatorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 2+3*4 or sin(x)'**
+  String get calculatorHint;
+
+  /// No description provided for @calculatorEquals.
+  ///
+  /// In en, this message translates to:
+  /// **'='**
+  String get calculatorEquals;
+
+  /// No description provided for @calculatorPlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert graph'**
+  String get calculatorPlot;
+
+  /// No description provided for @calculatorHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent calculations'**
+  String get calculatorHistory;
+
+  /// No description provided for @formulaBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Formula book'**
+  String get formulaBook;
+
+  /// No description provided for @formulaTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Term'**
+  String get formulaTerm;
+
+  /// No description provided for @formulaValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Formula / value'**
+  String get formulaValue;
+
+  /// No description provided for @formulaAddRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Add row'**
+  String get formulaAddRow;
+
+  /// No description provided for @continueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueAction;
+
+  /// No description provided for @setupStudentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your path'**
+  String get setupStudentTitle;
+
+  /// No description provided for @setupStudentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'So notes, grades, and the next term match how you learn.'**
+  String get setupStudentBody;
+
+  /// No description provided for @setupTeacherTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your teacher profile'**
+  String get setupTeacherTitle;
+
+  /// No description provided for @setupTeacherBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you still studying or already teaching?'**
+  String get setupTeacherBody;
+
+  /// No description provided for @setupTeacherTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get setupTeacherTrack;
+
+  /// No description provided for @teacherTrackStudying.
+  ///
+  /// In en, this message translates to:
+  /// **'In studies'**
+  String get teacherTrackStudying;
+
+  /// No description provided for @teacherTrackStudyingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When a semester starts you can create a new notebook and keep chosen chapters.'**
+  String get teacherTrackStudyingHint;
+
+  /// No description provided for @teacherTrackQualified.
+  ///
+  /// In en, this message translates to:
+  /// **'Already qualified'**
+  String get teacherTrackQualified;
+
+  /// No description provided for @teacherTrackQualifiedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For class — including sharing notebooks and materials.'**
+  String get teacherTrackQualifiedHint;
+
+  /// No description provided for @newTermNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a notebook for this term'**
+  String get newTermNotebook;
+
+  /// No description provided for @importChaptersBodyTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Which chapters from “{title}” should carry over to {period}?'**
+  String importChaptersBodyTerm(String title, String period);
+
+  /// No description provided for @termWinterHalbjahr.
+  ///
+  /// In en, this message translates to:
+  /// **'1st term {year}'**
+  String termWinterHalbjahr(String year);
+
+  /// No description provided for @termSummerHalbjahr.
+  ///
+  /// In en, this message translates to:
+  /// **'2nd term {year}'**
+  String termSummerHalbjahr(String year);
+
+  /// No description provided for @termWinterSemester.
+  ///
+  /// In en, this message translates to:
+  /// **'Winter semester {year}'**
+  String termWinterSemester(String year);
+
+  /// No description provided for @termSummerSemester.
+  ///
+  /// In en, this message translates to:
+  /// **'Summer semester {year}'**
+  String termSummerSemester(String year);
+
+  /// No description provided for @teacherShareContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Share content'**
+  String get teacherShareContent;
+
+  /// No description provided for @teacherShareContentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the board, notebooks, flashcards, or files to the class.'**
+  String get teacherShareContentHint;
+
+  /// No description provided for @teacherShareLiveBoard.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the current board'**
+  String get teacherShareLiveBoard;
+
+  /// No description provided for @teacherShareNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Share notebook'**
+  String get teacherShareNotebook;
+
+  /// No description provided for @teacherShareFlashcards.
+  ///
+  /// In en, this message translates to:
+  /// **'Share flashcards'**
+  String get teacherShareFlashcards;
+
+  /// No description provided for @tutorialOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A short tour?'**
+  String get tutorialOfferTitle;
+
+  /// No description provided for @tutorialOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A few steps that point out the main parts of the app.'**
+  String get tutorialOfferBody;
+
+  /// No description provided for @tutorialStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start tutorial'**
+  String get tutorialStart;
+
+  /// No description provided for @tutorialSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get tutorialSkip;
+
+  /// No description provided for @tutorialNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get tutorialNext;
+
+  /// No description provided for @tutorialDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get tutorialDone;
+
+  /// No description provided for @tourLibraryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library'**
+  String get tourLibraryTitle;
+
+  /// No description provided for @tourLibraryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Notebooks, folders, and flashcards live here. Tap a cover to open it.'**
+  String get tourLibraryBody;
+
+  /// No description provided for @tourCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create something'**
+  String get tourCreateTitle;
+
+  /// No description provided for @tourCreateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Use plus to add a notebook, folder, or flashcard deck.'**
+  String get tourCreateBody;
+
+  /// No description provided for @tourSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search with @'**
+  String get tourSearchTitle;
+
+  /// No description provided for @tourSearchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try @Economics addition to search inside one subject only.'**
+  String get tourSearchBody;
+
+  /// No description provided for @tourSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get tourSettingsTitle;
+
+  /// No description provided for @tourSettingsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Role, state, stylus gestures, and this tutorial are here.'**
+  String get tourSettingsBody;
+
+  /// No description provided for @tourTeacherTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher tools'**
+  String get tourTeacherTitle;
+
+  /// No description provided for @tourTeacherBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Start class and share the board, notebooks, or materials.'**
+  String get tourTeacherBody;
+
+  /// No description provided for @tourEditorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside a notebook'**
+  String get tourEditorTitle;
+
+  /// No description provided for @tourEditorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The toolbar has pen, eraser, calculator, and the formula book. Swipe to change pages.'**
+  String get tourEditorBody;
+
+  /// No description provided for @teacherAssignments.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignments'**
+  String get teacherAssignments;
+
+  /// No description provided for @teacherAssignmentsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Build worksheets in the editor. PDF scans become draft tasks you should review.'**
+  String get teacherAssignmentsHint;
+
+  /// No description provided for @teacherAssignmentCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items in the catalog'**
+  String teacherAssignmentCount(int count);
+
+  /// No description provided for @teacherNewAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'New assignment'**
+  String get teacherNewAssignment;
+
+  /// No description provided for @teacherUntitledAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get teacherUntitledAssignment;
+
+  /// No description provided for @teacherImportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from PDF'**
+  String get teacherImportPdf;
+
+  /// No description provided for @teacherImportPdfHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pages are read and split into editable tasks.'**
+  String get teacherImportPdfHint;
+
+  /// No description provided for @teacherImportScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan and import'**
+  String get teacherImportScan;
+
+  /// No description provided for @teacherImportScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera or scanner, then review the draft in the editor.'**
+  String get teacherImportScanHint;
+
+  /// No description provided for @teacherImportedScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get teacherImportedScanTitle;
+
+  /// No description provided for @teacherReviewBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Text and structure come from the scan. Please review, edit if needed, and confirm before you use this assignment.'**
+  String get teacherReviewBanner;
+
+  /// No description provided for @teacherConfirmDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm draft'**
+  String get teacherConfirmDraft;
+
+  /// No description provided for @teacherNeedsReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs review'**
+  String get teacherNeedsReview;
+
+  /// No description provided for @teacherAnswerKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer type'**
+  String get teacherAnswerKind;
+
+  /// No description provided for @teacherAnswerText.
+  ///
+  /// In en, this message translates to:
+  /// **'Free text'**
+  String get teacherAnswerText;
+
+  /// No description provided for @teacherAnswerMc.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple choice'**
+  String get teacherAnswerMc;
+
+  /// No description provided for @teacherAnswerCalc.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculation'**
+  String get teacherAnswerCalc;
+
+  /// No description provided for @teacherAnswerMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching'**
+  String get teacherAnswerMatch;
+
+  /// No description provided for @teacherTaskParts.
+  ///
+  /// In en, this message translates to:
+  /// **'Task parts'**
+  String get teacherTaskParts;
+
+  /// No description provided for @teacherAddPartText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get teacherAddPartText;
+
+  /// No description provided for @teacherAddPartImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get teacherAddPartImage;
+
+  /// No description provided for @teacherAddPartLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get teacherAddPartLink;
+
+  /// No description provided for @teacherSampleAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample answer'**
+  String get teacherSampleAnswer;
+
+  /// No description provided for @teacherCalcResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Final result'**
+  String get teacherCalcResult;
+
+  /// No description provided for @teacherCalcTolerance.
+  ///
+  /// In en, this message translates to:
+  /// **'Tolerance'**
+  String get teacherCalcTolerance;
+
+  /// No description provided for @teacherMaxPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get teacherMaxPoints;
+
+  /// No description provided for @teacherKindTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Task'**
+  String get teacherKindTask;
+
+  /// No description provided for @teacherKindTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get teacherKindTest;
+
+  /// No description provided for @teacherKindExam.
+  ///
+  /// In en, this message translates to:
+  /// **'Exam'**
+  String get teacherKindExam;
+
+  /// No description provided for @teacherCatalogKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Kind'**
+  String get teacherCatalogKind;
+
+  /// No description provided for @teacherCatalogVisibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Visibility'**
+  String get teacherCatalogVisibility;
+
+  /// No description provided for @teacherVisibilityPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Only me'**
+  String get teacherVisibilityPrivate;
+
+  /// No description provided for @teacherVisibilitySchool.
+  ///
+  /// In en, this message translates to:
+  /// **'School only'**
+  String get teacherVisibilitySchool;
+
+  /// No description provided for @teacherVisibilityPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get teacherVisibilityPublic;
+
+  /// No description provided for @teacherSuggestedDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested duration (min.)'**
+  String get teacherSuggestedDuration;
+
+  /// No description provided for @teacherNoAssignments.
+  ///
+  /// In en, this message translates to:
+  /// **'No assignments yet. Create one or import a PDF or scan.'**
+  String get teacherNoAssignments;
+
+  /// No description provided for @teacherImporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Converting into the editor…'**
+  String get teacherImporting;
+
+  /// No description provided for @teacherImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not convert this file'**
+  String get teacherImportFailed;
+
+  /// No description provided for @teacherAddTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Add task'**
+  String get teacherAddTask;
+
+  /// No description provided for @teacherCorrectOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark the correct answer'**
+  String get teacherCorrectOption;
+
+  /// No description provided for @teacherMatchLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get teacherMatchLeft;
+
+  /// No description provided for @teacherMatchRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Right'**
+  String get teacherMatchRight;
+
+  /// No description provided for @teacherDeleteTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete task'**
+  String get teacherDeleteTask;
+
+  /// No description provided for @teacherTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get teacherTags;
+
+  /// No description provided for @teacherTasksHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks'**
+  String get teacherTasksHeading;
+
+  /// No description provided for @teacherTaskNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Task {number}'**
+  String teacherTaskNumber(int number);
+
+  /// No description provided for @teacherTaskCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} tasks'**
+  String teacherTaskCount(int count);
+
+  /// No description provided for @teacherSchool.
+  ///
+  /// In en, this message translates to:
+  /// **'School'**
+  String get teacherSchool;
+
+  /// No description provided for @teacherSchoolName.
+  ///
+  /// In en, this message translates to:
+  /// **'School name'**
+  String get teacherSchoolName;
+
+  /// No description provided for @teacherSchoolCode.
+  ///
+  /// In en, this message translates to:
+  /// **'School join code'**
+  String get teacherSchoolCode;
+
+  /// No description provided for @assignmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment'**
+  String get assignmentTitle;
+
+  /// No description provided for @assignmentWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for an assignment from the teacher.'**
+  String get assignmentWaiting;
+
+  /// No description provided for @assignmentSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Done — submit'**
+  String get assignmentSubmit;
+
+  /// No description provided for @assignmentSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted. This workspace is locked.'**
+  String get assignmentSubmitted;
+
+  /// No description provided for @assignmentLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Time is up. Wait for extra time or collection.'**
+  String get assignmentLocked;
+
+  /// No description provided for @assignmentYourAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer'**
+  String get assignmentYourAnswer;
+
+  /// No description provided for @assignmentImportNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to a notebook'**
+  String get assignmentImportNotebook;
+
+  /// No description provided for @assignmentStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start assignment'**
+  String get assignmentStart;
+
+  /// No description provided for @assignmentStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a confirmed template and send it to the class as its own page.'**
+  String get assignmentStartHint;
+
+  /// No description provided for @assignmentTestMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Test mode (lock calculator and formula book)'**
+  String get assignmentTestMode;
+
+  /// No description provided for @assignmentExtend5.
+  ///
+  /// In en, this message translates to:
+  /// **'+5 minutes'**
+  String get assignmentExtend5;
+
+  /// No description provided for @assignmentExtend10.
+  ///
+  /// In en, this message translates to:
+  /// **'+10 minutes'**
+  String get assignmentExtend10;
+
+  /// No description provided for @assignmentCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'Collect'**
+  String get assignmentCollect;
+
+  /// No description provided for @assignmentAllowImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow import'**
+  String get assignmentAllowImport;
+
+  /// No description provided for @assignmentResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get assignmentResults;
+
+  /// No description provided for @assignmentPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print without solutions'**
+  String get assignmentPrint;
+
+  /// No description provided for @assignmentClassAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Class average {percent} %'**
+  String assignmentClassAverage(int percent);
+
+  /// No description provided for @assignmentSubmittedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted: {done}/{total}'**
+  String assignmentSubmittedCount(int done, int total);
+
+  /// No description provided for @assignmentTopProblems.
+  ///
+  /// In en, this message translates to:
+  /// **'Most common problems'**
+  String get assignmentTopProblems;
+
+  /// No description provided for @assignmentNoProblems.
+  ///
+  /// In en, this message translates to:
+  /// **'No graded problems yet.'**
+  String get assignmentNoProblems;
+
+  /// No description provided for @assignmentGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar error patterns'**
+  String get assignmentGroups;
+
+  /// No description provided for @assignmentSubmissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Submissions'**
+  String get assignmentSubmissions;
+
+  /// No description provided for @assignmentEarly.
+  ///
+  /// In en, this message translates to:
+  /// **'submitted early'**
+  String get assignmentEarly;
+
+  /// No description provided for @assignmentOnCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'collected'**
+  String get assignmentOnCollect;
+
+  /// No description provided for @assignmentCorrection.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a correction to this device'**
+  String get assignmentCorrection;
+
+  /// No description provided for @assignmentLeaveSignals.
+  ///
+  /// In en, this message translates to:
+  /// **'Left / lost focus'**
+  String get assignmentLeaveSignals;
+
+  /// No description provided for @assignmentPoolLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchange: publish once to browse other public assignments.'**
+  String get assignmentPoolLocked;
+
+  /// No description provided for @assignmentPoolUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchange is unlocked. Other teachers\' public items appear once cloud sync is connected.'**
+  String get assignmentPoolUnlocked;
 }
 
 class _AppLocalizationsDelegate

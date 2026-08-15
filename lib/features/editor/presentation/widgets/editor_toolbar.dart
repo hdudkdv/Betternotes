@@ -24,6 +24,8 @@ class ToolOptionsBar extends ConsumerWidget {
     required this.onTextLayoutModeChanged,
     required this.onAddText,
     required this.onPickImage,
+    this.onDeleteImage,
+    this.hasSelectedImage = false,
     this.onToggleRuler,
     this.onToggleCompass,
     this.rulerActive = false,
@@ -40,6 +42,8 @@ class ToolOptionsBar extends ConsumerWidget {
   final ValueChanged<TextLayoutMode> onTextLayoutModeChanged;
   final VoidCallback onAddText;
   final VoidCallback onPickImage;
+  final VoidCallback? onDeleteImage;
+  final bool hasSelectedImage;
   final VoidCallback? onToggleRuler;
   final VoidCallback? onToggleCompass;
   final bool rulerActive;
@@ -309,6 +313,12 @@ class ToolOptionsBar extends ConsumerWidget {
             label: l10n.insertImage,
             onTap: onPickImage,
           ),
+          if (hasSelectedImage && onDeleteImage != null)
+            _pillAction(
+              icon: Icons.delete_outline_rounded,
+              label: l10n.delete,
+              onTap: onDeleteImage!,
+            ),
         ];
     }
   }

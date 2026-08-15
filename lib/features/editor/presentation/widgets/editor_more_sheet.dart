@@ -239,6 +239,11 @@ class _EditorMoreSheetState extends State<_EditorMoreSheet> {
           onTap: () => _close(EditorMenuAction.importPdf),
         ),
         EditorSheetTile(
+          icon: Icons.document_scanner_outlined,
+          label: l10n.scanPages,
+          onTap: () => _close(EditorMenuAction.scanPages),
+        ),
+        EditorSheetTile(
           icon: Icons.file_open_outlined,
           label: l10n.importAnyFile,
           onTap: () => _close(EditorMenuAction.importAnyFile),

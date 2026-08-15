@@ -15,12 +15,18 @@ import '../features/import_export/import_notebook_picker_screen.dart';
 import '../features/legal/legal_document_screen.dart';
 import '../features/lan_sync/classroom_auto_connect.dart';
 import '../features/lan_sync/lan_sync_controller.dart';
+import '../features/lan_sync/lan_sync_protocol.dart';
 import '../features/library/presentation/library_screen.dart';
+import '../features/marketplace/marketplace_screen.dart';
 import '../features/library/providers/library_providers.dart';
+import '../features/onboarding/profile_setup_screen.dart';
 import '../features/onboarding/role_onboarding_screen.dart';
 import '../features/search/global_search_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/planner/planner_screen.dart';
+import '../features/teacher/catalog/assignment_page.dart';
+import '../features/teacher/catalog/assignment_results_page.dart';
+import '../features/teacher/catalog/assignment_session.dart';
 import '../features/teacher/teacher_audio_screen.dart';
 import '../features/teacher/teacher_screen.dart';
 import '../features/timetable/timetable_screen.dart';
@@ -34,23 +40,34 @@ class _RouterRefresh extends ChangeNotifier {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh();
-  ref.listen<AppUserRole?>(
-    settingsProvider.select((settings) => settings.userRole),
+  ref.listen<(AppUserRole?, bool)>(
+    settingsProvider.select(
+      (settings) => (settings.userRole, settings.profileSetupCompleted),
+    ),
     (_, _) => refresh.bump(),
   );
   ref.onDispose(refresh.dispose);
 
-  final initialRole = ref.read(settingsProvider).userRole;
+  final initial = ref.read(settingsProvider);
   return GoRouter(
-    initialLocation: initialRole == null ? '/welcome' : '/',
+    initialLocation: initial.userRole == null
+        ? '/welcome'
+        : (initial.profileSetupCompleted ? '/' : '/setup'),
     refreshListenable: refresh,
     redirect: (context, state) {
-      final role = ref.read(settingsProvider).userRole;
-      final onWelcome = state.matchedLocation == '/welcome';
+      final settings = ref.read(settingsProvider);
+      final role = settings.userRole;
+      final loc = state.matchedLocation;
+      final onWelcome = loc == '/welcome';
+      final onSetup = loc == '/setup';
       if (role == null && !onWelcome) return '/welcome';
-      if (role != null && onWelcome) return '/';
-      if (state.matchedLocation.startsWith('/teacher') &&
-          role != AppUserRole.teacher) {
+      if (role != null && !settings.profileSetupCompleted && !onSetup) {
+        return '/setup';
+      }
+      if (settings.profileSetupCompleted && (onWelcome || onSetup)) {
+        return '/';
+      }
+      if (loc.startsWith('/teacher') && role != AppUserRole.teacher) {
         return '/';
       }
       return null;
@@ -60,6 +77,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/welcome',
         name: 'welcome',
         builder: (context, state) => const RoleOnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/setup',
+        name: 'setup',
+        builder: (context, state) => const ProfileSetupScreen(),
       ),
       GoRoute(
         path: '/',
@@ -107,6 +129,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/marketplace',
+        name: 'marketplace',
+        builder: (context, state) => const MarketplaceScreen(),
       ),
       GoRoute(
         path: '/import',
@@ -160,6 +187,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/teacher/audio',
         name: 'teacherAudio',
         builder: (context, state) => const TeacherAudioScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/assignment/:runId',
+        name: 'teacherAssignmentResults',
+        builder: (context, state) => AssignmentResultsPage(
+          runId: state.pathParameters['runId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/assignment/:runId',
+        name: 'assignment',
+        builder: (context, state) => AssignmentPage(
+          runId: state.pathParameters['runId']!,
+        ),
       ),
     ],
   );
@@ -285,6 +326,22 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
         unawaited(ref.read(lanSyncProvider).stopBrowsing());
       });
     }
+    ref.listen<int>(
+      lanSyncProvider.select((controller) => controller.assignmentEventSeq),
+      (previous, next) {
+        final event = ref.read(lanSyncProvider).lastAssignmentEvent;
+        if (event == null) return;
+        ref.read(studentAssignmentProvider.notifier).onLanEvent(event);
+        ref.read(assignmentHostProvider.notifier).onLanEvent(event);
+        if (event.type == 'assignment_start' &&
+            ref.read(lanSyncProvider).role == LanSyncRole.guest) {
+          final runId = event.payload['runId']?.toString();
+          if (runId != null && runId.isNotEmpty) {
+            ref.read(appRouterProvider).go('/assignment/$runId');
+          }
+        }
+      },
+    );
     return MaterialApp.router(
       title: 'BetterNotes',
       debugShowCheckedModeBanner: false,

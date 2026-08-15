@@ -6,6 +6,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/utils/page_units.dart';
 import '../../domain/drawing_aids.dart';
 import '../editor_chrome.dart';
+import 'stylus_pan.dart';
 
 /// Compass overlay: place center → set radius via wheel → draw on the arc.
 class CompassOverlay extends StatelessWidget {
@@ -90,9 +91,9 @@ class CompassOverlay extends StatelessWidget {
             Positioned(
               left: (aid.armTip?.dx ?? center.dx) - 14,
               top: (aid.armTip?.dy ?? center.dy) - 14,
-              child: GestureDetector(
-                onPanUpdate: (d) {
-                  final tip = (aid.armTip ?? center) + d.delta;
+              child: StylusPan(
+                onPanUpdate: (delta) {
+                  final tip = (aid.armTip ?? center) + delta;
                   final angle = math.atan2(
                     tip.dy - center.dy,
                     tip.dx - center.dx,
@@ -186,6 +187,7 @@ class _RadiusWheel extends StatefulWidget {
 
 class _RadiusWheelState extends State<_RadiusWheel> {
   late final FixedExtentScrollController _controller;
+  double _dragAccum = 0;
 
   @override
   void initState() {
@@ -196,9 +198,30 @@ class _RadiusWheelState extends State<_RadiusWheel> {
   }
 
   @override
+  void didUpdateWidget(covariant _RadiusWheel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final item = (widget.radiusMm.round() - 5).clamp(0, 195);
+    if (_controller.hasClients && _controller.selectedItem != item) {
+      _controller.jumpToItem(item);
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _nudgeBy(double dy) {
+    _dragAccum += dy;
+    const step = 18.0;
+    if (_dragAccum.abs() < step) return;
+    final dir = _dragAccum > 0 ? 1 : -1;
+    _dragAccum = 0;
+    if (!_controller.hasClients) return;
+    final next = (_controller.selectedItem + dir).clamp(0, 195);
+    _controller.jumpToItem(next);
+    widget.onChanged((next + 5).toDouble());
   }
 
   @override
@@ -239,33 +262,42 @@ class _RadiusWheelState extends State<_RadiusWheel> {
               ),
             ),
             Expanded(
-              child: ListWheelScrollView.useDelegate(
-                itemExtent: 28,
-                perspective: 0.003,
-                diameterRatio: 1.1,
-                physics: const FixedExtentScrollPhysics(),
-                controller: _controller,
-                onSelectedItemChanged: (i) =>
-                    widget.onChanged((i + 5).toDouble()),
-                childDelegate: ListWheelChildBuilderDelegate(
-                  childCount: 196,
-                  builder: (context, index) {
-                    final mm = index + 5;
-                    final selected = mm == widget.radiusMm.round();
-                    return Center(
-                      child: Text(
-                        '$mm',
-                        style: TextStyle(
-                          color: selected
-                              ? EditorChrome.selected
-                              : EditorChrome.onDarkMuted,
-                          fontWeight:
-                              selected ? FontWeight.w800 : FontWeight.w500,
-                          fontSize: selected ? 16 : 13,
-                        ),
-                      ),
-                    );
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerMove: (event) {
+                  if (!event.down || event.delta.dy.abs() < 0.4) return;
+                  _nudgeBy(event.delta.dy);
+                },
+                child: ListWheelScrollView.useDelegate(
+                  itemExtent: 28,
+                  perspective: 0.003,
+                  diameterRatio: 1.1,
+                  physics: const FixedExtentScrollPhysics(),
+                  controller: _controller,
+                  onSelectedItemChanged: (i) {
+                    widget.onChanged((i + 5).toDouble());
                   },
+                  childDelegate: ListWheelChildBuilderDelegate(
+                    childCount: 196,
+                    builder: (context, index) {
+                      final mm = index + 5;
+                      final selected = mm == widget.radiusMm.round();
+                      return Center(
+                        child: Text(
+                          '$mm',
+                          style: TextStyle(
+                            color: selected
+                                ? EditorChrome.selected
+                                : EditorChrome.onDarkMuted,
+                            fontWeight: selected
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                            fontSize: selected ? 16 : 13,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

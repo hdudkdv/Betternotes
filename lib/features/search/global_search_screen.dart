@@ -7,6 +7,8 @@ import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../editor/providers/open_tabs_provider.dart';
 import '../library/providers/library_providers.dart';
+import 'search_at_hints.dart';
+import 'search_query.dart';
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
   const GlobalSearchScreen({super.key});
@@ -72,28 +74,52 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _controller,
-              autofocus: true,
-              textInputAction: TextInputAction.search,
-              onTapOutside: (_) =>
-                  FocusManager.instance.primaryFocus?.unfocus(),
-              decoration: InputDecoration(
-                hintText: l10n.searchHint,
-                prefixIcon: const Icon(Icons.search),
-              ),
-              onChanged: (v) {
-                if (v.trim().length >= 2) {
-                  _search(v);
-                } else {
-                  setState(() => _hits = []);
-                }
-              },
-              onSubmitted: (_) {
-                if (_hits.isEmpty) return;
-                if (!_hits.any((hit) => hit.exactMatch)) return;
-                _open(_hits.first);
-              },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  textInputAction: TextInputAction.search,
+                  onTapOutside: (_) =>
+                      FocusManager.instance.primaryFocus?.unfocus(),
+                  decoration: InputDecoration(
+                    hintText: l10n.searchHint,
+                    prefixIcon: const Icon(Icons.search),
+                  ),
+                  onChanged: (v) {
+                    setState(() {});
+                    final parsed = ParsedSearchQuery.parse(v);
+                    if (parsed.hasFilters || parsed.text.trim().length >= 2) {
+                      _search(v);
+                    } else {
+                      _hits = [];
+                    }
+                  },
+                  onSubmitted: (_) {
+                    if (_hits.isEmpty) return;
+                    if (!_hits.any((hit) => hit.exactMatch)) return;
+                    _open(_hits.first);
+                  },
+                ),
+                SearchAtHints(
+                  query: _controller.text,
+                  folders: ref.watch(allFoldersProvider).valueOrNull ?? const [],
+                  notebooks:
+                      ref.watch(notebooksProvider).valueOrNull ?? const [],
+                  onInsert: (next) {
+                    _controller.value = TextEditingValue(
+                      text: next,
+                      selection: TextSelection.collapsed(offset: next.length),
+                    );
+                    final parsed = ParsedSearchQuery.parse(next);
+                    if (parsed.hasFilters || parsed.text.trim().length >= 2) {
+                      _search(next);
+                    }
+                    setState(() {});
+                  },
+                ),
+              ],
             ),
           ),
           if (_loading) const LinearProgressIndicator(),

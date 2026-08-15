@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../library/providers/library_providers.dart';
 import '../timetable/timetable_model.dart';
+import 'catalog/catalog_models.dart';
 
 enum LessonStatus { planned, held, cancelled }
 
@@ -182,7 +183,13 @@ class ClassroomSession extends Equatable {
   ];
 }
 
-enum LessonAttachmentKind { material, whiteboard }
+enum LessonAttachmentKind {
+  material,
+  whiteboard,
+  notebook,
+  flashcards,
+  assignment,
+}
 
 class LessonAttachment extends Equatable {
   const LessonAttachment({
@@ -195,6 +202,7 @@ class LessonAttachment extends Equatable {
     this.pageId,
     this.snapshotId,
     this.url,
+    this.runId,
   });
 
   final String id;
@@ -206,6 +214,7 @@ class LessonAttachment extends Equatable {
   final String? pageId;
   final String? snapshotId;
   final String? url;
+  final String? runId;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -217,6 +226,7 @@ class LessonAttachment extends Equatable {
     'pageId': pageId,
     'snapshotId': snapshotId,
     'url': url,
+    'runId': runId,
   };
 
   factory LessonAttachment.fromJson(Map<String, dynamic> json) {
@@ -235,6 +245,7 @@ class LessonAttachment extends Equatable {
       pageId: json['pageId'] as String?,
       snapshotId: json['snapshotId'] as String?,
       url: json['url'] as String?,
+      runId: json['runId'] as String?,
     );
   }
 
@@ -249,6 +260,7 @@ class LessonAttachment extends Equatable {
     pageId,
     snapshotId,
     url,
+    runId,
   ];
 }
 
@@ -513,6 +525,7 @@ class TeacherState extends Equatable {
     this.materials = const [],
     this.audioExplanations = const [],
     this.traineeVerification = TraineeVerification.none,
+    this.school,
   });
 
   final ClassroomSession? session;
@@ -520,6 +533,7 @@ class TeacherState extends Equatable {
   final List<TeacherMaterial> materials;
   final List<AudioExplanation> audioExplanations;
   final TraineeVerification traineeVerification;
+  final TeacherSchool? school;
 
   TeacherState copyWith({
     ClassroomSession? session,
@@ -528,6 +542,8 @@ class TeacherState extends Equatable {
     List<TeacherMaterial>? materials,
     List<AudioExplanation>? audioExplanations,
     TraineeVerification? traineeVerification,
+    TeacherSchool? school,
+    bool clearSchool = false,
   }) {
     return TeacherState(
       session: clearSession ? null : (session ?? this.session),
@@ -535,6 +551,7 @@ class TeacherState extends Equatable {
       materials: materials ?? this.materials,
       audioExplanations: audioExplanations ?? this.audioExplanations,
       traineeVerification: traineeVerification ?? this.traineeVerification,
+      school: clearSchool ? null : (school ?? this.school),
     );
   }
 
@@ -544,6 +561,7 @@ class TeacherState extends Equatable {
     'materials': materials.map((e) => e.toJson()).toList(),
     'audioExplanations': audioExplanations.map((e) => e.toJson()).toList(),
     'traineeVerification': traineeVerification.name,
+    'school': school?.toJson(),
   };
 
   factory TeacherState.fromJson(Map<String, dynamic> json) {
@@ -573,6 +591,11 @@ class TeacherState extends Equatable {
         (value) => value.name == json['traineeVerification'],
         orElse: () => TraineeVerification.none,
       ),
+      school: json['school'] is Map
+          ? TeacherSchool.fromJson(
+              Map<String, dynamic>.from(json['school'] as Map),
+            )
+          : null,
     );
   }
 
@@ -583,6 +606,7 @@ class TeacherState extends Equatable {
     materials,
     audioExplanations,
     traineeVerification,
+    school,
   ];
 }
 
@@ -983,6 +1007,11 @@ class TeacherNotifier extends StateNotifier<TeacherState> {
     TraineeVerification verification,
   ) async {
     state = state.copyWith(traineeVerification: verification);
+    await _save();
+  }
+
+  Future<void> setSchool(TeacherSchool? school) async {
+    state = state.copyWith(school: school, clearSchool: school == null);
     await _save();
   }
 }

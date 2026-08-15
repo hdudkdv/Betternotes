@@ -65,6 +65,8 @@ class BackupService {
         'plannerV1': prefs.getString('plannerV1'),
         'timetableV2': prefs.getString('timetableV2') ?? prefs.getString('timetableV1'),
         'userRole': prefs.getString('userRole'),
+        'teacherTrack': prefs.getString('teacherTrack'),
+        'profileSetupCompleted': prefs.getBool('profileSetupCompleted'),
         'teacherWorkspaceV1': prefs.getString('teacherWorkspaceV1'),
         'classroomAutoConnectEnabled':
             prefs.getBool('classroomAutoConnectEnabled'),
@@ -249,6 +251,14 @@ class BackupService {
     final userRole = manifest['userRole'];
     if (userRole is String && userRole.isNotEmpty) {
       await prefs.setString('userRole', userRole);
+    }
+    final teacherTrack = manifest['teacherTrack'];
+    if (teacherTrack is String && teacherTrack.isNotEmpty) {
+      await prefs.setString('teacherTrack', teacherTrack);
+    }
+    final profileSetup = manifest['profileSetupCompleted'];
+    if (profileSetup is bool) {
+      await prefs.setBool('profileSetupCompleted', profileSetup);
     }
     final teacherWorkspace = manifest['teacherWorkspaceV1'];
     if (teacherWorkspace is String && teacherWorkspace.isNotEmpty) {

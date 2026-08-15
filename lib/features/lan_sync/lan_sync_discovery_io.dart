@@ -16,6 +16,7 @@ class NearbyDiscoveredHost {
     this.deviceId,
     this.classroomSubject,
     this.classroomRoom,
+    this.classroomBeacon,
   });
 
   final String name;
@@ -26,6 +27,7 @@ class NearbyDiscoveredHost {
   final String? deviceId;
   final String? classroomSubject;
   final String? classroomRoom;
+  final String? classroomBeacon;
 
   String get key => '$host:$port:$sessionCode';
 }
@@ -57,6 +59,7 @@ class LanSyncDiscovery {
     String? notebookTitle,
     String? classroomSubject,
     String? classroomRoom,
+    String? classroomBeacon,
   }) async {
     await stopAdvertising();
     if (kIsWeb) return;
@@ -82,6 +85,8 @@ class LanSyncDiscovery {
           'room': classroomRoom.trim().length > 24
               ? classroomRoom.trim().substring(0, 24)
               : classroomRoom.trim(),
+        if (classroomBeacon != null && classroomBeacon.isNotEmpty)
+          'bh': classroomBeacon,
       },
     );
     _broadcast = BonsoirBroadcast(service: service);
@@ -120,6 +125,7 @@ class LanSyncDiscovery {
             deviceId: service.attributes['did'],
             classroomSubject: service.attributes['subject'],
             classroomRoom: service.attributes['room'],
+            classroomBeacon: service.attributes['bh'],
           );
           _hosts[item.key] = item;
           _publish();

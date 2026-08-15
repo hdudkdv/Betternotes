@@ -11,6 +11,7 @@ class NearbyDiscoveredHost {
     this.deviceId,
     this.classroomSubject,
     this.classroomRoom,
+    this.classroomBeacon,
   });
 
   final String name;
@@ -21,6 +22,7 @@ class NearbyDiscoveredHost {
   final String? deviceId;
   final String? classroomSubject;
   final String? classroomRoom;
+  final String? classroomBeacon;
 
   String get key => '$host:$port:$sessionCode';
 }
@@ -41,6 +43,7 @@ class LanSyncDiscovery {
     String? notebookTitle,
     String? classroomSubject,
     String? classroomRoom,
+    String? classroomBeacon,
   }) async {}
 
   Future<void> stopAdvertising() async {}

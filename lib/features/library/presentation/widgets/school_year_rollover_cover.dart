@@ -56,7 +56,12 @@ class SchoolYearRolloverCover extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            l10n.schoolClassValue(candidate.nextClass),
+                            candidate.term?.label(l10n) ??
+                                (candidate.nextClass == null
+                                    ? l10n.newTermNotebook
+                                    : l10n.schoolClassValue(
+                                        candidate.nextClass!,
+                                      )),
                             style: AppTheme.body(
                               color: color,
                               fontSize: 11,
@@ -68,7 +73,9 @@ class SchoolYearRolloverCover extends StatelessWidget {
                         Icon(Icons.auto_stories_outlined, color: color, size: 28),
                         const SizedBox(height: 10),
                         Text(
-                          l10n.newSchoolYearNotebook,
+                          candidate.term == null
+                              ? l10n.newSchoolYearNotebook
+                              : l10n.newTermNotebook,
                           maxLines: 4,
                           overflow: TextOverflow.ellipsis,
                           style: AppTheme.headline(
@@ -129,7 +136,7 @@ class SchoolYearRolloverCover extends StatelessWidget {
 Future<List<String>?> promptSchoolYearChapterImport(
   BuildContext context, {
   required Notebook source,
-  required int nextClass,
+  required String periodLabel,
   required List<String> chapterTitles,
 }) {
   return showDialog<List<String>>(
@@ -157,9 +164,9 @@ Future<List<String>?> promptSchoolYearChapterImport(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            l10n.importChaptersBody(
+                            l10n.importChaptersBodyTerm(
                               source.title,
-                              nextClass,
+                              periodLabel,
                             ),
                             style: AppTheme.body(
                               color: AppTheme.inkMuted,

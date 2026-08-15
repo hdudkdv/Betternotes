@@ -200,6 +200,7 @@ class NotePage extends Equatable {
     this.updatedAt,
     this.paperFormat = PaperFormat.a4,
     this.orientation = PageOrientation.portrait,
+    this.searchIndex,
   });
 
   final String id;
@@ -223,6 +224,9 @@ class NotePage extends Equatable {
   final PaperFormat paperFormat;
   final PageOrientation orientation;
 
+  /// Invisible OCR / ink-recognition text used only by global search.
+  final String? searchIndex;
+
   NotePage copyWith({
     int? index,
     PageTemplate? template,
@@ -237,6 +241,7 @@ class NotePage extends Equatable {
     DateTime? updatedAt,
     PaperFormat? paperFormat,
     PageOrientation? orientation,
+    String? searchIndex,
     bool clearBackgroundPdf = false,
     bool clearPaperTemplate = false,
     bool clearCustomPaper = false,
@@ -261,6 +266,7 @@ class NotePage extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       paperFormat: paperFormat ?? this.paperFormat,
       orientation: orientation ?? this.orientation,
+      searchIndex: searchIndex ?? this.searchIndex,
     );
   }
 
@@ -280,6 +286,7 @@ class NotePage extends Equatable {
     'updatedAt': updatedAt?.toIso8601String(),
     'paperFormat': paperFormat.name,
     'orientation': orientation.name,
+    'searchIndex': searchIndex,
   };
 
   factory NotePage.fromJson(Map<String, dynamic> json) {
@@ -326,6 +333,7 @@ class NotePage extends Equatable {
         (orientation) => orientation.name == json['orientation'],
         orElse: () => PageOrientation.portrait,
       ),
+      searchIndex: json['searchIndex'] as String?,
     );
   }
 
@@ -371,5 +379,6 @@ class NotePage extends Equatable {
     updatedAt,
     paperFormat,
     orientation,
+    searchIndex,
   ];
 }
