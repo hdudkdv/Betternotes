@@ -31,6 +31,8 @@ class InkEngine extends ChangeNotifier {
   StrokeStyle strokeStyle = StrokeStyle.solid;
   EraserMode eraserMode = EraserMode.stroke;
   Offset? eraserCursor;
+  Set<ContentKind> eraseTargets = {...kDefaultContentTargets};
+  Set<ContentKind> lassoTargets = {...kDefaultContentTargets};
 
   /// 0 = ignore stylus pressure, 1 = full pressure response.
   double pressureSensitivity = 0.0;
@@ -42,12 +44,23 @@ class InkEngine extends ChangeNotifier {
   Offset Function(Offset point)? pointConstraint;
 
   List<Offset> _lassoPoints = [];
+  List<Offset> _closedLasso = [];
   Set<String> selectedIds = {};
   Offset? _guideOrigin;
 
   List<InkStroke> get strokes => List.unmodifiable(_strokes);
   InkStroke? get activeStroke => _activeStroke;
   List<Offset> get lassoPoints => List.unmodifiable(_lassoPoints);
+  List<Offset> get lastClosedLasso => List.unmodifiable(_closedLasso);
+
+  /// Visual / hit radius of the eraser tip. Precise mode uses a much smaller
+  /// contact than stroke/section so "Genau" only lifts a narrow band of ink.
+  double get eraseRadius {
+    if (eraserMode == EraserMode.precise) {
+      return (width * 0.22).clamp(0.6, width * 0.35);
+    }
+    return width / 2;
+  }
 
   /// Bumps whenever the active stroke geometry changes in place.
   int get paintEpoch => _paintEpoch;
@@ -161,6 +174,35 @@ class InkEngine extends ChangeNotifier {
   void setEraserMode(EraserMode mode) {
     eraserMode = mode;
     notifyListeners();
+  }
+
+  void setEraseTargets(Set<ContentKind> value) {
+    eraseTargets = Set<ContentKind>.of(value);
+    notifyListeners();
+  }
+
+  void setLassoTargets(Set<ContentKind> value) {
+    lassoTargets = Set<ContentKind>.of(value);
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    if (selectedIds.isEmpty && _lassoPoints.isEmpty && _closedLasso.isEmpty) {
+      return;
+    }
+    selectedIds = {};
+    _lassoPoints = [];
+    _closedLasso = [];
+    notifyListeners();
+  }
+
+  bool selectionHits(Offset point, {double tolerance = 14}) {
+    if (selectedIds.isEmpty) return false;
+    for (final s in _strokes) {
+      if (!selectedIds.contains(s.id)) continue;
+      if (s.hitsPoint(point, tolerance: tolerance)) return true;
+    }
+    return false;
   }
 
   void replaceStrokes(
@@ -278,8 +320,8 @@ class InkEngine extends ChangeNotifier {
     final last = active.points.last;
     final dx = point.dx - last.x;
     final dy = point.dy - last.y;
-    // Pencil: a bit coarser than pen (paint cost), still dense enough for grain.
-    final minDist2 = tool == InkTool.pencil ? 0.49 : 0.16;
+    // Pencil keeps a slightly coarser sample than pen so grain stays cheap.
+    final minDist2 = tool == InkTool.pencil ? 0.36 : 0.16;
     if (dx * dx + dy * dy < minDist2) return;
 
     active.points.add(
@@ -314,10 +356,12 @@ class InkEngine extends ChangeNotifier {
     }
 
     if (tool == InkTool.lasso) {
-      if (_lassoPoints.length >= 3) {
+      _closedLasso = _lassoPoints.length >= 3 ? List.of(_lassoPoints) : [];
+      if (_closedLasso.length >= 3) {
         final hit = <String>{};
         for (final s in _strokes) {
-          if (s.intersectsPolygon(_lassoPoints)) hit.add(s.id);
+          if (!matchesContentFilter(s, lassoTargets)) continue;
+          if (s.intersectsPolygon(_closedLasso)) hit.add(s.id);
         }
         selectedIds = hit;
       }
@@ -417,11 +461,16 @@ class InkEngine extends ChangeNotifier {
   }
 
   void _eraseAt(Offset point) {
-    final radius = width / 2;
+    final radius = eraseRadius;
+    final precise = eraserMode == EraserMode.precise;
     switch (eraserMode) {
       case EraserMode.stroke:
         final hit = _strokes
-            .where((s) => s.hitsPoint(point, tolerance: radius))
+            .where(
+              (s) =>
+                  matchesContentFilter(s, eraseTargets) &&
+                  s.hitsPoint(point, tolerance: radius),
+            )
             .toList();
         if (hit.isEmpty) {
           notifyListeners();
@@ -434,7 +483,8 @@ class InkEngine extends ChangeNotifier {
         final next = <InkStroke>[];
         var changed = false;
         for (final s in _strokes) {
-          if (!s.hitsPoint(point, tolerance: radius)) {
+          if (!matchesContentFilter(s, eraseTargets) ||
+              !s.hitsPoint(point, tolerance: radius)) {
             next.add(s);
             continue;
           }
@@ -454,7 +504,12 @@ class InkEngine extends ChangeNotifier {
         final next = <InkStroke>[];
         var changed = false;
         for (final s in _strokes) {
-          if (!s.hitsPoint(point, tolerance: radius)) {
+          if (!matchesContentFilter(s, eraseTargets) ||
+              !s.hitsPoint(
+                point,
+                tolerance: radius,
+                includeStrokeWidth: !precise,
+              )) {
             next.add(s);
             continue;
           }

@@ -51,4 +51,75 @@ void main() {
     expect(stroke.hitsPoint(const Offset(180, 20), tolerance: 6), isFalse);
     expect(stroke.hitsPoint(const Offset(20, 180), tolerance: 6), isFalse);
   });
+
+  test('precise eraser uses a much smaller tip than stroke mode', () {
+    final engine = InkEngine()
+      ..setTool(InkTool.eraser)
+      ..setWidth(16)
+      ..setEraserMode(EraserMode.stroke);
+    expect(engine.eraseRadius, 8);
+    engine.setEraserMode(EraserMode.precise);
+    expect(engine.eraseRadius, lessThan(4));
+  });
+
+  test('eraser skips strokes that are not in eraseTargets', () {
+    final engine = InkEngine(
+      initial: [
+        InkStroke(
+          id: 'pen',
+          tool: InkTool.pen,
+          colorValue: 0xFF000000,
+          width: 4,
+          points: const [StrokePoint(x: 0, y: 0), StrokePoint(x: 40, y: 0)],
+        ),
+        InkStroke(
+          id: 'pencil',
+          tool: InkTool.pencil,
+          colorValue: 0xFF000000,
+          width: 4,
+          points: const [StrokePoint(x: 0, y: 0), StrokePoint(x: 40, y: 0)],
+        ),
+      ],
+    )
+      ..setTool(InkTool.eraser)
+      ..setWidth(20)
+      ..setEraserMode(EraserMode.stroke)
+      ..setEraseTargets({ContentKind.pen});
+
+    engine.beginStroke(const Offset(20, 0));
+    engine.endStroke();
+
+    expect(engine.strokes.map((s) => s.id), ['pencil']);
+  });
+
+  test('lasso only selects strokes allowed by lassoTargets', () {
+    final engine = InkEngine(
+      initial: [
+        InkStroke(
+          id: 'pen',
+          tool: InkTool.pen,
+          colorValue: 0xFF000000,
+          width: 3,
+          points: const [StrokePoint(x: 10, y: 10), StrokePoint(x: 12, y: 12)],
+        ),
+        InkStroke(
+          id: 'marker',
+          tool: InkTool.marker,
+          colorValue: 0xFF000000,
+          width: 8,
+          points: const [StrokePoint(x: 10, y: 10), StrokePoint(x: 12, y: 12)],
+        ),
+      ],
+    )
+      ..setTool(InkTool.lasso)
+      ..setLassoTargets({ContentKind.marker});
+
+    engine.beginStroke(const Offset(0, 0));
+    engine.appendStroke(const Offset(40, 0));
+    engine.appendStroke(const Offset(40, 40));
+    engine.appendStroke(const Offset(0, 40));
+    engine.endStroke();
+
+    expect(engine.selectedIds, {'marker'});
+  });
 }

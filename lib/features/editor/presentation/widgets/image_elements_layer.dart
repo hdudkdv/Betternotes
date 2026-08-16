@@ -80,6 +80,28 @@ class ImageElementsLayer extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (editable && selectedId == image.id) ...[
+                    _ResizeHandle(
+                      alignment: Alignment.topLeft,
+                      image: image,
+                      onChanged: onChanged,
+                    ),
+                    _ResizeHandle(
+                      alignment: Alignment.topRight,
+                      image: image,
+                      onChanged: onChanged,
+                    ),
+                    _ResizeHandle(
+                      alignment: Alignment.bottomLeft,
+                      image: image,
+                      onChanged: onChanged,
+                    ),
+                    _ResizeHandle(
+                      alignment: Alignment.bottomRight,
+                      image: image,
+                      onChanged: onChanged,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -97,6 +119,64 @@ class ImageElementsLayer extends StatelessWidget {
       errorBuilder: (context, error, stackTrace) {
         return const ColoredBox(color: Color(0xFFE0E0E0));
       },
+    );
+  }
+}
+
+class _ResizeHandle extends StatelessWidget {
+  const _ResizeHandle({
+    required this.alignment,
+    required this.image,
+    required this.onChanged,
+  });
+
+  final Alignment alignment;
+  final ImageElement image;
+  final ValueChanged<ImageElement> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final left = alignment.x < 0;
+    final top = alignment.y < 0;
+    return Positioned(
+      left: left ? -8 : null,
+      right: left ? null : -8,
+      top: top ? -8 : null,
+      bottom: top ? null : -8,
+      child: GestureDetector(
+        onPanUpdate: (d) {
+          final sx = left ? -1.0 : 1.0;
+          final aspect = image.width <= 0 ? 1.0 : image.width / image.height;
+          var nextW = (image.width + d.delta.dx * sx).clamp(48.0, 2400.0);
+          var nextH = nextW / aspect;
+          if (nextH < 48) {
+            nextH = 48;
+            nextW = nextH * aspect;
+          }
+          var nextX = image.x;
+          var nextY = image.y;
+          if (left) nextX += image.width - nextW;
+          if (top) nextY += image.height - nextH;
+          onChanged(
+            image.copyWith(x: nextX, y: nextY, width: nextW, height: nextH),
+          );
+        },
+        child: Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(
+              color: EditorChrome.toolbarSelected,
+              width: 2,
+            ),
+            borderRadius: BorderRadius.circular(3),
+            boxShadow: const [
+              BoxShadow(color: Color(0x33000000), blurRadius: 3),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

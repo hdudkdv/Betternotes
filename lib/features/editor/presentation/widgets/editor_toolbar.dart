@@ -9,6 +9,7 @@ import '../../domain/ink_models.dart';
 import '../../domain/rich_text_controller.dart';
 import '../../providers/tool_presets.dart';
 import '../editor_chrome.dart';
+import 'content_targets_sheet.dart';
 import 'text_format_bar.dart';
 
 /// Floating pill below the header that shows options for the active tool.
@@ -26,6 +27,8 @@ class ToolOptionsBar extends ConsumerWidget {
     required this.onPickImage,
     this.onDeleteImage,
     this.hasSelectedImage = false,
+    this.onDeleteSelection,
+    this.hasLassoSelection = false,
     this.onToggleRuler,
     this.onToggleCompass,
     this.rulerActive = false,
@@ -43,6 +46,8 @@ class ToolOptionsBar extends ConsumerWidget {
   final VoidCallback onAddText;
   final VoidCallback onPickImage;
   final VoidCallback? onDeleteImage;
+  final VoidCallback? onDeleteSelection;
+  final bool hasLassoSelection;
   final bool hasSelectedImage;
   final VoidCallback? onToggleRuler;
   final VoidCallback? onToggleCompass;
@@ -165,7 +170,24 @@ class ToolOptionsBar extends ConsumerWidget {
         }
       });
     }
+    if (!_sameKinds(engine.eraseTargets, presets.eraseTargets)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_sameKinds(engine.eraseTargets, presets.eraseTargets)) {
+          engine.setEraseTargets(presets.eraseTargets);
+        }
+      });
+    }
+    if (!_sameKinds(engine.lassoTargets, presets.lassoTargets)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_sameKinds(engine.lassoTargets, presets.lassoTargets)) {
+          engine.setLassoTargets(presets.lassoTargets);
+        }
+      });
+    }
   }
+
+  bool _sameKinds(Set<ContentKind> a, Set<ContentKind> b) =>
+      a.length == b.length && a.containsAll(b);
 
   List<Widget> _optionsFor(
     BuildContext context,
@@ -174,6 +196,9 @@ class ToolOptionsBar extends ConsumerWidget {
   ) {
     switch (engine.tool) {
       case InkTool.none:
+        if (rulerActive || compassActive) {
+          return _guideChips(context, l10n);
+        }
         return const [];
       case InkTool.pen:
       case InkTool.fountain:
@@ -205,6 +230,8 @@ class ToolOptionsBar extends ConsumerWidget {
         return [
           ..._guideChips(context, l10n),
           _divider(),
+          ..._strokeStyleChips(context, l10n),
+          _divider(),
           ..._pressureSlider(context, l10n),
           _divider(),
           ..._widthChips(context, l10n, presets, engine.tool),
@@ -225,17 +252,31 @@ class ToolOptionsBar extends ConsumerWidget {
         return [
           _eraserModeChip(context, l10n, presets),
           _divider(),
+          _targetsChip(
+            context,
+            l10n,
+            presets,
+            eraser: true,
+          ),
+          _divider(),
           ..._eraserSizes(context, l10n, presets),
         ];
       case InkTool.lasso:
         return [
-          if (engine.selectedIds.isEmpty)
+          _targetsChip(
+            context,
+            l10n,
+            presets,
+            eraser: false,
+          ),
+          _divider(),
+          if (engine.selectedIds.isEmpty && !hasLassoSelection)
             _hint(l10n.lasso)
           else
             _pillAction(
               icon: Icons.delete_outline_rounded,
               label: l10n.deleteSelection,
-              onTap: engine.deleteSelected,
+              onTap: onDeleteSelection ?? engine.deleteSelected,
             ),
         ];
       case InkTool.text:
@@ -561,6 +602,87 @@ class ToolOptionsBar extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _targetsChip(
+    BuildContext context,
+    AppLocalizations l10n,
+    ToolPresets presets, {
+    required bool eraser,
+  }) {
+    final selected = eraser ? engine.eraseTargets : engine.lassoTargets;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Tooltip(
+        message: l10n.editTargetsHint,
+        child: InkWell(
+          onTap: () => _editTargets(context, l10n, presets, eraser: eraser),
+          onLongPress: () =>
+              _editTargets(context, l10n, presets, eraser: eraser),
+          borderRadius: BorderRadius.circular(17),
+          child: Container(
+            height: 34,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0x1FFFFFFF),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  eraser
+                      ? Icons.filter_alt_outlined
+                      : Icons.filter_center_focus_outlined,
+                  size: 17,
+                  color: EditorChrome.onDark,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  eraser ? l10n.eraserTargets : l10n.lassoTargets,
+                  style: TextStyle(
+                    color: EditorChrome.onDark,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${selected.length}',
+                  style: TextStyle(
+                    color: EditorChrome.onDarkMuted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editTargets(
+    BuildContext context,
+    AppLocalizations l10n,
+    ToolPresets presets, {
+    required bool eraser,
+  }) {
+    return showContentTargetsSheet(
+      context,
+      title: eraser ? l10n.eraserTargetsTitle : l10n.lassoTargetsTitle,
+      selected: eraser ? engine.eraseTargets : engine.lassoTargets,
+      onChanged: (value) {
+        if (eraser) {
+          presets.setEraseTargets(value);
+          engine.setEraseTargets(value);
+        } else {
+          presets.setLassoTargets(value);
+          engine.setLassoTargets(value);
+        }
+      },
     );
   }
 

@@ -124,6 +124,8 @@ class InkCanvasState extends State<InkCanvas>
   /// controller is still identity (scale=1), which must NOT count as zoomed —
   /// otherwise page-swipe is locked and the page pans at the wrong size.
   bool _fitReady = false;
+  bool _fitCommitScheduled = false;
+  bool _forceNextFit = false;
 
   /// Current zoom relative to the scale at which the page fits the viewport.
   double get relativeZoom =>
@@ -141,8 +143,9 @@ class InkCanvasState extends State<InkCanvas>
     return scale > _fitScale * 1.12;
   }
 
-  double get _minScale =>
-      widget.canvasMode == CanvasMode.infinite ? 0.012 : _fitScale;
+  double get _minScale => widget.canvasMode == CanvasMode.infinite
+      ? 0.012
+      : (_fitScale > 0.05 ? _fitScale : 0.2);
 
   double get _maxScale =>
       widget.canvasMode == CanvasMode.infinite ? 80.0 : _fitScale * 8.0;
@@ -218,10 +221,23 @@ class InkCanvasState extends State<InkCanvas>
 
   /// Keep the same page point under the viewport center when the keyboard
   /// (or any inset) changes the available size — never jump back to fit-zoom.
+  bool _isUsableViewport(Size viewport) =>
+      viewport.width >= 64 && viewport.height >= 64;
+
+  bool _isBogusIdentityScale(double scale) =>
+      (scale - 1.0).abs() < 0.02 && _fitScale > 0 && (_fitScale - 1.0).abs() > 0.08;
+
   void _retainViewOnViewportChange(Size oldViewport, Size newViewport) {
-    if (oldViewport == Size.zero || newViewport == Size.zero) return;
+    if (!_isUsableViewport(oldViewport) || !_isUsableViewport(newViewport)) {
+      _applyFit(newViewport);
+      return;
+    }
     final current = _transform.value;
     final scale = current.getMaxScaleOnAxis();
+    if (_isBogusIdentityScale(scale) || !_fitReady) {
+      _applyFit(newViewport);
+      return;
+    }
     final inv = Matrix4.inverted(current);
     final pageFocus = MatrixUtils.transformPoint(
       inv,
@@ -236,6 +252,40 @@ class InkCanvasState extends State<InkCanvas>
       ..setEntry(0, 3, newCenter.dx - pageFocus.dx * clamped)
       ..setEntry(1, 3, newCenter.dy - pageFocus.dy * clamped);
     _clampView();
+  }
+
+  void _applyFit(Size viewport) {
+    if (!_isUsableViewport(viewport)) return;
+    _viewportSize = viewport;
+    _fittedViewport = viewport;
+    _fittedPageSize = widget.pageSize;
+    _transform.value = _fitMatrix(viewport);
+    _fitReady = true;
+    _forceNextFit = false;
+    _forceScrollUnlock();
+  }
+
+  /// Fit matrix for this frame without notifying [InteractiveViewer] mid-build.
+  Matrix4 _fitMatrixForDisplay(Size viewport) {
+    return _fitMatrix(viewport);
+  }
+
+  void _commitFitAfterBuild(Size viewport, Matrix4 matrix) {
+    if (_fitCommitScheduled) return;
+    _fitCommitScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fitCommitScheduled = false;
+      if (!mounted) return;
+      if (!_isUsableViewport(viewport)) return;
+      _fittedViewport = viewport;
+      _fittedPageSize = widget.pageSize;
+      _fitReady = true;
+      _forceNextFit = false;
+      if (_transform.value != matrix) {
+        _transform.value = matrix;
+      }
+      _forceScrollUnlock();
+    });
   }
 
   /// Pan translation limits for the current scale (scene → viewport).
@@ -291,21 +341,19 @@ class InkCanvasState extends State<InkCanvas>
 
   void _snapToFitIfNeeded() {
     if (widget.canvasMode == CanvasMode.infinite) return;
-    if (_viewportSize == Size.zero) return;
+    if (!_isUsableViewport(_viewportSize)) return;
     final scale = _transform.value.getMaxScaleOnAxis();
-    // Keep intentional zoom. Only settle back to fit when the user has
-    // pinched almost all the way out — snapping at 12% made zoom feel stuck.
-    if (_fitReady && scale > _fitScale * 1.03) {
+    final keepZoom =
+        _fitReady &&
+        _fitScale > 0 &&
+        scale > _fitScale * 1.04 &&
+        !_isBogusIdentityScale(scale);
+    if (keepZoom) {
       _clampView();
       _updateScrollLock();
       return;
     }
-    final fitted = _fitMatrix(_viewportSize);
-    if (_transform.value != fitted) {
-      _transform.value = fitted;
-    }
-    _fitReady = true;
-    _forceScrollUnlock();
+    _applyFit(_viewportSize);
   }
 
   /// Smoothly pans so [pagePoint] sits near the top of the visible area
@@ -387,8 +435,8 @@ class InkCanvasState extends State<InkCanvas>
       _fittedViewport = null;
       _fittedPageSize = null;
       _fitReady = false;
+      _forceNextFit = true;
       _zoomedSent = true; // force a false emit after the new fit lands
-      // Unlock immediately so a mid-fit identity matrix cannot freeze swipe.
       widget.onZoomedChanged?.call(false);
       widget.onScrollLockChanged?.call(false);
       _scrollLockSent = false;
@@ -937,39 +985,26 @@ class InkCanvasState extends State<InkCanvas>
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
-        _viewportSize = viewport;
+        if (_isUsableViewport(viewport)) {
+          _viewportSize = viewport;
+        }
         _keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-        if (!infinite && viewport.width > 0) {
+        Matrix4? pageDisplay;
+        if (!infinite && _isUsableViewport(viewport)) {
           final pageChanged = _fittedPageSize != widget.pageSize;
           final viewportChanged = _fittedViewport != viewport;
-          if (_fittedViewport == null || pageChanged) {
-            final firstFit = _fittedViewport == null;
-            _fittedPageSize = widget.pageSize;
-            _fittedViewport = viewport;
-            final matrix = _fitMatrix(viewport);
-            if (firstFit) {
-              // InteractiveViewer is not listening yet this build — safe to
-              // write the fit matrix synchronously so the first paint is correct
-              // and page-swipe is not locked by identity scale=1.
-              _transform.value = matrix;
-              _fitReady = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) _forceScrollUnlock();
-              });
-            } else {
-              _fitReady = false;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                _transform.value = matrix;
-                _fitReady = true;
-                _forceScrollUnlock();
-              });
-            }
+          final mustFit =
+              _forceNextFit ||
+              !_fitReady ||
+              _fittedViewport == null ||
+              pageChanged ||
+              _isBogusIdentityScale(_transform.value.getMaxScaleOnAxis());
+          if (mustFit) {
+            pageDisplay = _fitMatrixForDisplay(viewport);
+            _commitFitAfterBuild(viewport, pageDisplay);
           } else if (viewportChanged) {
             final oldViewport = _fittedViewport!;
             _fittedViewport = viewport;
-            // Keyboard / safe-area changes must not throw the user back to
-            // fit-zoom while they are typing.
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 _retainViewOnViewportChange(oldViewport, viewport);
@@ -982,25 +1017,7 @@ class InkCanvasState extends State<InkCanvas>
         final minScale = _minScale <= 0 ? 0.01 : _minScale;
         final maxScale = _maxScale;
 
-        return InteractiveViewer(
-          transformationController: _transform,
-          constrained: false,
-          // Page mode: no slack margin — otherwise the page can drift.
-          boundaryMargin: EdgeInsets.all(infinite ? margin : 0),
-          minScale: minScale,
-          maxScale: maxScale,
-          // Pinch/pan are handled in [Listener] so they never race PageView.
-          panEnabled: _keyboardOpen && !_drawing,
-          scaleEnabled: false,
-          onInteractionEnd: infinite
-              ? null
-              : (_) {
-                  _snapToFitIfNeeded();
-                },
-          // Listener fills the gutter too so left/right swipes starting on the
-          // margin still drive page browse. Drawing coords are shifted back
-          // into page space below.
-          child: SizedBox(
+        final scene = SizedBox(
             width: pageSize.width + (infinite ? 0 : 64),
             height: pageSize.height + (infinite ? 0 : 64),
             child: Stack(
@@ -1087,7 +1104,7 @@ class InkCanvasState extends State<InkCanvas>
                                               ? widget.engine.eraserCursor
                                               : null,
                                           eraserRadius: erasing
-                                              ? widget.engine.width / 2
+                                              ? widget.engine.eraseRadius
                                               : null,
                                           paintEpoch: widget.engine.paintEpoch,
                                           cacheSettled: true,
@@ -1111,6 +1128,32 @@ class InkCanvasState extends State<InkCanvas>
                   ),
               ],
             ),
+          );
+
+        if (infinite) {
+          return InteractiveViewer(
+            transformationController: _transform,
+            constrained: false,
+            boundaryMargin: EdgeInsets.all(margin),
+            minScale: minScale,
+            maxScale: maxScale,
+            panEnabled: _keyboardOpen && !_drawing,
+            scaleEnabled: false,
+            child: scene,
+          );
+        }
+
+        return ClipRect(
+          child: ListenableBuilder(
+            listenable: _transform,
+            builder: (context, _) {
+              return Transform(
+                transform: pageDisplay ?? _transform.value,
+                alignment: Alignment.topLeft,
+                filterQuality: FilterQuality.low,
+                child: scene,
+              );
+            },
           ),
         );
       },

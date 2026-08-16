@@ -55,6 +55,64 @@ enum EraserMode {
   precise,
 }
 
+/// Page content the eraser or lasso may affect.
+enum ContentKind { pen, pencil, marker, shapes, text, images }
+
+/// Ink kinds the tools currently touch (matches previous behaviour).
+const kDefaultContentTargets = {
+  ContentKind.pen,
+  ContentKind.pencil,
+  ContentKind.marker,
+};
+
+bool matchesContentFilter(InkStroke stroke, Set<ContentKind> kinds) {
+  switch (stroke.tool) {
+    case InkTool.pen:
+    case InkTool.fountain:
+      return kinds.contains(ContentKind.pen);
+    case InkTool.pencil:
+      return kinds.contains(ContentKind.pencil);
+    case InkTool.marker:
+      return kinds.contains(ContentKind.marker);
+    default:
+      return false;
+  }
+}
+
+bool pointInPolygon(Offset point, List<Offset> polygon) {
+  var inside = false;
+  for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    final pi = polygon[i];
+    final pj = polygon[j];
+    final intersect =
+        ((pi.dy > point.dy) != (pj.dy > point.dy)) &&
+        (point.dx <
+            (pj.dx - pi.dx) * (point.dy - pi.dy) / (pj.dy - pi.dy + 0.00001) +
+                pi.dx);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+bool rectIntersectsPolygon(Rect rect, List<Offset> polygon) {
+  if (polygon.length < 3 || rect.isEmpty) return false;
+  const samples = 5;
+  final points = <Offset>[
+    rect.center,
+    rect.topLeft,
+    rect.topRight,
+    rect.bottomLeft,
+    rect.bottomRight,
+  ];
+  for (var i = 0; i < samples; i++) {
+    if (pointInPolygon(points[i], polygon)) return true;
+  }
+  for (final p in polygon) {
+    if (rect.contains(p)) return true;
+  }
+  return false;
+}
+
 enum PageTemplate { blank, lined, grid }
 
 class StrokePoint extends Equatable {
@@ -144,8 +202,12 @@ class InkStroke extends Equatable {
   /// True only when [point] is within [tolerance] of the polyline itself.
   /// The bounding box is a cull, never a hit — a diagonal stroke must not
   /// erase when the tip is merely inside the rectangle around the line.
-  bool hitsPoint(Offset point, {double tolerance = 0}) {
-    final raw = tolerance + paintWidth / 2;
+  bool hitsPoint(
+    Offset point, {
+    double tolerance = 0,
+    bool includeStrokeWidth = true,
+  }) {
+    final raw = tolerance + (includeStrokeWidth ? paintWidth / 2 : 0);
     final hitR = raw < 0.75 ? 0.75 : raw;
     if (!boundingBox.inflate(hitR).contains(point)) return false;
     if (points.length == 1) {
@@ -163,7 +225,7 @@ class InkStroke extends Equatable {
   bool intersectsPolygon(List<Offset> polygon) {
     if (polygon.length < 3) return false;
     for (final p in points) {
-      if (_pointInPolygon(p.offset, polygon)) return true;
+      if (pointInPolygon(p.offset, polygon)) return true;
     }
     return false;
   }
@@ -210,7 +272,7 @@ class InkStroke extends Equatable {
   }) {
     if (points.isEmpty) return const [];
     final keep = List<bool>.filled(points.length, true);
-    final hitR = radius + width / 2;
+    final hitR = radius < 0.6 ? 0.6 : radius;
     var anyRemoved = false;
     for (var i = 0; i < points.length; i++) {
       if ((points[i].offset - center).distance <= hitR) {
@@ -358,21 +420,6 @@ class InkStroke extends Equatable {
     t = t.clamp(0.0, 1.0);
     final proj = Offset(a.dx + ab.dx * t, a.dy + ab.dy * t);
     return (p - proj).distance;
-  }
-
-  static bool _pointInPolygon(Offset point, List<Offset> polygon) {
-    var inside = false;
-    for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      final pi = polygon[i];
-      final pj = polygon[j];
-      final intersect =
-          ((pi.dy > point.dy) != (pj.dy > point.dy)) &&
-          (point.dx <
-              (pj.dx - pi.dx) * (point.dy - pi.dy) / (pj.dy - pi.dy + 0.00001) +
-                  pi.dx);
-      if (intersect) inside = !inside;
-    }
-    return inside;
   }
 
   @override

@@ -43,6 +43,7 @@ import '../providers/tool_presets.dart';
 import 'editor_chrome.dart';
 import 'paper_creator_screen.dart';
 import 'widgets/editor_hud.dart';
+import 'widgets/content_targets_sheet.dart';
 import 'widgets/editor_toolbar.dart';
 import 'widgets/editor_top_bar.dart';
 import 'widgets/image_elements_layer.dart';
@@ -63,11 +64,13 @@ import '../../flashcards/create_flashcard_dialog.dart';
 import '../../import_export/import_export_providers.dart';
 import '../../tools/calculator/calculator_panel.dart';
 import '../../tools/calculator/calculator_store.dart';
-import '../../tools/calculator/function_plotter.dart';
+import '../../tools/calculator/graph_studio_sheet.dart';
+import '../../tools/charts/chart_builder.dart';
 import '../../tools/editor_tool_panel.dart';
 import '../../tools/formula_book/formula_book_panel.dart';
 import '../../tools/formula_book/formula_book_store.dart';
 import '../../tools/assistant/assistant_panel.dart';
+import '../../packs/pack_studio_sheet.dart';
 import '../../entitlements/entitlement_model.dart';
 import '../../sync/sync_engine.dart';
 
@@ -160,6 +163,9 @@ class EditorController extends ChangeNotifier {
   /// Text block with an active caret. Selection alone only arms dragging.
   String? editingTextId;
   String? selectedImageId;
+  Set<String> selectedShapeIds = {};
+  Set<String> selectedImageIds = {};
+  Set<String> selectedTextIds = {};
   ShapeKind shapeKind = ShapeKind.rect;
   ShapeElement? draftShape;
   final TextBlockRegistry textRegistry = TextBlockRegistry();
@@ -290,6 +296,9 @@ class EditorController extends ChangeNotifier {
     selectedTextId = null;
     editingTextId = null;
     selectedImageId = null;
+    selectedShapeIds = {};
+    selectedImageIds = {};
+    selectedTextIds = {};
     draftShape = null;
     _shapeStart = null;
     unawaited(lastPageStore.write(notebookId, page.id));
@@ -343,8 +352,266 @@ class EditorController extends ChangeNotifier {
   void _onInkChanged() {
     // The canvas repaints itself from the engine, so while a stroke is still
     // being drawn the surrounding chrome does not have to rebuild with it.
+    if (ink.tool != InkTool.lasso) {
+      _clearLassoObjects(notify: false);
+    }
     if (ink.activeStroke == null) notifyListeners();
     _scheduleSave();
+  }
+
+  bool get hasLassoSelection =>
+      ink.selectedIds.isNotEmpty ||
+      selectedShapeIds.isNotEmpty ||
+      selectedImageIds.isNotEmpty ||
+      selectedTextIds.isNotEmpty;
+
+  void _clearLassoObjects({bool notify = true}) {
+    if (selectedShapeIds.isEmpty &&
+        selectedImageIds.isEmpty &&
+        selectedTextIds.isEmpty) {
+      return;
+    }
+    selectedShapeIds = {};
+    selectedImageIds = {};
+    selectedTextIds = {};
+    if (notify) notifyListeners();
+  }
+
+  void clearLassoSelection() {
+    ink.clearSelection();
+    _clearLassoObjects();
+  }
+
+  void deleteLassoSelection() {
+    ink.deleteSelected();
+    var changed = false;
+    if (selectedShapeIds.isNotEmpty) {
+      shapes = [
+        for (final s in shapes)
+          if (!selectedShapeIds.contains(s.id)) s,
+      ];
+      selectedShapeIds = {};
+      changed = true;
+    }
+    if (selectedImageIds.isNotEmpty) {
+      images = [
+        for (final i in images)
+          if (!selectedImageIds.contains(i.id)) i,
+      ];
+      if (selectedImageId != null && selectedImageIds.contains(selectedImageId)) {
+        selectedImageId = null;
+      }
+      selectedImageIds = {};
+      changed = true;
+    }
+    if (selectedTextIds.isNotEmpty) {
+      textBlocks = [
+        for (final b in textBlocks)
+          if (!selectedTextIds.contains(b.id)) b,
+      ];
+      if (selectedTextId != null && selectedTextIds.contains(selectedTextId)) {
+        selectedTextId = null;
+        editingTextId = null;
+      }
+      selectedTextIds = {};
+      textRegistry.retainOnly({for (final b in textBlocks) b.id});
+      changed = true;
+    }
+    if (changed) {
+      notifyListeners();
+      _scheduleSave();
+    }
+  }
+
+  bool _lassoSelectionContains(Offset pagePoint) {
+    if (ink.selectionHits(pagePoint)) return true;
+    for (final shape in shapes) {
+      if (selectedShapeIds.contains(shape.id) &&
+          _shapeHits(shape, pagePoint, 10)) {
+        return true;
+      }
+    }
+    for (final image in images) {
+      if (selectedImageIds.contains(image.id) &&
+          image.bounds.inflate(8).contains(pagePoint)) {
+        return true;
+      }
+    }
+    final page = currentPage;
+    if (page != null) {
+      final metrics = _metricsForPage(page);
+      for (final block in textBlocks) {
+        if (!selectedTextIds.contains(block.id)) continue;
+        if (textBlockBounds(block: block, metrics: metrics)
+            .inflate(8)
+            .contains(pagePoint)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  void _moveLassoObjects(Offset delta) {
+    var changed = false;
+    if (selectedShapeIds.isNotEmpty) {
+      shapes = [
+        for (final s in shapes)
+          if (selectedShapeIds.contains(s.id))
+            s.copyWith(
+              x1: s.x1 + delta.dx,
+              y1: s.y1 + delta.dy,
+              x2: s.x2 + delta.dx,
+              y2: s.y2 + delta.dy,
+            )
+          else
+            s,
+      ];
+      changed = true;
+    }
+    if (selectedImageIds.isNotEmpty) {
+      images = [
+        for (final i in images)
+          if (selectedImageIds.contains(i.id))
+            i.copyWith(x: i.x + delta.dx, y: i.y + delta.dy)
+          else
+            i,
+      ];
+      changed = true;
+    }
+    if (selectedTextIds.isNotEmpty) {
+      textBlocks = [
+        for (final b in textBlocks)
+          if (selectedTextIds.contains(b.id))
+            b.copyWith(x: b.x + delta.dx, y: b.y + delta.dy)
+          else
+            b,
+      ];
+      changed = true;
+    }
+    if (changed) notifyListeners();
+  }
+
+  void _selectObjectsInLasso(List<Offset> polygon) {
+    if (polygon.length < 3) {
+      _clearLassoObjects();
+      return;
+    }
+    final targets = ink.lassoTargets;
+    final nextShapes = <String>{};
+    final nextImages = <String>{};
+    final nextText = <String>{};
+    if (targets.contains(ContentKind.shapes)) {
+      for (final shape in shapes) {
+        if (rectIntersectsPolygon(shape.bounds, polygon)) {
+          nextShapes.add(shape.id);
+        }
+      }
+    }
+    if (targets.contains(ContentKind.images)) {
+      for (final image in images) {
+        if (rectIntersectsPolygon(image.bounds, polygon)) {
+          nextImages.add(image.id);
+        }
+      }
+    }
+    if (targets.contains(ContentKind.text)) {
+      final page = currentPage;
+      if (page != null) {
+        final metrics = _metricsForPage(page);
+        for (final block in textBlocks) {
+          if (rectIntersectsPolygon(
+            textBlockBounds(block: block, metrics: metrics),
+            polygon,
+          )) {
+            nextText.add(block.id);
+          }
+        }
+      }
+    }
+    selectedShapeIds = nextShapes;
+    selectedImageIds = nextImages;
+    selectedTextIds = nextText;
+    notifyListeners();
+  }
+
+  void _erasePageObjects(Offset point) {
+    final radius = ink.eraseRadius;
+    final targets = ink.eraseTargets;
+    var changed = false;
+    if (targets.contains(ContentKind.shapes)) {
+      final next = [
+        for (final s in shapes)
+          if (!_shapeHits(s, point, radius)) s,
+      ];
+      if (next.length != shapes.length) {
+        shapes = next;
+        changed = true;
+      }
+    }
+    if (targets.contains(ContentKind.images)) {
+      final next = [
+        for (final i in images)
+          if (!i.bounds.inflate(radius).contains(point)) i,
+      ];
+      if (next.length != images.length) {
+        if (selectedImageId != null &&
+            !next.any((i) => i.id == selectedImageId)) {
+          selectedImageId = null;
+        }
+        images = next;
+        changed = true;
+      }
+    }
+    if (targets.contains(ContentKind.text)) {
+      final page = currentPage;
+      if (page != null) {
+        final metrics = _metricsForPage(page);
+        final next = [
+          for (final b in textBlocks)
+            if (!textBlockBounds(block: b, metrics: metrics)
+                .inflate(radius)
+                .contains(point))
+              b,
+        ];
+        if (next.length != textBlocks.length) {
+          if (selectedTextId != null &&
+              !next.any((b) => b.id == selectedTextId)) {
+            selectedTextId = null;
+            editingTextId = null;
+          }
+          textBlocks = next;
+          textRegistry.retainOnly({for (final b in textBlocks) b.id});
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      notifyListeners();
+      _scheduleSave();
+    }
+  }
+
+  bool _shapeHits(ShapeElement shape, Offset point, double radius) {
+    final pad = radius + shape.strokeWidth / 2;
+    if (shape.kind == ShapeKind.line || shape.kind == ShapeKind.arrow) {
+      return _distanceToSegment(
+            point,
+            Offset(shape.x1, shape.y1),
+            Offset(shape.x2, shape.y2),
+          ) <=
+          pad;
+    }
+    return shape.bounds.inflate(pad).contains(point);
+  }
+
+  static double _distanceToSegment(Offset p, Offset a, Offset b) {
+    final ab = b - a;
+    final len2 = ab.dx * ab.dx + ab.dy * ab.dy;
+    if (len2 == 0) return (p - a).distance;
+    var t = ((p.dx - a.dx) * ab.dx + (p.dy - a.dy) * ab.dy) / len2;
+    t = t.clamp(0.0, 1.0);
+    return (p - Offset(a.dx + ab.dx * t, a.dy + ab.dy * t)).distance;
   }
 
   void _onAidsChanged() {
@@ -1184,15 +1451,25 @@ class EditorController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if (ink.tool == InkTool.lasso && ink.selectedIds.isNotEmpty) {
-      _lassoDragStart = pagePoint;
-      _lassoAccum = Offset.zero;
-      _lassoBeforeMove = List.of(ink.strokes);
+    if (ink.tool == InkTool.lasso && hasLassoSelection) {
+      if (_lassoSelectionContains(pagePoint)) {
+        _lassoDragStart = pagePoint;
+        _lassoAccum = Offset.zero;
+        _lassoBeforeMove = List.of(ink.strokes);
+        return;
+      }
+      clearLassoSelection();
       return;
     }
     _shapeHoldTimer?.cancel();
     _convertedByHold = false;
+    if (ink.tool == InkTool.lasso) {
+      _clearLassoObjects(notify: false);
+    }
     ink.beginStroke(pagePoint, pressure: pressure);
+    if (ink.tool == InkTool.eraser) {
+      _erasePageObjects(pagePoint);
+    }
   }
 
   void onPointerMove(Offset pagePoint, {double pressure = 0.5}) {
@@ -1207,15 +1484,19 @@ class EditorController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if (_lassoDragStart != null && ink.selectedIds.isNotEmpty) {
+    if (_lassoDragStart != null && hasLassoSelection) {
       final delta = pagePoint - _lassoDragStart! - _lassoAccum;
       if (delta.distance > 0) {
         ink.moveSelected(delta);
+        _moveLassoObjects(delta);
         _lassoAccum += delta;
       }
       return;
     }
     ink.appendStroke(pagePoint, pressure: pressure);
+    if (ink.tool == InkTool.eraser) {
+      _erasePageObjects(pagePoint);
+    }
     _armShapeHold();
   }
 
@@ -1223,26 +1504,33 @@ class EditorController extends ChangeNotifier {
     _shapeHoldTimer?.cancel();
     if (!ink.tool.isFreehand) return;
     if (ink.activeStroke == null) return;
-    _shapeHoldTimer = Timer(const Duration(milliseconds: 520), _tryHoldRecognize);
+    _shapeHoldTimer = Timer(const Duration(milliseconds: 380), _tryHoldRecognize);
   }
 
   void _tryHoldRecognize() {
     if (_disposed) return;
+    if (_commitRecognizedShape(loose: true)) {
+      _convertedByHold = true;
+    }
+  }
+
+  bool _commitRecognizedShape({required bool loose}) {
     final page = currentPage;
     final stroke = ink.activeStroke;
-    if (page == null || stroke == null || !ink.tool.isFreehand) return;
+    if (page == null || stroke == null || !ink.tool.isFreehand) return false;
     final shape = ShapeRecognition.recognize(
       stroke.points,
       pageId: page.id,
       colorValue: stroke.colorValue,
       strokeWidth: stroke.width,
+      allowImperfectLine: loose,
     );
-    if (shape == null) return;
+    if (shape == null) return false;
     ink.cancelStroke();
     shapes = [...shapes, shape];
-    _convertedByHold = true;
     notifyListeners();
     _scheduleSave();
+    return true;
   }
 
   void onPointerUp() {
@@ -1270,13 +1558,18 @@ class EditorController extends ChangeNotifier {
     if (_lassoDragStart != null) {
       if (_lassoBeforeMove != null && _lassoAccum != Offset.zero) {
         ink.commitSelectionMove(_lassoBeforeMove!);
+        _scheduleSave();
       }
       _lassoDragStart = null;
       _lassoAccum = Offset.zero;
       _lassoBeforeMove = null;
       return;
     }
+    if (_commitRecognizedShape(loose: false)) return;
     ink.endStroke();
+    if (ink.tool == InkTool.lasso) {
+      _selectObjectsInLasso(ink.lastClosedLasso);
+    }
   }
 
   @override
@@ -1471,13 +1764,55 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     });
   }
 
-  Future<void> _insertFunctionPlot(
+  Future<bool> _insertFunctionPlot(
+    EditorController controller,
+    String expression, {
+    required bool degrees,
+  }) async {
+    final bytes = await showGraphStudioSheet(
+      context,
+      initialExpression: expression,
+      degrees: degrees,
+      formulaStore: FormulaBookStore(ref.read(sharedPreferencesProvider)),
+    );
+    if (!mounted) return true;
+    if (bytes == null) return true;
+    await controller.insertPngBytes(bytes, width: 390, height: 260);
+    return true;
+  }
+
+  Future<void> _useFormulaInGraph(
     EditorController controller,
     String expression,
   ) async {
-    final bytes = await FunctionPlotter.renderPng(expression);
+    if (!_calcOpen) {
+      setState(() {
+        _calcOpen = true;
+        _calcPinned = false;
+        _toolPageId = controller.currentPage?.id;
+      });
+    }
+    await _insertFunctionPlot(controller, expression, degrees: true);
+  }
+
+  Future<void> _createDiagram(EditorController controller) async {
+    final bytes = await showChartBuilderSheet(
+      context,
+      chartPack: ref.read(entitlementProvider).hasAccess(FeatureKeys.chartPack),
+      helperPack:
+          ref.read(entitlementProvider).hasAccess(FeatureKeys.helperPack),
+    );
     if (bytes == null || !mounted) return;
-    await controller.insertPngBytes(bytes);
+    await controller.insertPngBytes(bytes, width: 360, height: 240);
+  }
+
+  Future<void> _openPacks(EditorController controller) async {
+    final bytes = await showPackStudioSheet(
+      context,
+      notebookId: widget.notebookId,
+    );
+    if (bytes == null || !mounted) return;
+    await controller.insertPngBytes(bytes, width: 390, height: 240);
   }
 
   Future<void> _runGestureAction(EditorGestureAction action) async {
@@ -1901,6 +2236,36 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               ),
                             ),
                           ),
+                          if (controller.hasLassoSelection)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: CustomPaint(
+                                  painter: _LassoObjectHighlightPainter(
+                                    shapes: [
+                                      for (final s in controller.shapes)
+                                        if (controller.selectedShapeIds
+                                            .contains(s.id))
+                                          s.bounds,
+                                    ],
+                                    images: [
+                                      for (final i in controller.images)
+                                        if (controller.selectedImageIds
+                                            .contains(i.id))
+                                          i.bounds,
+                                    ],
+                                    texts: [
+                                      for (final b in controller.textBlocks)
+                                        if (controller.selectedTextIds
+                                            .contains(b.id))
+                                          textBlockBounds(
+                                            block: b,
+                                            metrics: metrics,
+                                          ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           if (controller.drawingAids.ruler != null)
                             RulerOverlay(
                               aid: controller.drawingAids.ruler!,
@@ -1925,17 +2290,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                     !controller.drawingAids.compass!.fixed,
                                   ),
                             ),
-                          ImageElementsLayer(
-                            images: controller.images,
-                            selectedId: controller.selectedImageId,
-                            editable:
-                                !readOnly &&
-                                !presenting &&
-                                (controller.ink.tool == InkTool.image ||
-                                    controller.ink.tool == InkTool.lasso),
-                            onSelect: controller.selectImage,
-                            onChanged: controller.updateImage,
-                            onDelete: controller.deleteImage,
+                          IgnorePointer(
+                            ignoring: controller.ink.tool != InkTool.image,
+                            child: ImageElementsLayer(
+                              images: controller.images,
+                              selectedId: controller.selectedImageId,
+                              editable:
+                                  !readOnly &&
+                                  !presenting &&
+                                  controller.ink.tool == InkTool.image,
+                              onSelect: controller.selectImage,
+                              onChanged: controller.updateImage,
+                              onDelete: controller.deleteImage,
+                            ),
                           ),
                           IgnorePointer(
                             ignoring:
@@ -1999,6 +2366,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   onTextLayoutModeChanged: controller.setTextLayoutMode,
                   onAddText: () => controller.addTextBlock(text: l10n.newText),
                   onPickImage: controller.pickAndInsertImage,
+                  hasLassoSelection: controller.hasLassoSelection,
+                  onDeleteSelection: controller.deleteLassoSelection,
                   hasSelectedImage: controller.selectedImageId != null,
                   onDeleteImage: controller.selectedImageId == null
                       ? null
@@ -2324,11 +2693,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 _calcPinned = false;
                 if (!_bookOpen) _toolPageId = null;
               }),
+              height: 520,
               child: CalculatorPanel(
                 key: ValueKey('calc_${widget.notebookId}'),
                 store: CalculatorStore(ref.read(sharedPreferencesProvider)),
                 notebookId: widget.notebookId,
-                onInsertPlot: (expr) => _insertFunctionPlot(controller, expr),
+                calcPlus: ref
+                    .watch(entitlementProvider)
+                    .hasAccess(FeatureKeys.calcPlus),
+                onInsertPlot: (expr, {required degrees}) =>
+                    _insertFunctionPlot(controller, expr, degrees: degrees),
               ),
             ),
           ),
@@ -2338,6 +2712,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
             top: _calcOpen ? 530 : 56,
             child: EditorToolPanel(
               title: l10n.assistant,
+              width: 360,
               pinned: _assistantPinned,
               onPin: () =>
                   setState(() => _assistantPinned = !_assistantPinned),
@@ -2350,6 +2725,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 unlocked: ref
                     .watch(entitlementProvider)
                     .hasAccess(FeatureKeys.aiAssistant),
+                pageImagePaths: [
+                  for (final image in controller.images)
+                    if (image.pageId == controller.currentPage?.id)
+                      image.localPath,
+                ],
               ),
             ),
           ),
@@ -2373,7 +2753,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 ),
                 store: FormulaBookStore(ref.read(sharedPreferencesProvider)),
                 notebookId: widget.notebookId,
+                includePlus: ref
+                    .watch(entitlementProvider)
+                    .hasAccess(FeatureKeys.formulaPack),
                 initialChapterId: _bookChapterId,
+                onUseFormula: (expr) =>
+                    _useFormulaInGraph(controller, expr),
               ),
             ),
           ),
@@ -2461,11 +2846,52 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 onPresent: controller.togglePresentationMode,
                 onMenuAction: (action) =>
                     _handleMenuAction(context, controller, action),
+                onConfigureEraser: () => _configureContentTargets(
+                  context,
+                  controller,
+                  eraser: true,
+                ),
+                onConfigureLasso: () => _configureContentTargets(
+                  context,
+                  controller,
+                  eraser: false,
+                ),
+                rulerActive: controller.drawingAids.hasRuler,
+                compassActive: controller.drawingAids.hasVisibleCompass,
+                onToggleRuler: controller.toggleRulerAid,
+                onToggleCompass: controller.toggleCompassAid,
+                onCreateDiagram: () => _createDiagram(controller),
+                onOpenPacks: () => _openPacks(controller),
               ),
             Expanded(child: workspace),
           ],
         ),
       ),
+    );
+  }
+
+  void _configureContentTargets(
+    BuildContext context,
+    EditorController controller, {
+    required bool eraser,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final presets = ref.read(toolPresetsProvider);
+    showContentTargetsSheet(
+      context,
+      title: eraser ? l10n.eraserTargetsTitle : l10n.lassoTargetsTitle,
+      selected: eraser
+          ? controller.ink.eraseTargets
+          : controller.ink.lassoTargets,
+      onChanged: (value) {
+        if (eraser) {
+          presets.setEraseTargets(value);
+          controller.ink.setEraseTargets(value);
+        } else {
+          presets.setLassoTargets(value);
+          controller.ink.setLassoTargets(value);
+        }
+      },
     );
   }
 
@@ -2751,5 +3177,35 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         );
       },
     );
+  }
+}
+
+class _LassoObjectHighlightPainter extends CustomPainter {
+  const _LassoObjectHighlightPainter({
+    required this.shapes,
+    required this.images,
+    required this.texts,
+  });
+
+  final List<Rect> shapes;
+  final List<Rect> images;
+  final List<Rect> texts;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF2F6FED)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    for (final rect in [...shapes, ...images, ...texts]) {
+      canvas.drawRect(rect.inflate(3), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LassoObjectHighlightPainter oldDelegate) {
+    return oldDelegate.shapes != shapes ||
+        oldDelegate.images != images ||
+        oldDelegate.texts != texts;
   }
 }

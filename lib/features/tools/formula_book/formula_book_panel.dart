@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/app_localizations.dart';
+import '../calculator/plot_series.dart';
 import 'formula_book_models.dart';
 import 'formula_book_store.dart';
 
@@ -11,11 +12,15 @@ class FormulaBookPanel extends StatefulWidget {
     required this.store,
     required this.notebookId,
     this.initialChapterId,
+    this.onUseFormula,
+    this.includePlus = false,
   });
 
   final FormulaBookStore store;
   final String notebookId;
   final String? initialChapterId;
+  final ValueChanged<String>? onUseFormula;
+  final bool includePlus;
 
   @override
   State<FormulaBookPanel> createState() => _FormulaBookPanelState();
@@ -28,7 +33,7 @@ class _FormulaBookPanelState extends State<FormulaBookPanel> {
   @override
   void initState() {
     super.initState();
-    _book = widget.store.load();
+    _book = widget.store.load(plus: widget.includePlus);
     _chapterId =
         widget.initialChapterId ??
         widget.store.lastChapterFor(widget.notebookId) ??
@@ -129,6 +134,7 @@ class _FormulaBookPanelState extends State<FormulaBookPanel> {
                 row: row,
                 onChanged: _updateRow,
                 onDelete: () => _removeRow(row.id),
+                onUseFormula: widget.onUseFormula,
               );
             },
           ),
@@ -152,11 +158,13 @@ class _FormulaRowEditor extends StatefulWidget {
     required this.row,
     required this.onChanged,
     required this.onDelete,
+    this.onUseFormula,
   });
 
   final FormulaRow row;
   final ValueChanged<FormulaRow> onChanged;
   final VoidCallback onDelete;
+  final ValueChanged<String>? onUseFormula;
 
   @override
   State<_FormulaRowEditor> createState() => _FormulaRowEditorState();
@@ -209,6 +217,19 @@ class _FormulaRowEditorState extends State<_FormulaRowEditor> {
               onTapOutside: (_) => _commit(),
             ),
           ),
+          if (widget.onUseFormula != null &&
+              FunctionPlotPrep.looksPlottable(widget.row.term, widget.row.value))
+            IconButton(
+              tooltip: AppLocalizations.of(context)!.graphFromBook,
+              onPressed: () {
+                final expr = FunctionPlotPrep.fromFormula(
+                  term: _term.text,
+                  value: _value.text,
+                );
+                if (expr != null) widget.onUseFormula!(expr);
+              },
+              icon: const Icon(Icons.show_chart_rounded, size: 18),
+            ),
           IconButton(
             onPressed: widget.onDelete,
             icon: const Icon(Icons.close, size: 18),

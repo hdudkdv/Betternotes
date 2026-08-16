@@ -75,6 +75,14 @@ class EditorTopBar extends StatelessWidget {
     this.studyModeUnlocked = false,
     required this.onPresent,
     required this.onMenuAction,
+    this.onConfigureEraser,
+    this.onConfigureLasso,
+    this.rulerActive = false,
+    this.compassActive = false,
+    this.onToggleRuler,
+    this.onToggleCompass,
+    this.onCreateDiagram,
+    this.onOpenPacks,
   });
 
   final String notebookId;
@@ -106,6 +114,14 @@ class EditorTopBar extends StatelessWidget {
   final bool studyModeUnlocked;
   final VoidCallback onPresent;
   final ValueChanged<EditorMenuAction> onMenuAction;
+  final VoidCallback? onConfigureEraser;
+  final VoidCallback? onConfigureLasso;
+  final bool rulerActive;
+  final bool compassActive;
+  final VoidCallback? onToggleRuler;
+  final VoidCallback? onToggleCompass;
+  final VoidCallback? onCreateDiagram;
+  final VoidCallback? onOpenPacks;
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +175,14 @@ class EditorTopBar extends StatelessWidget {
             studyModeUnlocked: studyModeUnlocked,
             onPresent: onPresent,
             onMenuAction: onMenuAction,
+            onConfigureEraser: onConfigureEraser,
+            onConfigureLasso: onConfigureLasso,
+            rulerActive: rulerActive,
+            compassActive: compassActive,
+            onToggleRuler: onToggleRuler,
+            onToggleCompass: onToggleCompass,
+            onCreateDiagram: onCreateDiagram,
+            onOpenPacks: onOpenPacks,
           ),
         ],
       ),
@@ -192,6 +216,14 @@ class _ToolRow extends StatelessWidget {
     this.studyModeUnlocked = false,
     required this.onPresent,
     required this.onMenuAction,
+    this.onConfigureEraser,
+    this.onConfigureLasso,
+    this.rulerActive = false,
+    this.compassActive = false,
+    this.onToggleRuler,
+    this.onToggleCompass,
+    this.onCreateDiagram,
+    this.onOpenPacks,
   });
 
   final InkEngine engine;
@@ -218,6 +250,14 @@ class _ToolRow extends StatelessWidget {
   final bool studyModeUnlocked;
   final VoidCallback onPresent;
   final ValueChanged<EditorMenuAction> onMenuAction;
+  final VoidCallback? onConfigureEraser;
+  final VoidCallback? onConfigureLasso;
+  final bool rulerActive;
+  final bool compassActive;
+  final VoidCallback? onToggleRuler;
+  final VoidCallback? onToggleCompass;
+  final VoidCallback? onCreateDiagram;
+  final VoidCallback? onOpenPacks;
 
   @override
   Widget build(BuildContext context) {
@@ -260,6 +300,7 @@ class _ToolRow extends StatelessWidget {
                           icon: Icons.gesture_rounded,
                           label: l10n.lasso,
                           enabled: !locked && !studyMode,
+                          onLongPress: onConfigureLasso,
                         ),
                         _ToolIcon(
                           engine: engine,
@@ -298,6 +339,7 @@ class _ToolRow extends StatelessWidget {
                           icon: Icons.format_color_reset_rounded,
                           label: l10n.eraser,
                           enabled: !locked && !studyMode,
+                          onLongPress: onConfigureEraser,
                         ),
                         _ToolIcon(
                           engine: engine,
@@ -313,6 +355,24 @@ class _ToolRow extends StatelessWidget {
                           label: l10n.shapes,
                           enabled: !locked && !studyMode,
                         ),
+                        if (rulerActive)
+                          _BarIcon(
+                            icon: Icons.straighten_rounded,
+                            tooltip: l10n.ruler,
+                            label: l10n.ruler,
+                            active: true,
+                            enabled: !locked && !studyMode,
+                            onTap: onToggleRuler,
+                          ),
+                        if (compassActive)
+                          _BarIcon(
+                            icon: Icons.architecture_rounded,
+                            tooltip: l10n.compass,
+                            label: l10n.compass,
+                            active: true,
+                            enabled: !locked && !studyMode,
+                            onTap: onToggleCompass,
+                          ),
                         _BarIcon(
                           icon: Icons.calculate_outlined,
                           tooltip: l10n.calculator,
@@ -337,6 +397,22 @@ class _ToolRow extends StatelessWidget {
                             active: assistantOpen,
                             enabled: !locked && !studyMode,
                             onTap: onAssistant,
+                          ),
+                        if (onCreateDiagram != null)
+                          _BarIcon(
+                            icon: Icons.bar_chart_rounded,
+                            tooltip: l10n.diagrams,
+                            label: l10n.diagrams,
+                            enabled: !locked && !studyMode,
+                            onTap: onCreateDiagram,
+                          ),
+                        if (onOpenPacks != null)
+                          _BarIcon(
+                            icon: Icons.inventory_2_outlined,
+                            tooltip: l10n.packsTitle,
+                            label: l10n.packsTitle,
+                            enabled: !locked && !studyMode,
+                            onTap: onOpenPacks,
                           ),
                         _BarIcon(
                           icon: Icons.add_photo_alternate_outlined,
@@ -416,6 +492,7 @@ class _ToolIcon extends StatelessWidget {
     required this.enabled,
     this.activeOverride,
     this.onTapOverride,
+    this.onLongPress,
   });
 
   final InkEngine engine;
@@ -425,6 +502,7 @@ class _ToolIcon extends StatelessWidget {
   final bool enabled;
   final bool? activeOverride;
   final VoidCallback? onTapOverride;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -437,6 +515,12 @@ class _ToolIcon extends StatelessWidget {
       enabled: enabled,
       onTap: onTapOverride ??
           () => engine.setTool(selected ? InkTool.none : tool),
+      onLongPress: onLongPress == null
+          ? null
+          : () {
+              if (!selected) engine.setTool(tool);
+              onLongPress!();
+            },
     );
   }
 }
@@ -447,6 +531,7 @@ class _BarIcon extends StatelessWidget {
     required this.tooltip,
     this.label,
     this.onTap,
+    this.onLongPress,
     this.active = false,
     this.enabled = true,
   });
@@ -455,6 +540,7 @@ class _BarIcon extends StatelessWidget {
   final String tooltip;
   final String? label;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final bool active;
   final bool enabled;
 
@@ -467,6 +553,7 @@ class _BarIcon extends StatelessWidget {
         message: tooltip,
         child: InkWell(
           onTap: enabled ? onTap : null,
+          onLongPress: enabled ? onLongPress : null,
           borderRadius: BorderRadius.circular(9),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),

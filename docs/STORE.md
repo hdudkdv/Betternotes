@@ -33,8 +33,22 @@ initializes on Android and iOS; web/desktop fall back to the demo dialog in
 Both units grant **10 coins**. Debug/profile still request Google's test
 units. Release uses the live units.
 
-Still add **Privacy & messaging → GDPR** (required for EEA) and on iOS
-**IDFA / ATT**.
+Still needed before real ads earn money in production:
+
+1. AdMob **Privacy & messaging → GDPR / UMP** for EEA + UK, with the
+   public privacy URL. Without this, consent stays empty and many ads
+   will not fill in Europe.
+2. iOS **ATT / IDFA**: `NSUserTrackingUsageDescription` is in Info.plist,
+   but the app does not yet call `ATTrackingManager.requestTrackingAuthorization`.
+   Add that (or a plugin) before asking for personalized ads on iOS 14.5+.
+3. Confirm both apps in AdMob are **Ready / serving**, payment profile
+   and PIN are verified, and the rewarded units stay **10 coins**.
+4. Ship a **release** build (debug always uses Google test units).
+5. Play Console / App Store: declare ads, add the privacy URL, and on
+   iOS complete the tracking nutrition label.
+6. Test on a real device in the EEA: consent form, then a live rewarded
+   ad, then coins. Add your device hash in `ConsentDebugSettings` only
+   while testing the form.
 
 ### Shared behaviour
 

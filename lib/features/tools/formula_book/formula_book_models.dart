@@ -125,6 +125,21 @@ class FormulaBook extends Equatable {
 
     return FormulaBook(
       chapters: [
+        ch('funktionen', 'Funktionen', [
+          ('f(x) = x', 'x'),
+          ('f(x) = 2x + 1', '2x+1'),
+          ('f(x) = x²', 'x^2'),
+          ('f(x) = x³', 'x^3'),
+          ('f(x) = sin(x)', 'sin(x)'),
+          ('f(x) = cos(x)', 'cos(x)'),
+          ('f(x) = tan(x)', 'tan(x)'),
+          ('f(x) = e^x', 'exp(x)'),
+          ('f(x) = ln(x)', 'ln(x)'),
+          ('f(x) = 1/x', '1/x'),
+          ('f(x) = √x', 'sqrt(x)'),
+          ('f(x) = |x|', 'abs(x)'),
+          ('f(x) = sin(x) + cos(x)', 'sin(x)+cos(x)'),
+        ]),
         ch('mathematik', 'Mathematik', [
           ('Fläche Quadrat', 'a · a'),
           ('Fläche Rechteck', 'a · b'),
@@ -156,6 +171,45 @@ class FormulaBook extends Equatable {
         ch('kunst', 'Kunst', const []),
         ch('musik', 'Musik', const []),
         ch('sport', 'Sport', const []),
+      ],
+    );
+  }
+
+  /// Extra chapters from the Marketplace Tafelwerk pack.
+  static FormulaBook plusSeeded() {
+    FormulaChapter ch(String id, String title, List<(String, String)> rows) {
+      return FormulaChapter(
+        id: id,
+        title: title,
+        rows: [
+          for (final r in rows) FormulaRow.create(term: r.$1, value: r.$2),
+        ],
+      );
+    }
+
+    return FormulaBook(
+      chapters: [
+        ch('analysis', 'Analysis', [
+          ('Potenzregel', "x^n → n·x^(n-1)"),
+          ('Ableitung sin', 'sin(x) → cos(x)'),
+          ('Ableitung cos', 'cos(x) → -sin(x)'),
+          ('Ableitung e^x', 'exp(x) → exp(x)'),
+          ('Ableitung ln', 'ln(x) → 1/x'),
+          ('Kettenregel', "f(g(x)) → f'(g(x))·g'(x)"),
+        ]),
+        ch('geometrie_plus', 'Geometrie Plus', [
+          ('Kugel Volumen', '(4/3)·π·r³'),
+          ('Kugel Oberfläche', '4·π·r²'),
+          ('Zylinder Volumen', 'π·r²·h'),
+          ('Kegel Volumen', '(1/3)·π·r²·h'),
+          ('Prisma Volumen', 'G·h'),
+        ]),
+        ch('statistik', 'Statistik', [
+          ('Mittelwert', 'mean(x1, x2, …)'),
+          ('Median', 'median(x1, x2, …)'),
+          ('Standardabweichung', 'stdev(x1, x2, …)'),
+          ('Anzahl', 'count(x1, x2, …)'),
+        ]),
       ],
     );
   }

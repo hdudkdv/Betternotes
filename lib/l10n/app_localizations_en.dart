@@ -603,6 +603,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eraserPrecise => 'Precise';
 
   @override
+  String get eraserTargets => 'Erases';
+
+  @override
+  String get lassoTargets => 'Selects';
+
+  @override
+  String get eraserTargetsTitle => 'What should the eraser remove?';
+
+  @override
+  String get lassoTargetsTitle => 'What should the lasso select?';
+
+  @override
+  String get editTargetsHint => 'Hold to choose what is affected';
+
+  @override
+  String get contentImages => 'Images';
+
+  @override
   String get editWidth => 'Adjust stroke width';
 
   @override
@@ -2692,8 +2710,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get marketplace => 'Marketplace';
 
   @override
-  String get marketplaceHint =>
-      'Unlock optional features with coins or a short ad.';
+  String get marketplaceHint => 'Unlock optional features with coins.';
 
   @override
   String get marketplaceComingSoon =>
@@ -2714,10 +2731,189 @@ class AppLocalizationsEn extends AppLocalizations {
   String get featureCloudSync => 'Cloud sync';
 
   @override
-  String get featureAiAssistant => 'Assistant (Gemma)';
+  String get featureAiAssistant => 'Gemma';
+
+  @override
+  String get marketplaceOther => 'More features';
+
+  @override
+  String get marketplaceGroupStudy => 'Study & school';
+
+  @override
+  String get marketplaceGroupWork => 'Work & organisation';
+
+  @override
+  String get marketplaceGroupLife => 'Creative & everyday';
+
+  @override
+  String get gemmaTitle => 'Gemma';
+
+  @override
+  String get gemmaSubtitle => 'A teacher-style study coach';
+
+  @override
+  String get gemmaBody =>
+      'Guides you through the method and explains connections — in maths, history, or a caricature. You still write the finished answer and the exam sentence.';
+
+  @override
+  String get gemmaOnDevice => 'On-device · open Assistant in the editor';
+
+  @override
+  String get gemmaReady => 'Unlocked · open Assistant in the editor';
 
   @override
   String get featureStudyMode => 'Study mode';
+
+  @override
+  String get featureChartPack => 'Chart pack';
+
+  @override
+  String get featureCalcPlus => 'Calculator plus';
+
+  @override
+  String get featureFormulaPack => 'Formula-book plus';
+
+  @override
+  String get featureHelperPack => 'Page helpers';
+
+  @override
+  String get featureInfoChartPack =>
+      'Special diagrams: Gantt, area, ER model, use case, flow, Venn, and sequence. Pie, bar, line, and mind map stay free.';
+
+  @override
+  String get featureInfoHelperPack =>
+      'Templates not everyone needs: blank axes, number line, Cornell notes, and a vocabulary table.';
+
+  @override
+  String get featureInfoCalcPlus =>
+      'Extra calculator keys: hyperbolic functions, nCr/nPr, mean, median, standard deviation, and more.';
+
+  @override
+  String get featureInfoFormulaPack =>
+      'More formula-book chapters: analysis, extra geometry, and statistics — look up or send to the graph.';
+
+  @override
+  String get chartGantt => 'Gantt';
+
+  @override
+  String get chartArea => 'Area';
+
+  @override
+  String get chartMindmap => 'Mind map';
+
+  @override
+  String get chartEr => 'ER';
+
+  @override
+  String get chartUsecase => 'Use case';
+
+  @override
+  String get chartFlow => 'Flow';
+
+  @override
+  String get chartVenn => 'Venn';
+
+  @override
+  String get chartSequence => 'Sequence';
+
+  @override
+  String get chartAxes => 'Axes';
+
+  @override
+  String get chartNumberline => 'Number line';
+
+  @override
+  String get chartCornell => 'Cornell';
+
+  @override
+  String get chartVocab => 'Vocabulary';
+
+  @override
+  String get chartEntity => 'Entity';
+
+  @override
+  String get chartAttributes => 'Attributes';
+
+  @override
+  String get chartRelation => 'Relation';
+
+  @override
+  String get chartActor => 'Actor';
+
+  @override
+  String get chartFrom => 'From';
+
+  @override
+  String get chartTo => 'To';
+
+  @override
+  String get chartMessage => 'Message';
+
+  @override
+  String get chartSet => 'Set';
+
+  @override
+  String get chartItems => 'Items';
+
+  @override
+  String get chartStart => 'Start';
+
+  @override
+  String get chartEnd => 'End';
+
+  @override
+  String get calcPlusLocked =>
+      'Hyperbolics, combinatorics, and statistics are in the Calculator plus pack.';
+
+  @override
+  String get marketplaceMoreInfo => 'Learn more';
+
+  @override
+  String get featureInfoPremiumPaper =>
+      'Extra paper templates and finer rulings for your notebooks.';
+
+  @override
+  String get featureInfoPremiumCover =>
+      'More cover colours and designs in the library.';
+
+  @override
+  String get featureInfoAudioTranscription =>
+      'Spoken notes are turned into text on the device.';
+
+  @override
+  String get featureInfoPdfCompress =>
+      'Make PDFs smaller before you share or export them.';
+
+  @override
+  String get featureInfoHandwritingOcr =>
+      'Handwriting and photos are recognized on-device and stored only as a hidden search index.';
+
+  @override
+  String get featureInfoNoForcedAds => 'Fewer ad interruptions in the app.';
+
+  @override
+  String get featureInfoSessionCollab =>
+      'Work together on the same notebook in a live session.';
+
+  @override
+  String get featureInfoAsyncCollab =>
+      'Collaborate and comment over the cloud when you are not in the same room.';
+
+  @override
+  String get featureInfoWhiteboard =>
+      'Teacher whiteboard for class, saveable with the lesson materials.';
+
+  @override
+  String get featureInfoCloudSync =>
+      'Cloud sync when no nearby device is available for a direct link.';
+
+  @override
+  String get featureInfoStudyMode =>
+      'A calmer view for studying, with less distraction around the page.';
+
+  @override
+  String get featureInfoAiAssistant =>
+      'Gemma guides you like a teacher: explains connections, does not compute maths for you. The exam sentence and calculator stay with you.';
 
   @override
   String get scanPages => 'Scan pages';
@@ -2763,7 +2959,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calculator => 'Calculator';
 
   @override
-  String get calculatorHint => 'e.g. 2+3*4, sin(x) or 2x+3=11';
+  String get calculatorHint =>
+      'e.g. 2+3*4, f(x)=sin(x), sin(x); x^2 or 2x+3=11';
 
   @override
   String get calculatorEquals => '=';
@@ -2784,22 +2981,100 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calculatorHistory => 'Recent calculations';
 
   @override
-  String get assistant => 'Assistant';
+  String get calculatorMore => 'More';
+
+  @override
+  String get calculatorDeg => 'Deg';
+
+  @override
+  String get calculatorRad => 'Rad';
+
+  @override
+  String get plotFailed => 'Could not draw the graph. Try sin(x) or x^2.';
+
+  @override
+  String get graphStudioTitle => 'Coordinate system';
+
+  @override
+  String get graphStudioHint =>
+      'Several functions, derivatives, and formulas from the formula book.';
+
+  @override
+  String get graphAddFunction => 'Function';
+
+  @override
+  String get graphDerivative => 'f\'';
+
+  @override
+  String get graphFromBook => 'Formula book';
+
+  @override
+  String get graphNoBookFormulas =>
+      'No function with x in the formula book. Add e.g. f(x)=sin(x).';
+
+  @override
+  String get diagrams => 'Charts';
+
+  @override
+  String get packsTitle => 'Packs';
+
+  @override
+  String get packsHint =>
+      'Extra tools for code, study, cooking, music, and more. Unlock them in the Marketplace.';
+
+  @override
+  String get chartPie => 'Pie';
+
+  @override
+  String get chartBar => 'Bar';
+
+  @override
+  String get chartLine => 'Line';
+
+  @override
+  String get chartTitle => 'Title';
+
+  @override
+  String get chartLabel => 'Name';
+
+  @override
+  String get chartValue => 'Value';
+
+  @override
+  String get chartAddRow => 'Add value';
+
+  @override
+  String get chartInsert => 'Insert';
+
+  @override
+  String get assistant => 'Gemma';
 
   @override
   String get assistantHint =>
-      'On-device help for calculations. Try 2x+3=11 or sin(pi/2).';
+      'Like a teacher: show the path, explain connections. Calculations and the exam sentence stay with you.';
 
   @override
   String get assistantLocked =>
-      'Unlock the assistant in the Marketplace (Gemma / on-device).';
+      'Unlock Gemma in the Marketplace. She guides you, explains follow-ups, and will not give the answer.';
 
   @override
-  String get assistantInputHint => 'Expression or equation';
+  String get assistantInputHint => 'Problem, follow-up, or picture';
+
+  @override
+  String get assistantAttachImage => 'Picture or caricature';
+
+  @override
+  String get assistantImageGallery => 'From the gallery';
+
+  @override
+  String get assistantImageFromPage => 'Image on the page';
+
+  @override
+  String get assistantImageAttached => 'Image attached';
 
   @override
   String get assistantMathHint =>
-      'I can evaluate expressions and solve equations in x. Example: 2x+3=11';
+      'I will guide you through the method. You type the calculation yourself.';
 
   @override
   String get formulaBook => 'Formula book';

@@ -1226,6 +1226,42 @@ abstract class AppLocalizations {
   /// **'Precise'**
   String get eraserPrecise;
 
+  /// No description provided for @eraserTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Erases'**
+  String get eraserTargets;
+
+  /// No description provided for @lassoTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Selects'**
+  String get lassoTargets;
+
+  /// No description provided for @eraserTargetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the eraser remove?'**
+  String get eraserTargetsTitle;
+
+  /// No description provided for @lassoTargetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the lasso select?'**
+  String get lassoTargetsTitle;
+
+  /// No description provided for @editTargetsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to choose what is affected'**
+  String get editTargetsHint;
+
+  /// No description provided for @contentImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get contentImages;
+
   /// No description provided for @editWidth.
   ///
   /// In en, this message translates to:
@@ -5027,7 +5063,7 @@ abstract class AppLocalizations {
   /// No description provided for @marketplaceHint.
   ///
   /// In en, this message translates to:
-  /// **'Unlock optional features with coins or a short ad.'**
+  /// **'Unlock optional features with coins.'**
   String get marketplaceHint;
 
   /// No description provided for @marketplaceComingSoon.
@@ -5063,14 +5099,338 @@ abstract class AppLocalizations {
   /// No description provided for @featureAiAssistant.
   ///
   /// In en, this message translates to:
-  /// **'Assistant (Gemma)'**
+  /// **'Gemma'**
   String get featureAiAssistant;
+
+  /// No description provided for @marketplaceOther.
+  ///
+  /// In en, this message translates to:
+  /// **'More features'**
+  String get marketplaceOther;
+
+  /// No description provided for @marketplaceGroupStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Study & school'**
+  String get marketplaceGroupStudy;
+
+  /// No description provided for @marketplaceGroupWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Work & organisation'**
+  String get marketplaceGroupWork;
+
+  /// No description provided for @marketplaceGroupLife.
+  ///
+  /// In en, this message translates to:
+  /// **'Creative & everyday'**
+  String get marketplaceGroupLife;
+
+  /// No description provided for @gemmaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma'**
+  String get gemmaTitle;
+
+  /// No description provided for @gemmaSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A teacher-style study coach'**
+  String get gemmaSubtitle;
+
+  /// No description provided for @gemmaBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Guides you through the method and explains connections — in maths, history, or a caricature. You still write the finished answer and the exam sentence.'**
+  String get gemmaBody;
+
+  /// No description provided for @gemmaOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device · open Assistant in the editor'**
+  String get gemmaOnDevice;
+
+  /// No description provided for @gemmaReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocked · open Assistant in the editor'**
+  String get gemmaReady;
 
   /// No description provided for @featureStudyMode.
   ///
   /// In en, this message translates to:
   /// **'Study mode'**
   String get featureStudyMode;
+
+  /// No description provided for @featureChartPack.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart pack'**
+  String get featureChartPack;
+
+  /// No description provided for @featureCalcPlus.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculator plus'**
+  String get featureCalcPlus;
+
+  /// No description provided for @featureFormulaPack.
+  ///
+  /// In en, this message translates to:
+  /// **'Formula-book plus'**
+  String get featureFormulaPack;
+
+  /// No description provided for @featureHelperPack.
+  ///
+  /// In en, this message translates to:
+  /// **'Page helpers'**
+  String get featureHelperPack;
+
+  /// No description provided for @featureInfoChartPack.
+  ///
+  /// In en, this message translates to:
+  /// **'Special diagrams: Gantt, area, ER model, use case, flow, Venn, and sequence. Pie, bar, line, and mind map stay free.'**
+  String get featureInfoChartPack;
+
+  /// No description provided for @featureInfoHelperPack.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates not everyone needs: blank axes, number line, Cornell notes, and a vocabulary table.'**
+  String get featureInfoHelperPack;
+
+  /// No description provided for @featureInfoCalcPlus.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra calculator keys: hyperbolic functions, nCr/nPr, mean, median, standard deviation, and more.'**
+  String get featureInfoCalcPlus;
+
+  /// No description provided for @featureInfoFormulaPack.
+  ///
+  /// In en, this message translates to:
+  /// **'More formula-book chapters: analysis, extra geometry, and statistics — look up or send to the graph.'**
+  String get featureInfoFormulaPack;
+
+  /// No description provided for @chartGantt.
+  ///
+  /// In en, this message translates to:
+  /// **'Gantt'**
+  String get chartGantt;
+
+  /// No description provided for @chartArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Area'**
+  String get chartArea;
+
+  /// No description provided for @chartMindmap.
+  ///
+  /// In en, this message translates to:
+  /// **'Mind map'**
+  String get chartMindmap;
+
+  /// No description provided for @chartEr.
+  ///
+  /// In en, this message translates to:
+  /// **'ER'**
+  String get chartEr;
+
+  /// No description provided for @chartUsecase.
+  ///
+  /// In en, this message translates to:
+  /// **'Use case'**
+  String get chartUsecase;
+
+  /// No description provided for @chartFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Flow'**
+  String get chartFlow;
+
+  /// No description provided for @chartVenn.
+  ///
+  /// In en, this message translates to:
+  /// **'Venn'**
+  String get chartVenn;
+
+  /// No description provided for @chartSequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Sequence'**
+  String get chartSequence;
+
+  /// No description provided for @chartAxes.
+  ///
+  /// In en, this message translates to:
+  /// **'Axes'**
+  String get chartAxes;
+
+  /// No description provided for @chartNumberline.
+  ///
+  /// In en, this message translates to:
+  /// **'Number line'**
+  String get chartNumberline;
+
+  /// No description provided for @chartCornell.
+  ///
+  /// In en, this message translates to:
+  /// **'Cornell'**
+  String get chartCornell;
+
+  /// No description provided for @chartVocab.
+  ///
+  /// In en, this message translates to:
+  /// **'Vocabulary'**
+  String get chartVocab;
+
+  /// No description provided for @chartEntity.
+  ///
+  /// In en, this message translates to:
+  /// **'Entity'**
+  String get chartEntity;
+
+  /// No description provided for @chartAttributes.
+  ///
+  /// In en, this message translates to:
+  /// **'Attributes'**
+  String get chartAttributes;
+
+  /// No description provided for @chartRelation.
+  ///
+  /// In en, this message translates to:
+  /// **'Relation'**
+  String get chartRelation;
+
+  /// No description provided for @chartActor.
+  ///
+  /// In en, this message translates to:
+  /// **'Actor'**
+  String get chartActor;
+
+  /// No description provided for @chartFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get chartFrom;
+
+  /// No description provided for @chartTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get chartTo;
+
+  /// No description provided for @chartMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get chartMessage;
+
+  /// No description provided for @chartSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get chartSet;
+
+  /// No description provided for @chartItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Items'**
+  String get chartItems;
+
+  /// No description provided for @chartStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get chartStart;
+
+  /// No description provided for @chartEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get chartEnd;
+
+  /// No description provided for @calcPlusLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Hyperbolics, combinatorics, and statistics are in the Calculator plus pack.'**
+  String get calcPlusLocked;
+
+  /// No description provided for @marketplaceMoreInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn more'**
+  String get marketplaceMoreInfo;
+
+  /// No description provided for @featureInfoPremiumPaper.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra paper templates and finer rulings for your notebooks.'**
+  String get featureInfoPremiumPaper;
+
+  /// No description provided for @featureInfoPremiumCover.
+  ///
+  /// In en, this message translates to:
+  /// **'More cover colours and designs in the library.'**
+  String get featureInfoPremiumCover;
+
+  /// No description provided for @featureInfoAudioTranscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoken notes are turned into text on the device.'**
+  String get featureInfoAudioTranscription;
+
+  /// No description provided for @featureInfoPdfCompress.
+  ///
+  /// In en, this message translates to:
+  /// **'Make PDFs smaller before you share or export them.'**
+  String get featureInfoPdfCompress;
+
+  /// No description provided for @featureInfoHandwritingOcr.
+  ///
+  /// In en, this message translates to:
+  /// **'Handwriting and photos are recognized on-device and stored only as a hidden search index.'**
+  String get featureInfoHandwritingOcr;
+
+  /// No description provided for @featureInfoNoForcedAds.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer ad interruptions in the app.'**
+  String get featureInfoNoForcedAds;
+
+  /// No description provided for @featureInfoSessionCollab.
+  ///
+  /// In en, this message translates to:
+  /// **'Work together on the same notebook in a live session.'**
+  String get featureInfoSessionCollab;
+
+  /// No description provided for @featureInfoAsyncCollab.
+  ///
+  /// In en, this message translates to:
+  /// **'Collaborate and comment over the cloud when you are not in the same room.'**
+  String get featureInfoAsyncCollab;
+
+  /// No description provided for @featureInfoWhiteboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher whiteboard for class, saveable with the lesson materials.'**
+  String get featureInfoWhiteboard;
+
+  /// No description provided for @featureInfoCloudSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud sync when no nearby device is available for a direct link.'**
+  String get featureInfoCloudSync;
+
+  /// No description provided for @featureInfoStudyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'A calmer view for studying, with less distraction around the page.'**
+  String get featureInfoStudyMode;
+
+  /// No description provided for @featureInfoAiAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma guides you like a teacher: explains connections, does not compute maths for you. The exam sentence and calculator stay with you.'**
+  String get featureInfoAiAssistant;
 
   /// No description provided for @scanPages.
   ///
@@ -5135,7 +5495,7 @@ abstract class AppLocalizations {
   /// No description provided for @calculatorHint.
   ///
   /// In en, this message translates to:
-  /// **'e.g. 2+3*4, sin(x) or 2x+3=11'**
+  /// **'e.g. 2+3*4, f(x)=sin(x), sin(x); x^2 or 2x+3=11'**
   String get calculatorHint;
 
   /// No description provided for @calculatorEquals.
@@ -5174,34 +5534,184 @@ abstract class AppLocalizations {
   /// **'Recent calculations'**
   String get calculatorHistory;
 
+  /// No description provided for @calculatorMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get calculatorMore;
+
+  /// No description provided for @calculatorDeg.
+  ///
+  /// In en, this message translates to:
+  /// **'Deg'**
+  String get calculatorDeg;
+
+  /// No description provided for @calculatorRad.
+  ///
+  /// In en, this message translates to:
+  /// **'Rad'**
+  String get calculatorRad;
+
+  /// No description provided for @plotFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not draw the graph. Try sin(x) or x^2.'**
+  String get plotFailed;
+
+  /// No description provided for @graphStudioTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coordinate system'**
+  String get graphStudioTitle;
+
+  /// No description provided for @graphStudioHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Several functions, derivatives, and formulas from the formula book.'**
+  String get graphStudioHint;
+
+  /// No description provided for @graphAddFunction.
+  ///
+  /// In en, this message translates to:
+  /// **'Function'**
+  String get graphAddFunction;
+
+  /// No description provided for @graphDerivative.
+  ///
+  /// In en, this message translates to:
+  /// **'f\''**
+  String get graphDerivative;
+
+  /// No description provided for @graphFromBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Formula book'**
+  String get graphFromBook;
+
+  /// No description provided for @graphNoBookFormulas.
+  ///
+  /// In en, this message translates to:
+  /// **'No function with x in the formula book. Add e.g. f(x)=sin(x).'**
+  String get graphNoBookFormulas;
+
+  /// No description provided for @diagrams.
+  ///
+  /// In en, this message translates to:
+  /// **'Charts'**
+  String get diagrams;
+
+  /// No description provided for @packsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Packs'**
+  String get packsTitle;
+
+  /// No description provided for @packsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra tools for code, study, cooking, music, and more. Unlock them in the Marketplace.'**
+  String get packsHint;
+
+  /// No description provided for @chartPie.
+  ///
+  /// In en, this message translates to:
+  /// **'Pie'**
+  String get chartPie;
+
+  /// No description provided for @chartBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar'**
+  String get chartBar;
+
+  /// No description provided for @chartLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line'**
+  String get chartLine;
+
+  /// No description provided for @chartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get chartTitle;
+
+  /// No description provided for @chartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get chartLabel;
+
+  /// No description provided for @chartValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get chartValue;
+
+  /// No description provided for @chartAddRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Add value'**
+  String get chartAddRow;
+
+  /// No description provided for @chartInsert.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert'**
+  String get chartInsert;
+
   /// No description provided for @assistant.
   ///
   /// In en, this message translates to:
-  /// **'Assistant'**
+  /// **'Gemma'**
   String get assistant;
 
   /// No description provided for @assistantHint.
   ///
   /// In en, this message translates to:
-  /// **'On-device help for calculations. Try 2x+3=11 or sin(pi/2).'**
+  /// **'Like a teacher: show the path, explain connections. Calculations and the exam sentence stay with you.'**
   String get assistantHint;
 
   /// No description provided for @assistantLocked.
   ///
   /// In en, this message translates to:
-  /// **'Unlock the assistant in the Marketplace (Gemma / on-device).'**
+  /// **'Unlock Gemma in the Marketplace. She guides you, explains follow-ups, and will not give the answer.'**
   String get assistantLocked;
 
   /// No description provided for @assistantInputHint.
   ///
   /// In en, this message translates to:
-  /// **'Expression or equation'**
+  /// **'Problem, follow-up, or picture'**
   String get assistantInputHint;
+
+  /// No description provided for @assistantAttachImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Picture or caricature'**
+  String get assistantAttachImage;
+
+  /// No description provided for @assistantImageGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'From the gallery'**
+  String get assistantImageGallery;
+
+  /// No description provided for @assistantImageFromPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image on the page'**
+  String get assistantImageFromPage;
+
+  /// No description provided for @assistantImageAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Image attached'**
+  String get assistantImageAttached;
 
   /// No description provided for @assistantMathHint.
   ///
   /// In en, this message translates to:
-  /// **'I can evaluate expressions and solve equations in x. Example: 2x+3=11'**
+  /// **'I will guide you through the method. You type the calculation yourself.'**
   String get assistantMathHint;
 
   /// No description provided for @formulaBook.

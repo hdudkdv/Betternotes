@@ -10,18 +10,25 @@ class FormulaBookStore {
   final SharedPreferences _prefs;
   static const _bookKey = 'tafelwerk_v1';
 
-  FormulaBook load() {
+  FormulaBook load({bool plus = false}) {
+    FormulaBook book;
     final raw = _prefs.getString(_bookKey);
-    if (raw == null || raw.isEmpty) return FormulaBook.seeded();
-    try {
-      final parsed = FormulaBook.fromJson(
-        Map<String, dynamic>.from(jsonDecode(raw) as Map),
-      );
-      if (parsed.chapters.isEmpty) return FormulaBook.seeded();
-      return _mergeSeeded(parsed);
-    } catch (_) {
-      return FormulaBook.seeded();
+    if (raw == null || raw.isEmpty) {
+      book = FormulaBook.seeded();
+    } else {
+      try {
+        final parsed = FormulaBook.fromJson(
+          Map<String, dynamic>.from(jsonDecode(raw) as Map),
+        );
+        book = parsed.chapters.isEmpty
+            ? FormulaBook.seeded()
+            : _mergeSeeded(parsed);
+      } catch (_) {
+        book = FormulaBook.seeded();
+      }
     }
+    if (!plus) return book;
+    return _mergeExtra(book, FormulaBook.plusSeeded());
   }
 
   Future<void> save(FormulaBook book) async {
@@ -72,6 +79,16 @@ class FormulaBookStore {
     final have = {for (final c in stored.chapters) c.id};
     final extra = [
       for (final c in seed.chapters)
+        if (!have.contains(c.id)) c,
+    ];
+    if (extra.isEmpty) return stored;
+    return FormulaBook(chapters: [...stored.chapters, ...extra]);
+  }
+
+  FormulaBook _mergeExtra(FormulaBook stored, FormulaBook extraBook) {
+    final have = {for (final c in stored.chapters) c.id};
+    final extra = [
+      for (final c in extraBook.chapters)
         if (!have.contains(c.id)) c,
     ];
     if (extra.isEmpty) return stored;

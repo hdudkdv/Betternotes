@@ -25,6 +25,8 @@ class ToolPresets extends ChangeNotifier {
     0xFFD4A017,
   ];
   EraserMode eraserMode = EraserMode.stroke;
+  Set<ContentKind> eraseTargets = {...kDefaultContentTargets};
+  Set<ContentKind> lassoTargets = {...kDefaultContentTargets};
   int penWidthIndex = 1;
   int markerWidthIndex = 1;
   int eraserWidthIndex = 1;
@@ -101,6 +103,18 @@ class ToolPresets extends ChangeNotifier {
     _save();
   }
 
+  void setEraseTargets(Set<ContentKind> value) {
+    eraseTargets = Set<ContentKind>.of(value);
+    notifyListeners();
+    _save();
+  }
+
+  void setLassoTargets(Set<ContentKind> value) {
+    lassoTargets = Set<ContentKind>.of(value);
+    notifyListeners();
+    _save();
+  }
+
   void addColor(int value) {
     if (colors.contains(value)) return;
     colors = [...colors, value];
@@ -146,6 +160,8 @@ class ToolPresets extends ChangeNotifier {
         (m) => m.name == map['eraserMode'],
         orElse: () => EraserMode.stroke,
       );
+      eraseTargets = _kinds(map['eraseTargets'], eraseTargets);
+      lassoTargets = _kinds(map['lassoTargets'], lassoTargets);
       penWidthIndex = (map['penWidthIndex'] as num?)?.toInt() ?? 1;
       markerWidthIndex = (map['markerWidthIndex'] as num?)?.toInt() ?? 1;
       eraserWidthIndex = (map['eraserWidthIndex'] as num?)?.toInt() ?? 1;
@@ -157,6 +173,18 @@ class ToolPresets extends ChangeNotifier {
     return [for (final v in raw) (v as num).toDouble()];
   }
 
+  Set<ContentKind> _kinds(dynamic raw, Set<ContentKind> fallback) {
+    if (raw is! List || raw.isEmpty) return fallback;
+    final parsed = <ContentKind>{};
+    for (final item in raw) {
+      final name = item.toString();
+      for (final kind in ContentKind.values) {
+        if (kind.name == name) parsed.add(kind);
+      }
+    }
+    return parsed.isEmpty ? fallback : parsed;
+  }
+
   Future<void> _save() async {
     await _prefs.setString(
       'toolPresetsV1',
@@ -166,6 +194,8 @@ class ToolPresets extends ChangeNotifier {
         'eraserWidths': eraserWidths,
         'colors': colors,
         'eraserMode': eraserMode.name,
+        'eraseTargets': eraseTargets.map((k) => k.name).toList(),
+        'lassoTargets': lassoTargets.map((k) => k.name).toList(),
         'penWidthIndex': penWidthIndex,
         'markerWidthIndex': markerWidthIndex,
         'eraserWidthIndex': eraserWidthIndex,

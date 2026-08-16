@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/app_localizations.dart';
@@ -12,17 +13,20 @@ class CalculatorPanel extends StatefulWidget {
     required this.store,
     required this.notebookId,
     required this.onInsertPlot,
+    this.calcPlus = false,
   });
 
   final CalculatorStore store;
   final String notebookId;
-  final Future<void> Function(String expression) onInsertPlot;
+  final Future<bool> Function(String expression, {required bool degrees})
+      onInsertPlot;
+  final bool calcPlus;
 
   @override
   State<CalculatorPanel> createState() => _CalculatorPanelState();
 }
 
-enum _CalcPad { numbers, functions }
+enum _CalcPad { numbers, functions, more }
 
 class _CalculatorPanelState extends State<CalculatorPanel> {
   final _engine = CalculatorEngine();
@@ -31,6 +35,8 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
   String _ans = '';
   late List<CalcHistoryEntry> _history;
   bool _plotting = false;
+  bool _degrees = true;
+  String? _plotError;
   _CalcPad _pad = _CalcPad.numbers;
 
   @override
@@ -56,6 +62,7 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
     if (expr.contains('ans') && _ans.isNotEmpty) {
       expr = expr.replaceAll('ans', _ans);
     }
+    _engine.degrees = _degrees;
     final result = solve || expr.contains('=')
         ? _engine.evaluateOrSolve(expr)
         : _engine.evaluate(expr);
@@ -76,11 +83,17 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
   }
 
   Future<void> _plot() async {
-    final expr = _input.text.trim();
+    var expr = _input.text.trim();
     if (expr.isEmpty) return;
-    setState(() => _plotting = true);
+    if (expr.contains('ans') && _ans.isNotEmpty) {
+      expr = expr.replaceAll('ans', _ans);
+    }
+    setState(() {
+      _plotting = true;
+      _plotError = null;
+    });
     try {
-      await widget.onInsertPlot(expr);
+      await widget.onInsertPlot(expr, degrees: _degrees);
     } finally {
       if (mounted) setState(() => _plotting = false);
     }
@@ -122,7 +135,7 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
             keyboardType: TextInputType.text,
             inputFormatters: [
               FilteringTextInputFormatter.allow(
-                RegExp(r"[0-9a-zA-Z+\-*/^()=.,x!% ]"),
+                RegExp(r"[0-9a-zA-Z+\-*/^()=.,;x!%' ]"),
               ),
             ],
             decoration: InputDecoration(
@@ -143,16 +156,55 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
           const SizedBox(height: 4),
           SegmentedButton<_CalcPad>(
             segments: [
-              ButtonSegment(value: _CalcPad.numbers, label: Text(l10n.calculatorBasic)),
-              ButtonSegment(value: _CalcPad.functions, label: Text(l10n.calculatorFn)),
+              ButtonSegment(
+                value: _CalcPad.numbers,
+                label: Text(l10n.calculatorBasic),
+              ),
+              ButtonSegment(
+                value: _CalcPad.functions,
+                label: Text(l10n.calculatorFn),
+              ),
+              ButtonSegment(
+                value: _CalcPad.more,
+                label: Text(l10n.calculatorMore),
+              ),
             ],
             selected: {_pad},
             onSelectionChanged: (next) => setState(() => _pad = next.first),
             showSelectedIcon: false,
             style: const ButtonStyle(visualDensity: VisualDensity.compact),
           ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(value: true, label: Text(l10n.calculatorDeg)),
+                ButtonSegment(value: false, label: Text(l10n.calculatorRad)),
+              ],
+              selected: {_degrees},
+              onSelectionChanged: (next) =>
+                  setState(() => _degrees = next.first),
+              showSelectedIcon: false,
+              style: const ButtonStyle(visualDensity: VisualDensity.compact),
+            ),
+          ),
           const SizedBox(height: 6),
-          _Keypad(pad: _pad, onKey: _append),
+          if (_pad == _CalcPad.more && !widget.calcPlus)
+            _CalcPlusLock(onOpen: () => context.push('/marketplace'))
+          else
+            _Keypad(pad: _pad, plus: widget.calcPlus, onKey: _append),
+          if (_plotError != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.plotFailed,
+              style: AppTheme.body(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFB42318),
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           Row(
             children: [
@@ -217,28 +269,66 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
   }
 }
 
-class _Keypad extends StatelessWidget {
-  const _Keypad({required this.pad, required this.onKey});
+class _CalcPlusLock extends StatelessWidget {
+  const _CalcPlusLock({required this.onOpen});
 
-  final _CalcPad pad;
-  final ValueChanged<String> onKey;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final keys = pad == _CalcPad.numbers
-        ? const [
-            ['C', '⌫', '(', ')'],
-            ['7', '8', '9', '/'],
-            ['4', '5', '6', '*'],
-            ['1', '2', '3', '-'],
-            ['0', '.', '%', '+'],
-          ]
-        : const [
-            ['sin(', 'cos(', 'tan(', '√('],
-            ['ln(', 'log(', 'exp(', '^'],
-            ['π', 'e', 'x', 'ans'],
-            ['abs(', 'fact(', '=', '!'],
-          ];
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        children: [
+          Text(
+            l10n.calcPlusLocked,
+            textAlign: TextAlign.center,
+            style: AppTheme.body(fontSize: 13, color: AppTheme.inkMuted),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onOpen,
+            icon: const Icon(Icons.storefront_outlined, size: 18),
+            label: Text(l10n.marketplace),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Keypad extends StatelessWidget {
+  const _Keypad({required this.pad, required this.onKey, this.plus = false});
+
+  final _CalcPad pad;
+  final ValueChanged<String> onKey;
+  final bool plus;
+
+  @override
+  Widget build(BuildContext context) {
+    final keys = switch (pad) {
+      _CalcPad.numbers => const [
+        ['C', '⌫', '(', ')'],
+        ['7', '8', '9', '/'],
+        ['4', '5', '6', '*'],
+        ['1', '2', '3', '-'],
+        ['0', '.', '%', '+'],
+      ],
+      _CalcPad.functions => const [
+        ['sin(', 'cos(', 'tan(', '√('],
+        ['asin(', 'acos(', 'atan(', 'cbrt('],
+        ['ln(', 'log(', 'exp(', '^'],
+        ['π', 'e', 'x', 'ans'],
+      ],
+      _CalcPad.more => [
+        const ['sinh(', 'cosh(', 'tanh(', '10^('],
+        const ['nCr(', 'nPr(', 'min(', 'max('],
+        if (plus) const ['mean(', 'median(', 'stdev(', 'count('],
+        const ['mod(', 'gcd(', 'lcm(', 'root('],
+        const ['abs(', 'fact(', '=', '!'],
+      ],
+    };
     return Column(
       children: [
         for (final row in keys)
@@ -256,6 +346,8 @@ class _Keypad extends StatelessWidget {
                           onPressed: () => onKey(switch (key) {
                             '√(' => 'sqrt(',
                             'π' => 'pi',
+                            'nCr(' => 'ncr(',
+                            'nPr(' => 'npr(',
                             _ => key,
                           }),
                           style: OutlinedButton.styleFrom(

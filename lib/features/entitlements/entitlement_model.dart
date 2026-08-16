@@ -22,6 +22,20 @@ abstract final class FeatureKeys {
   static const cloudSync = 'cloudSync';
   static const aiAssistant = 'aiAssistant';
   static const studyMode = 'studyMode';
+  static const chartPack = 'chartPack';
+  static const calcPlus = 'calcPlus';
+  static const formulaPack = 'formulaPack';
+  static const helperPack = 'helperPack';
+  static const packDev = 'packDev';
+  static const packEdu = 'packEdu';
+  static const packRpg = 'packRpg';
+  static const packCulinary = 'packCulinary';
+  static const packAgile = 'packAgile';
+  static const packMusic = 'packMusic';
+  static const packAcademic = 'packAcademic';
+  static const packFitness = 'packFitness';
+  static const packTravel = 'packTravel';
+  static const packFreelance = 'packFreelance';
 
   static const all = <String>[
     premiumPaper,
@@ -36,14 +50,60 @@ abstract final class FeatureKeys {
     cloudSync,
     aiAssistant,
     studyMode,
+    chartPack,
+    calcPlus,
+    formulaPack,
+    helperPack,
+    packDev,
+    packEdu,
+    packRpg,
+    packCulinary,
+    packAgile,
+    packMusic,
+    packAcademic,
+    packFitness,
+    packTravel,
+    packFreelance,
+  ];
+
+  /// Coin extras only — never included in a subscription.
+  static const marketplace = <String>[
+    aiAssistant,
+    chartPack,
+    calcPlus,
+    formulaPack,
+    helperPack,
+    packDev,
+    packEdu,
+    packRpg,
+    packCulinary,
+    packAgile,
+    packMusic,
+    packAcademic,
+    packFitness,
+    packTravel,
+    packFreelance,
   ];
 
   static int coinCost(String key) => switch (key) {
     premiumPaper || premiumCover => 20,
-    pdfCompress => 30,
+    pdfCompress || formulaPack || helperPack => 30,
+    calcPlus => 35,
     handwritingOcr || audioTranscription || cloudSync => 50,
+    chartPack ||
+    sessionCollab ||
+    studyMode ||
+    packCulinary ||
+    packTravel => 40,
+    packDev ||
+    packEdu ||
+    packRpg ||
+    packAgile ||
+    packMusic ||
+    packAcademic ||
+    packFitness ||
+    packFreelance => 55,
     whiteboard || aiAssistant => 80,
-    sessionCollab || studyMode => 40,
     asyncCollab => 100,
     noForcedAds => 60,
     _ => 25,
@@ -74,6 +134,7 @@ class EntitlementState extends Equatable {
 
   bool hasAccess(String feature) {
     if (unlocked.contains(feature)) return true;
+    if (FeatureKeys.marketplace.contains(feature)) return false;
     switch (tier) {
       case AppTier.free:
         return false;

@@ -14,30 +14,20 @@ class ShapeRecognition {
     required String pageId,
     required int colorValue,
     required double strokeWidth,
+    bool allowImperfectLine = false,
   }) {
-    if (points.length < 8) return null;
-    final pts = [for (final p in points) p.offset];
+    if (points.length < 5) return null;
+    final raw = [for (final p in points) p.offset];
+    final pts = _resample(raw, 48);
     var length = 0.0;
     for (var i = 1; i < pts.length; i++) {
       length += (pts[i] - pts[i - 1]).distance;
     }
-    if (length < 28) return null;
+    if (length < 24) return null;
 
-    final line = _asLine(pts, length);
-    if (line != null) {
-      return ShapeElement.create(
-        pageId: pageId,
-        kind: ShapeKind.line,
-        x1: line.$1.dx,
-        y1: line.$1.dy,
-        x2: line.$2.dx,
-        y2: line.$2.dy,
-        colorValue: colorValue,
-        strokeWidth: strokeWidth,
-      );
-    }
+    final closed = _isClosed(pts, length);
 
-    final circle = _asCircle(pts);
+    final circle = _asCircle(pts, length, closed: closed);
     if (circle != null) {
       return ShapeElement.create(
         pageId: pageId,
@@ -51,7 +41,7 @@ class ShapeRecognition {
       );
     }
 
-    final rect = _asRect(pts);
+    final rect = _asRect(pts, length, closed: closed);
     if (rect != null) {
       return ShapeElement.create(
         pageId: pageId,
@@ -65,7 +55,7 @@ class ShapeRecognition {
       );
     }
 
-    final ellipse = _asEllipse(pts);
+    final ellipse = _asEllipse(pts, length, closed: closed);
     if (ellipse != null) {
       return ShapeElement.create(
         pageId: pageId,
@@ -78,61 +68,135 @@ class ShapeRecognition {
         strokeWidth: strokeWidth,
       );
     }
+
+    final line = _asLine(pts, length, loose: allowImperfectLine);
+    if (line != null) {
+      return ShapeElement.create(
+        pageId: pageId,
+        kind: ShapeKind.line,
+        x1: line.$1.dx,
+        y1: line.$1.dy,
+        x2: line.$2.dx,
+        y2: line.$2.dy,
+        colorValue: colorValue,
+        strokeWidth: strokeWidth,
+      );
+    }
     return null;
   }
 
-  static (Offset, Offset)? _asLine(List<Offset> pts, double length) {
-    final a = pts.first;
-    final b = pts.last;
-    final span = (b - a).distance;
-    if (span < 24) return null;
-    if (span / length < 0.86) return null;
+  static bool _isClosed(List<Offset> pts, double length) {
+    final gap = (pts.first - pts.last).distance;
+    if (gap < math.max(28.0, length * 0.16)) return true;
+    // Almost-closed: the start sits near the last quarter of the stroke.
+    final window = math.max(4, pts.length ~/ 6);
+    for (var i = pts.length - window; i < pts.length; i++) {
+      if ((pts[i] - pts.first).distance < math.max(22.0, length * 0.12)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static (Offset, Offset)? _asLine(
+    List<Offset> pts,
+    double length, {
+    required bool loose,
+  }) {
+    var a = pts.first;
+    var b = pts.last;
+    var span = (b - a).distance;
+    if (span < 28) return null;
+    final straight = span / length;
+    if (straight < (loose ? 0.80 : 0.90)) return null;
     var maxDev = 0.0;
     for (final p in pts) {
       maxDev = math.max(maxDev, _distToSegment(p, a, b));
     }
-    if (maxDev > math.max(8.0, span * 0.06)) return null;
+    final limit = math.max(loose ? 12.0 : 7.0, span * (loose ? 0.09 : 0.055));
+    if (maxDev > limit) return null;
+
+    final dx = (b.dx - a.dx).abs();
+    final dy = (b.dy - a.dy).abs();
+    if (dy < dx * 0.12) {
+      final y = (a.dy + b.dy) / 2;
+      a = Offset(a.dx, y);
+      b = Offset(b.dx, y);
+    } else if (dx < dy * 0.12) {
+      final x = (a.dx + b.dx) / 2;
+      a = Offset(x, a.dy);
+      b = Offset(x, b.dy);
+    }
     return (a, b);
   }
 
-  static ({Offset center, double radius})? _asCircle(List<Offset> pts) {
-    final closed = (pts.first - pts.last).distance < 36;
-    if (!closed) return null;
+  static ({Offset center, double radius})? _asCircle(
+    List<Offset> pts,
+    double length, {
+    required bool closed,
+  }) {
+    if (!closed && length < 80) return null;
+    final box = _bounds(pts);
+    final aspect =
+        (box.width - box.height).abs() / math.max(box.width, box.height);
+    if (aspect > 0.18) return null;
     var cx = 0.0, cy = 0.0;
     for (final p in pts) {
       cx += p.dx;
       cy += p.dy;
     }
-    final center = Offset(cx / pts.length, cy / pts.length);
+    var center = Offset(cx / pts.length, cy / pts.length);
     var meanR = 0.0;
     for (final p in pts) {
       meanR += (p - center).distance;
     }
     meanR /= pts.length;
-    if (meanR < 16) return null;
+    if (meanR < 14) return null;
+    center = box.center;
+    meanR = math.min(box.width, box.height) / 2;
+
     var varR = 0.0;
     for (final p in pts) {
       final d = (p - center).distance - meanR;
       varR += d * d;
     }
     varR = math.sqrt(varR / pts.length);
-    if (varR > meanR * 0.12) return null;
+    if (varR > meanR * 0.20) return null;
+
+    final expected = 2 * math.pi * meanR;
+    final circErr = (length - expected).abs() / expected;
+    if (!closed && circErr > 0.28) return null;
+    if (closed && circErr > 0.38) return null;
     return (center: center, radius: meanR);
   }
 
-  static Rect? _asRect(List<Offset> pts) {
-    final closed = (pts.first - pts.last).distance < 40;
+  static Rect? _asRect(
+    List<Offset> pts,
+    double length, {
+    required bool closed,
+  }) {
     if (!closed) return null;
-    var minX = pts.first.dx, maxX = pts.first.dx;
-    var minY = pts.first.dy, maxY = pts.first.dy;
-    for (final p in pts) {
-      minX = math.min(minX, p.dx);
-      maxX = math.max(maxX, p.dx);
-      minY = math.min(minY, p.dy);
-      maxY = math.max(maxY, p.dy);
+    final box = _bounds(pts);
+    if (box.width < 22 || box.height < 22) return null;
+
+    final corners = _sharpCorners(pts);
+    if (corners.length >= 3 && corners.length <= 6) {
+      var right = 0;
+      for (var i = 0; i < corners.length; i++) {
+        final prev = corners[(i - 1 + corners.length) % corners.length];
+        final curr = corners[i];
+        final next = corners[(i + 1) % corners.length];
+        final a = prev - curr;
+        final b = next - curr;
+        final den = a.distance * b.distance;
+        if (den < 1e-4) continue;
+        final cos = ((a.dx * b.dx + a.dy * b.dy) / den).clamp(-1.0, 1.0);
+        final deg = math.acos(cos) * 180 / math.pi;
+        if (deg > 65 && deg < 115) right++;
+      }
+      if (right >= 3) return box;
     }
-    final box = Rect.fromLTRB(minX, minY, maxX, maxY);
-    if (box.width < 24 || box.height < 24) return null;
+
     var edgeErr = 0.0;
     for (final p in pts) {
       final dx = math.min((p.dx - box.left).abs(), (p.dx - box.right).abs());
@@ -140,28 +204,23 @@ class ShapeRecognition {
       edgeErr += math.min(dx, dy);
     }
     edgeErr /= pts.length;
-    if (edgeErr > math.max(7.0, math.min(box.width, box.height) * 0.08)) {
+    if (edgeErr > math.max(10.0, math.min(box.width, box.height) * 0.12)) {
       return null;
     }
     return box;
   }
 
-  static Rect? _asEllipse(List<Offset> pts) {
-    final closed = (pts.first - pts.last).distance < 40;
+  static Rect? _asEllipse(
+    List<Offset> pts,
+    double length, {
+    required bool closed,
+  }) {
     if (!closed) return null;
-    var minX = pts.first.dx, maxX = pts.first.dx;
-    var minY = pts.first.dy, maxY = pts.first.dy;
-    for (final p in pts) {
-      minX = math.min(minX, p.dx);
-      maxX = math.max(maxX, p.dx);
-      minY = math.min(minY, p.dy);
-      maxY = math.max(maxY, p.dy);
-    }
-    final box = Rect.fromLTRB(minX, minY, maxX, maxY);
-    if (box.width < 28 || box.height < 28) return null;
+    final box = _bounds(pts);
+    if (box.width < 26 || box.height < 26) return null;
     final rx = box.width / 2;
     final ry = box.height / 2;
-    if ((rx - ry).abs() / math.max(rx, ry) < 0.12) return null;
+    if ((rx - ry).abs() / math.max(rx, ry) < 0.10) return null;
     final c = box.center;
     var err = 0.0;
     for (final p in pts) {
@@ -170,8 +229,68 @@ class ShapeRecognition {
       err += (nx * nx + ny * ny - 1).abs();
     }
     err /= pts.length;
-    if (err > 0.22) return null;
+    if (err > 0.32) return null;
     return box;
+  }
+
+  static List<Offset> _sharpCorners(List<Offset> pts) {
+    if (pts.length < 8) return const [];
+    final corners = <Offset>[];
+    const window = 3;
+    for (var i = window; i < pts.length - window; i++) {
+      final a = pts[i] - pts[i - window];
+      final b = pts[i + window] - pts[i];
+      final den = a.distance * b.distance;
+      if (den < 4) continue;
+      final cos = ((a.dx * b.dx + a.dy * b.dy) / den).clamp(-1.0, 1.0);
+      final deg = math.acos(cos) * 180 / math.pi;
+      if (deg < 48) continue;
+      if (corners.isNotEmpty && (corners.last - pts[i]).distance < 16) {
+        corners[corners.length - 1] = pts[i];
+      } else {
+        corners.add(pts[i]);
+      }
+    }
+    return corners;
+  }
+
+  static Rect _bounds(List<Offset> pts) {
+    var minX = pts.first.dx, maxX = pts.first.dx;
+    var minY = pts.first.dy, maxY = pts.first.dy;
+    for (final p in pts) {
+      minX = math.min(minX, p.dx);
+      maxX = math.max(maxX, p.dx);
+      minY = math.min(minY, p.dy);
+      maxY = math.max(maxY, p.dy);
+    }
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
+  }
+
+  static List<Offset> _resample(List<Offset> pts, int count) {
+    if (pts.length <= 2) return pts;
+    var length = 0.0;
+    for (var i = 1; i < pts.length; i++) {
+      length += (pts[i] - pts[i - 1]).distance;
+    }
+    if (length < 1) return pts;
+    final step = length / (count - 1);
+    final out = <Offset>[pts.first];
+    var passed = 0.0;
+    var target = step;
+    for (var i = 1; i < pts.length && out.length < count - 1; i++) {
+      final a = pts[i - 1];
+      final b = pts[i];
+      final seg = (b - a).distance;
+      if (seg < 1e-6) continue;
+      while (passed + seg >= target && out.length < count - 1) {
+        final t = ((target - passed) / seg).clamp(0.0, 1.0);
+        out.add(Offset(a.dx + (b.dx - a.dx) * t, a.dy + (b.dy - a.dy) * t));
+        target += step;
+      }
+      passed += seg;
+    }
+    out.add(pts.last);
+    return out;
   }
 
   static double _distToSegment(Offset p, Offset a, Offset b) {
