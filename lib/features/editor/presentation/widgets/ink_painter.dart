@@ -573,4 +573,7 @@ class InkPainter extends CustomPainter {
         oldDelegate.eraserCursor != eraserCursor ||
         oldDelegate.eraserRadius != eraserRadius;
   }
+
+  @override
+  bool hitTest(Offset position) => false;
 }

@@ -190,4 +190,7 @@ class PageBackgroundPainter extends CustomPainter {
         oldDelegate.visibleWorldRect != visibleWorldRect ||
         oldDelegate.infinite != infinite;
   }
+
+  @override
+  bool hitTest(Offset position) => false;
 }

@@ -1837,13 +1837,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                       paper: controller.activePaper,
                       canvasMode: canvasMode,
                       browseMode: browseMode,
-                      // On normal notebook pages, fingers navigate and a stylus
-                      // writes. Infinite canvases retain the explicit pan mode.
+                      // Read/study: fingers always browse. Otherwise honour
+                      // the setting so mouse / finger can still write on
+                      // desktop and phones (default is off).
                       fingerPanZoom:
-                          readOnly ||
-                          studying ||
-                          canvasMode != CanvasMode.infinite ||
-                          controller.fingerPanZoom,
+                          readOnly || studying || controller.fingerPanZoom,
                       readOnly: readOnly || presenting || studying,
                       hideInk: hideInk,
                       onDoubleTap: presenting
@@ -1894,10 +1892,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                         fit: StackFit.expand,
                         children: [
                           Positioned.fill(
-                            child: CustomPaint(
-                              painter: ShapePainter(
-                                shapes: controller.shapes,
-                                draft: controller.draftShape,
+                            child: IgnorePointer(
+                              child: CustomPaint(
+                                painter: ShapePainter(
+                                  shapes: controller.shapes,
+                                  draft: controller.draftShape,
+                                ),
                               ),
                             ),
                           ),
@@ -1937,28 +1937,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                             onChanged: controller.updateImage,
                             onDelete: controller.deleteImage,
                           ),
-                          TextBlockLayer(
-                            blocks: controller.textBlocks,
-                            selectedId: controller.selectedTextId,
-                            editingId: controller.editingTextId,
-                            editable:
-                                !readOnly &&
-                                !presenting &&
-                                controller.ink.tool == InkTool.text,
-                            pageTextEnabled:
-                                controller.textLayoutMode ==
-                                TextLayoutMode.lineBound,
-                            metrics: metrics,
-                            registry: controller.textRegistry,
-                            onSelect: controller.selectText,
-                            onBeginEdit: controller.beginTextEdit,
-                            onChanged: controller.updateTextBlock,
-                            onDelete: controller.deleteTextBlock,
-                            onCaretPagePoint: (point) {
-                              _canvasKey.currentState?.ensurePagePointVisible(
-                                point,
-                              );
-                            },
+                          IgnorePointer(
+                            ignoring:
+                                readOnly ||
+                                presenting ||
+                                controller.ink.tool != InkTool.text,
+                            child: TextBlockLayer(
+                              blocks: controller.textBlocks,
+                              selectedId: controller.selectedTextId,
+                              editingId: controller.editingTextId,
+                              editable:
+                                  !readOnly &&
+                                  !presenting &&
+                                  controller.ink.tool == InkTool.text,
+                              pageTextEnabled:
+                                  controller.textLayoutMode ==
+                                  TextLayoutMode.lineBound,
+                              metrics: metrics,
+                              registry: controller.textRegistry,
+                              onSelect: controller.selectText,
+                              onBeginEdit: controller.beginTextEdit,
+                              onChanged: controller.updateTextBlock,
+                              onDelete: controller.deleteTextBlock,
+                              onCaretPagePoint: (point) {
+                                _canvasKey.currentState
+                                    ?.ensurePagePointVisible(point);
+                              },
+                            ),
                           ),
                         ],
                       ),

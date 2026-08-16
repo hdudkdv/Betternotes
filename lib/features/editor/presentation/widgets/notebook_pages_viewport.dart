@@ -155,6 +155,9 @@ class _ImagePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ImagePainter oldDelegate) =>
       oldDelegate.image != image;
+
+  @override
+  bool hitTest(Offset position) => false;
 }
 
 /// Placeholder shown past the last page to create a new one.

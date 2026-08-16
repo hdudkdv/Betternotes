@@ -114,6 +114,11 @@ class InkCanvasState extends State<InkCanvas>
   int _multiMaxPointers = 0;
   Offset? _threeFingerStart;
   bool _browseActive = false;
+  bool _drawPending = false;
+  int? _pendingPointer;
+  Offset? _pendingGlobal;
+  Offset? _pendingLocal;
+  double _pendingPressure = 0.5;
 
   /// Set once the fit matrix has been written to [_transform]. Until then the
   /// controller is still identity (scale=1), which must NOT count as zoomed —
@@ -127,7 +132,13 @@ class InkCanvasState extends State<InkCanvas>
   /// True only when clearly zoomed in past fit. Unfitted identity ≠ zoomed.
   bool get _isZoomed {
     if (!_fitReady || _fitScale <= 0) return false;
-    return _transform.value.getMaxScaleOnAxis() > _fitScale * 1.12;
+    final scale = _transform.value.getMaxScaleOnAxis();
+    // InteractiveViewer can briefly sit on identity (scale=1) before the fit
+    // matrix sticks. That must not lock page-swipe as "zoomed in".
+    if ((scale - 1.0).abs() < 0.02 && (_fitScale - 1.0).abs() > 0.08) {
+      return false;
+    }
+    return scale > _fitScale * 1.12;
   }
 
   double get _minScale =>
@@ -378,6 +389,10 @@ class InkCanvasState extends State<InkCanvas>
       _fittedPageSize = null;
       _fitReady = false;
       _zoomedSent = true; // force a false emit after the new fit lands
+      // Unlock immediately so a mid-fit identity matrix cannot freeze swipe.
+      widget.onZoomedChanged?.call(false);
+      widget.onScrollLockChanged?.call(false);
+      _scrollLockSent = false;
     }
   }
 
@@ -412,14 +427,11 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _forceScrollUnlock() {
-    _scrollLockSent = true; // ensure the false below is emitted
     _scrollLockSent = false;
     widget.onScrollLockChanged?.call(false);
     final zoomed = _isZoomed;
-    if (zoomed != _zoomedSent) {
-      _zoomedSent = zoomed;
-      widget.onZoomedChanged?.call(zoomed);
-    }
+    _zoomedSent = zoomed;
+    widget.onZoomedChanged?.call(zoomed);
   }
 
   void _resetPinch() {
@@ -494,7 +506,9 @@ class InkCanvasState extends State<InkCanvas>
 
   bool _canBrowseWith(PointerEvent event) {
     if (widget.canvasMode == CanvasMode.infinite) return false;
-    if (!(widget.fingerPanZoom || widget.readOnly)) return false;
+    // Anything that is not inking (finger-nav mode, hand tool, read-only)
+    // drives page browse. Viewport keeps owning the gesture after the live
+    // canvas hides mid-swipe.
     return !_canDrawWith(event);
   }
 
@@ -612,6 +626,52 @@ class InkCanvasState extends State<InkCanvas>
     return Rect.fromPoints(tl, br).intersect(Offset.zero & pageSize);
   }
 
+  void _clearDrawPending() {
+    _drawPending = false;
+    _pendingPointer = null;
+    _pendingGlobal = null;
+    _pendingLocal = null;
+    _pendingPressure = 0.5;
+  }
+
+  bool _shouldDeferDraw(PointerEvent event) {
+    if (widget.canvasMode == CanvasMode.infinite) return false;
+    if (widget.fingerPanZoom) return false;
+    if (_isZoomed) return false;
+    if (_isActiveStylus(event)) return false;
+    if (widget.engine.tool == InkTool.text ||
+        widget.engine.tool == InkTool.lasso) {
+      return false;
+    }
+    return _isTouch(event) || event.kind == PointerDeviceKind.mouse;
+  }
+
+  bool _isPageSwipeSlop(Offset slop) {
+    if (widget.canvasMode == CanvasMode.infinite || _isZoomed) return false;
+    if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
+      return slop.distance >= 36 && slop.dx.abs() > slop.dy.abs() * 1.15;
+    }
+    return slop.distance >= 36 && slop.dy.abs() > slop.dx.abs() * 1.15;
+  }
+
+  void _beginStroke(
+    int pointer,
+    Offset local, {
+    required bool isStylus,
+    required double pressure,
+  }) {
+    _drawPointer = pointer;
+    _drawing = true;
+    _drawIsStylus = isStylus;
+    _clearDrawPending();
+    _updateScrollLock();
+    widget.onPointerDown(
+      _toPageLocal(local),
+      isStylus: isStylus,
+      pressure: pressure,
+    );
+  }
+
   void _stopDrawing({required bool commit}) {
     if (!_drawing) return;
     if (commit) {
@@ -648,6 +708,7 @@ class InkCanvasState extends State<InkCanvas>
       if (_drawing) {
         _stopDrawing(commit: false);
       }
+      _clearDrawPending();
       _resetPinch();
       _panLastFocal = _focalGlobal();
       if (_pointerGlobal.length >= 3) {
@@ -662,13 +723,19 @@ class InkCanvasState extends State<InkCanvas>
     _multiTravel = 0;
     _threeFingerStart = null;
     if (_canDrawWith(event)) {
-      _drawPointer = event.pointer;
-      _drawing = true;
-      _drawIsStylus = _isActiveStylus(event);
+      if (_shouldDeferDraw(event)) {
+        _drawPending = true;
+        _pendingPointer = event.pointer;
+        _pendingGlobal = event.position;
+        _pendingLocal = event.localPosition;
+        _pendingPressure = event.pressure == 0 ? 0.5 : event.pressure;
+        _panLastFocal = event.position;
+        return;
+      }
       setState(() {});
-      _updateScrollLock();
-      widget.onPointerDown(
-        _toPageLocal(event.localPosition),
+      _beginStroke(
+        event.pointer,
+        event.localPosition,
         isStylus: _isActiveStylus(event),
         pressure: event.pressure == 0 ? 0.5 : event.pressure,
       );
@@ -687,6 +754,7 @@ class InkCanvasState extends State<InkCanvas>
     _pointerGlobal[event.pointer] = event.position;
 
     if (_pointerGlobal.length >= 2) {
+      _clearDrawPending();
       final focal = _focalGlobal();
       if (_keyboardOpen) {
         _panLastFocal = focal;
@@ -722,6 +790,32 @@ class InkCanvasState extends State<InkCanvas>
       return;
     }
 
+    if (_drawPending && event.pointer == _pendingPointer) {
+      final slop = event.position - (_pendingGlobal ?? event.position);
+      if (_isPageSwipeSlop(slop)) {
+        // Horizontal/vertical page swipe — let the viewport finish it.
+        _clearDrawPending();
+        _panLastFocal = event.position;
+        return;
+      }
+      if (slop.distance >= 16) {
+        final local = _pendingLocal ?? event.localPosition;
+        setState(() {});
+        _beginStroke(
+          event.pointer,
+          local,
+          isStylus: false,
+          pressure: _pendingPressure,
+        );
+        widget.onPointerMove(
+          _toPageLocal(event.localPosition),
+          pressure: event.pressure == 0 ? 0.5 : event.pressure,
+        );
+        return;
+      }
+      return;
+    }
+
     // Fit zoom → page flip. Zoomed → pan, then edge-overscroll → page flip.
     if (!_keyboardOpen && !_drawing && _panLastFocal != null) {
       final delta = event.position - _panLastFocal!;
@@ -736,6 +830,18 @@ class InkCanvasState extends State<InkCanvas>
     final travel = _multiTravel;
     final wasBrowse = _browseActive;
     _pointerGlobal.remove(event.pointer);
+
+    if (_drawPending && event.pointer == _pendingPointer) {
+      final local = _pendingLocal ?? event.localPosition;
+      _beginStroke(
+        event.pointer,
+        local,
+        isStylus: false,
+        pressure: _pendingPressure,
+      );
+      _stopDrawing(commit: true);
+      setState(() {});
+    }
 
     if (event.pointer == _drawPointer) {
       _stopDrawing(commit: true);
@@ -775,6 +881,9 @@ class InkCanvasState extends State<InkCanvas>
 
   void _handlePointerCancel(PointerCancelEvent event) {
     _pointerGlobal.remove(event.pointer);
+    if (event.pointer == _pendingPointer) {
+      _clearDrawPending();
+    }
     if (event.pointer == _drawPointer) {
       _stopDrawing(commit: false);
     }

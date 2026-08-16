@@ -128,4 +128,9 @@ class ShapePainter extends CustomPainter {
   bool shouldRepaint(covariant ShapePainter oldDelegate) {
     return oldDelegate.shapes != shapes || oldDelegate.draft != draft;
   }
+
+  // Decorative overlay only — a full-page CustomPaint would otherwise swallow
+  // every pointer (Flutter defaults hitTest to true) and kill ink + page swipe.
+  @override
+  bool hitTest(Offset position) => false;
 }

@@ -24,7 +24,7 @@ class ImageElementsLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    final layer = Stack(
       children: [
         for (final image in images)
           Positioned(
@@ -86,6 +86,8 @@ class ImageElementsLayer extends StatelessWidget {
           ),
       ],
     );
+    if (!editable) return IgnorePointer(child: layer);
+    return layer;
   }
 
   Widget _buildImage(String path) {
