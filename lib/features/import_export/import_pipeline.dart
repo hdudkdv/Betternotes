@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
@@ -68,8 +67,11 @@ class ImportPipeline {
           name: file.name,
         );
       case ImportKind.text:
-        final page = await _importTextPage(notebookId, utf8.decode(bytes));
-        return ImportResult(notebookId: notebookId, pageIds: [page.id]);
+        return _importTextLike(
+          notebookId: notebookId,
+          bytes: bytes,
+          name: file.name,
+        );
       case ImportKind.attachment:
         final page = await _importAttachmentCover(
           notebookId: notebookId,
@@ -199,6 +201,13 @@ class ImportPipeline {
       } else if (kind == ImportKind.image) {
         final page = await _importImagePage(notebookId, fileBytes, base);
         pageIds.add(page.id);
+      } else if (kind == ImportKind.text) {
+        final result = await _importTextLike(
+          notebookId: notebookId,
+          bytes: fileBytes,
+          name: base,
+        );
+        pageIds.addAll(result.pageIds);
       }
     }
 
@@ -262,9 +271,18 @@ class ImportPipeline {
         continue;
       }
 
+      if (lower.endsWith('.rtf')) {
+        final text = _rtfToText(utf8.decode(fileBytes, allowMalformed: true));
+        if (text.trim().isNotEmpty) textChunks.add(text.trim());
+        continue;
+      }
+
       if (lower.endsWith('word/document.xml') ||
           lower.contains('/ppt/slides/slide') && lower.endsWith('.xml') ||
-          lower.endsWith('xl/sharedstrings.xml')) {
+          lower.endsWith('xl/sharedstrings.xml') ||
+          lower.contains('index.xml') ||
+          lower.endsWith('.xhtml') ||
+          lower.endsWith('.html')) {
         final xml = utf8.decode(fileBytes, allowMalformed: true);
         final text = _stripXml(xml);
         if (text.trim().isNotEmpty) textChunks.add(text.trim());
@@ -284,6 +302,120 @@ class ImportPipeline {
           ? 'office_attachment_only'
           : null,
     );
+  }
+
+  Future<ImportResult> _importTextLike({
+    required String notebookId,
+    required Uint8List bytes,
+    required String name,
+  }) async {
+    final ext = p.extension(name).toLowerCase();
+    if (ext == '.gdoc' || ext == '.gsheet' || ext == '.gslides') {
+      return _importGoogleShortcut(
+        notebookId: notebookId,
+        bytes: bytes,
+        name: name,
+      );
+    }
+    final raw = _decodeText(bytes);
+    final text = switch (ext) {
+      '.html' || '.htm' || '.xhtml' => _htmlToText(raw),
+      '.rtf' => _rtfToText(raw),
+      _ => raw,
+    };
+    if (text.trim().isEmpty) {
+      final cover = await _importAttachmentCover(
+        notebookId: notebookId,
+        bytes: bytes,
+        name: name,
+      );
+      return ImportResult(notebookId: notebookId, pageIds: [cover.id]);
+    }
+    final page = await _importTextPage(notebookId, text);
+    return ImportResult(notebookId: notebookId, pageIds: [page.id]);
+  }
+
+  Future<ImportResult> _importGoogleShortcut({
+    required String notebookId,
+    required Uint8List bytes,
+    required String name,
+  }) async {
+    String url = '';
+    String title = p.basenameWithoutExtension(name);
+    try {
+      final json = jsonDecode(utf8.decode(bytes, allowMalformed: true));
+      if (json is Map) {
+        url = '${json['url'] ?? json['doc_url'] ?? ''}';
+        final fromName = '${json['doc_id'] ?? ''}';
+        if (fromName.isNotEmpty && title == p.basenameWithoutExtension(name)) {
+          title = fromName;
+        }
+      }
+    } catch (_) {
+      final raw = utf8.decode(bytes, allowMalformed: true);
+      final match = RegExp(r'https?://[^\s"]+').firstMatch(raw);
+      url = match?.group(0) ?? '';
+    }
+    final page = await _importTextPage(
+      notebookId,
+      'Google-Dokument: $title\n\n'
+      '${url.isEmpty ? '' : '$url\n\n'}'
+      'Google Docs-Verknüpfungen enthalten den Text nicht lokal. '
+      'In Google Docs unter Datei → Herunterladen als PDF oder DOCX '
+      'exportieren und die Datei hier erneut importieren.',
+    );
+    return ImportResult(
+      notebookId: notebookId,
+      pageIds: [page.id],
+      message: 'google_shortcut',
+    );
+  }
+
+  String _decodeText(Uint8List bytes) {
+    try {
+      return utf8.decode(bytes);
+    } catch (_) {
+      return latin1.decode(bytes, allowInvalid: true);
+    }
+  }
+
+  String _htmlToText(String html) {
+    var text = html
+        .replaceAll(
+          RegExp(r'<script[\s\S]*?</script>', caseSensitive: false),
+          ' ',
+        )
+        .replaceAll(
+          RegExp(r'<style[\s\S]*?</style>', caseSensitive: false),
+          ' ',
+        )
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'</div>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'</li>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<[^>]+>'), ' ')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll(RegExp(r'&#\d+;'), ' ')
+        .replaceAll(RegExp(r'[ \t]+'), ' ')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
+    return text;
+  }
+
+  String _rtfToText(String rtf) {
+    final noGroups = rtf
+        .replaceAll(RegExp(r'\\[a-zA-Z]+-?\d* ?'), ' ')
+        .replaceAll(RegExp(r'[{}]'), ' ')
+        .replaceAll('\\', ' ')
+        .replaceAll(RegExp(r'[ \t]+'), ' ')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
+    return noGroups;
   }
 
   Future<NotePage> _importTextPage(String notebookId, String text) async {

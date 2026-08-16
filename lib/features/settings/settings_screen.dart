@@ -617,7 +617,14 @@ class SettingsScreen extends ConsumerWidget {
               if (billing.error != null) ...[
                 Text(
                   billing.error!,
-                  style: AppTheme.body(color: AppTheme.danger, fontSize: 13),
+                  style: AppTheme.body(
+                    color:
+                        billing.error!.contains('Sideload') ||
+                            billing.error!.contains('TestFlight')
+                        ? AppTheme.inkMuted
+                        : AppTheme.danger,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],

@@ -23,13 +23,47 @@ String formatHm(int minutes) {
   return '${h.toString().padLeft(2, '0')}:${min.toString().padLeft(2, '0')}';
 }
 
+const int kDefaultLessonColor = 0xFF0F6E56;
+
+const List<int> kSubjectPalette = [
+  0xFF0F6E56,
+  0xFF1D4E89,
+  0xFF9A3412,
+  0xFF5B3A8C,
+  0xFF0E7490,
+  0xFF9F1239,
+  0xFF3F6212,
+  0xFF9A6B12,
+  0xFF1E3A5F,
+  0xFF7C2D12,
+  0xFF155E75,
+  0xFF6B21A8,
+];
+
+/// Stable color from the subject name so Englisch and Mathe never share a tint.
+int colorForSubject(String subject) {
+  final key = subject.trim().toLowerCase();
+  if (key.isEmpty) return kDefaultLessonColor;
+  var hash = 0;
+  for (final unit in key.codeUnits) {
+    hash = 0x1fffffff & (hash * 31 + unit);
+  }
+  return kSubjectPalette[hash % kSubjectPalette.length];
+}
+
+int displayLessonColor(TimetableLesson lesson) {
+  if (lesson.folderId != null) return lesson.colorValue;
+  if (lesson.subject.trim().isEmpty) return lesson.colorValue;
+  return colorForSubject(lesson.subject);
+}
+
 /// One subject filling (full block or one half of a split block).
 class TimetableLesson extends Equatable {
   const TimetableLesson({
     this.subject = '',
     this.room = '',
     this.folderId,
-    this.colorValue = 0xFF0F6E56,
+    this.colorValue = kDefaultLessonColor,
   });
 
   final String subject;
@@ -66,7 +100,7 @@ class TimetableLesson extends Equatable {
       subject: json['subject'] as String? ?? '',
       room: json['room'] as String? ?? '',
       folderId: json['folderId'] as String?,
-      colorValue: json['color'] as int? ?? 0xFF0F6E56,
+      colorValue: json['color'] as int? ?? kDefaultLessonColor,
     );
   }
 
@@ -153,7 +187,7 @@ class TimetableSlot extends Equatable {
       first: TimetableLesson(
         subject: json['subject'] as String? ?? '',
         room: json['room'] as String? ?? '',
-        colorValue: json['color'] as int? ?? 0xFF0F6E56,
+        colorValue: json['color'] as int? ?? kDefaultLessonColor,
       ),
     );
   }

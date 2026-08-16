@@ -469,7 +469,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapToFlip => 'Tap to flip';
 
   @override
-  String get searchEverything => 'Search or @Economics addition …';
+  String get searchEverything => 'Search or @Economics …';
 
   @override
   String get shareExport => 'Share & export';
@@ -2185,7 +2185,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importAddFilesHint =>
-      'Pick PDF, images, Office, GoodNotes, or ZIP files';
+      'Pick PDF, images, Office, Google Docs, HTML, RTF, EPUB, Pages, or ZIP files';
 
   @override
   String get importNoFilesYet => 'No files ready to import';
@@ -2712,6 +2712,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get featureCloudSync => 'Cloud sync';
 
   @override
+  String get featureAiAssistant => 'Assistant (Gemma)';
+
+  @override
+  String get featureStudyMode => 'Study mode';
+
+  @override
   String get scanPages => 'Scan pages';
 
   @override
@@ -2755,16 +2761,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calculator => 'Calculator';
 
   @override
-  String get calculatorHint => 'e.g. 2+3*4 or sin(x)';
+  String get calculatorHint => 'e.g. 2+3*4, sin(x) or 2x+3=11';
 
   @override
   String get calculatorEquals => '=';
+
+  @override
+  String get calculatorSolve => 'Solve';
+
+  @override
+  String get calculatorBasic => 'Numbers';
+
+  @override
+  String get calculatorFn => 'Functions';
 
   @override
   String get calculatorPlot => 'Insert graph';
 
   @override
   String get calculatorHistory => 'Recent calculations';
+
+  @override
+  String get assistant => 'Assistant';
+
+  @override
+  String get assistantHint =>
+      'On-device help for calculations. Try 2x+3=11 or sin(pi/2).';
+
+  @override
+  String get assistantLocked =>
+      'Unlock the assistant in the Marketplace (Gemma / on-device).';
+
+  @override
+  String get assistantInputHint => 'Expression or equation';
+
+  @override
+  String get assistantMathHint =>
+      'I can evaluate expressions and solve equations in x. Example: 2x+3=11';
 
   @override
   String get formulaBook => 'Formula book';
@@ -2893,7 +2926,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tourSearchBody =>
-      'Try @Economics addition to search inside one subject only.';
+      'Try @Economics to search inside one subject only.';
 
   @override
   String get tourSettingsTitle => 'Settings';

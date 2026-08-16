@@ -21,6 +21,7 @@ Future<void> showEditorMoreSheet(
   required PaperFormat defaultPaperFormat,
   required PageOrientation defaultOrientation,
   required ValueChanged<EditorMenuAction> onAction,
+  bool studyModeUnlocked = false,
 }) {
   return showEditorSheet<void>(
     context,
@@ -31,6 +32,7 @@ Future<void> showEditorMoreSheet(
       defaultPaperFormat: defaultPaperFormat,
       defaultOrientation: defaultOrientation,
       onAction: onAction,
+      studyModeUnlocked: studyModeUnlocked,
     ),
   );
 }
@@ -43,6 +45,7 @@ class _EditorMoreSheet extends StatefulWidget {
     required this.defaultPaperFormat,
     required this.defaultOrientation,
     required this.onAction,
+    this.studyModeUnlocked = false,
   });
 
   final PageTemplate template;
@@ -51,6 +54,7 @@ class _EditorMoreSheet extends StatefulWidget {
   final PaperFormat defaultPaperFormat;
   final PageOrientation defaultOrientation;
   final ValueChanged<EditorMenuAction> onAction;
+  final bool studyModeUnlocked;
 
   @override
   State<_EditorMoreSheet> createState() => _EditorMoreSheetState();
@@ -193,11 +197,12 @@ class _EditorMoreSheetState extends State<_EditorMoreSheet> {
         ],
         const SizedBox(height: 14),
         EditorSheetGroup(l10n.menuDocumentGroup),
-        EditorSheetTile(
-          icon: Icons.school_outlined,
-          label: l10n.studyMode,
-          onTap: () => _close(EditorMenuAction.studyMode),
-        ),
+        if (widget.studyModeUnlocked)
+          EditorSheetTile(
+            icon: Icons.school_outlined,
+            label: l10n.studyMode,
+            onTap: () => _close(EditorMenuAction.studyMode),
+          ),
         EditorSheetTile(
           icon: Icons.style_outlined,
           label: l10n.noteToFlashcard,

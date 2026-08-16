@@ -34,6 +34,15 @@
 				<string>public.text</string>
 				<string>public.data</string>
 				<string>com.adobe.pdf</string>
+				<string>public.html</string>
+				<string>public.rtf</string>
+				<string>public.plain-text</string>
+				<string>public.comma-separated-values-text</string>
+				<string>org.idpf.epub-container</string>
+				<string>com.apple.iwork.pages.pages</string>
+				<string>com.apple.iwork.keynote.key</string>
+				<string>com.apple.iwork.numbers.numbers</string>
+				<string>com.microsoft.word.doc</string>
 				<string>org.openxmlformats.wordprocessingml.document</string>
 				<string>org.openxmlformats.presentationml.presentation</string>
 				<string>org.openxmlformats.spreadsheetml.sheet</string>

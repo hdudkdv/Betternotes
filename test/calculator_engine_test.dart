@@ -20,4 +20,15 @@ void main() {
     expect(engine.evaluate('x*x', x: 3).value, 9);
     expect(engine.evaluate('sin(x)', x: 0).value, 0);
   });
+
+  test('solves a linear equation for x', () {
+    final result = engine.solve('2x+3=11');
+    expect(result.ok, isTrue);
+    expect(result.value, closeTo(4, 1e-6));
+  });
+
+  test('percent and factorial', () {
+    expect(engine.evaluate('50%').value, 0.5);
+    expect(engine.evaluate('5!').value, 120);
+  });
 }

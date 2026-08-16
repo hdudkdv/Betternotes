@@ -119,10 +119,15 @@ class RevenueCatBilling extends ChangeNotifier {
     try {
       _applyCustomerInfo(await Purchases.getCustomerInfo());
       offerings = await Purchases.getOfferings();
-      if (offerings?.current == null) {
+      final current = offerings?.current;
+      final packages = current?.availablePackages ?? const <Package>[];
+      if (current == null) {
         error = usesTestStore
             ? 'Test-Store hat kein Current Offering. In RevenueCat unter Test Store ein Offering als Current markieren und eine Paywall anhängen — oder den Apple-Key (appl_) nutzen.'
             : 'Kein Current Offering. In RevenueCat ein Offering als Current markieren und eine Paywall anhängen.';
+      } else if (packages.isEmpty) {
+        error =
+            'Die Abo-Produkte kommen vom App Store. Sideload- und unsigned Builds können keine StoreKit-Produkte laden — TestFlight oder App-Store-Build nutzen.';
       } else {
         error = null;
       }
@@ -305,8 +310,11 @@ class RevenueCatBilling extends ChangeNotifier {
     if (lower.contains('test store') || lower.contains('test_')) {
       return 'RevenueCat Test-Store passt nicht zu den App-Store-Abos. Apple-Key (appl_) in RevenueCat kopieren und per --dart-define=REVENUECAT_IOS_API_KEY setzen.';
     }
-    if (lower.contains('offering') || lower.contains('product')) {
-      return 'RevenueCat findet keine Produkte. Current Offering inkl. Paywall prüfen und Produkte an die Entitlements hängen.';
+    if (lower.contains('offering') ||
+        lower.contains('product') ||
+        lower.contains('storekit') ||
+        lower.contains('store problem')) {
+      return 'Die Abo-Produkte kommen vom App Store. Sideload-Builds sehen keine Pläne — TestFlight oder App-Store-Build nutzen. In RevenueCat müssen die Produkte am Current Offering und an den Entitlements hängen.';
     }
     return raw;
   }

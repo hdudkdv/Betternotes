@@ -224,12 +224,14 @@ class PdfService {
                 pw.CustomPaint(
                   size: pdf.PdfPoint(pageSize.width, pageSize.height),
                   painter: (canvas, size) {
-                    _paintTemplate(canvas, size, page);
+                    // PDF origin is bottom-left; notebook ink uses top-left.
+                    final h = size.y;
+                    _paintTemplate(canvas, size, page, h);
                     for (final shape in page.shapes) {
-                      _paintShape(canvas, shape);
+                      _paintShape(canvas, shape, h);
                     }
                     for (final stroke in page.strokes) {
-                      _paintStroke(canvas, stroke);
+                      _paintStroke(canvas, stroke, h);
                     }
                   },
                 ),
@@ -323,12 +325,25 @@ class PdfService {
     pdf.PdfGraphics canvas,
     pdf.PdfPoint size,
     NotePage page,
+    double pageH,
   ) {
+    double fy(double y) => pageH - y;
     final paper = page.customPaper;
     final line = pdf.PdfColor.fromInt(paper?.lineColor ?? 0xFFD7D2C8);
     final style = paper?.style ?? page.template.name;
     switch (style) {
       case 'blank':
+        return;
+      case 'dotted':
+        final spacing = paper?.gridSize ?? 16.0;
+        canvas.setFillColor(line);
+        for (var x = spacing; x < size.x - 12; x += spacing) {
+          for (var y = spacing; y < size.y - 12; y += spacing) {
+            canvas
+              ..drawEllipse(x, fy(y), 0.9, 0.9)
+              ..fillPath();
+          }
+        }
         return;
       case 'grid':
         final spacing = paper?.gridSize ?? 24.0;
@@ -337,16 +352,17 @@ class PdfService {
           canvas
             ..setStrokeColor(line)
             ..setLineWidth(0.8)
-            ..drawLine(x, margin, x, size.y - margin)
+            ..drawLine(x, fy(margin), x, fy(size.y - margin))
             ..strokePath();
         }
         for (var y = margin; y < size.y - 24; y += spacing) {
           canvas
             ..setStrokeColor(line)
             ..setLineWidth(0.8)
-            ..drawLine(margin, y, size.x - margin, y)
+            ..drawLine(margin, fy(y), size.x - margin, fy(y))
             ..strokePath();
         }
+        return;
       default:
         final spacing = paper?.lineSpacing ?? 28.0;
         final marginTop = paper?.marginTop ?? 48.0;
@@ -355,18 +371,19 @@ class PdfService {
           canvas
             ..setStrokeColor(line)
             ..setLineWidth(0.8)
-            ..drawLine(36, y, size.x - 36, y)
+            ..drawLine(36, fy(y), size.x - 36, fy(y))
             ..strokePath();
         }
         canvas
           ..setStrokeColor(pdf.PdfColor.fromInt(0xFFE8A0A0))
           ..setLineWidth(1)
-          ..drawLine(marginLeft, 24, marginLeft, size.y - 24)
+          ..drawLine(marginLeft, fy(24), marginLeft, fy(size.y - 24))
           ..strokePath();
     }
   }
 
-  void _paintShape(pdf.PdfGraphics canvas, ShapeElement shape) {
+  void _paintShape(pdf.PdfGraphics canvas, ShapeElement shape, double pageH) {
+    double fy(double y) => pageH - y;
     canvas
       ..setStrokeColor(pdf.PdfColor.fromInt(shape.colorValue))
       ..setLineWidth(shape.strokeWidth)
@@ -377,8 +394,8 @@ class PdfService {
       case ShapeKind.line:
       case ShapeKind.arrow:
         canvas
-          ..moveTo(shape.x1, shape.y1)
-          ..lineTo(shape.x2, shape.y2)
+          ..moveTo(shape.x1, fy(shape.y1))
+          ..lineTo(shape.x2, fy(shape.y2))
           ..strokePath();
         if (shape.kind == ShapeKind.arrow) {
           final dx = shape.x2 - shape.x1;
@@ -393,9 +410,9 @@ class PdfService {
             final bx = shape.x2 - ux * 12;
             final by = shape.y2 - uy * 12;
             canvas
-              ..moveTo(shape.x2, shape.y2)
-              ..lineTo(bx + lx * 7, by + ly * 7)
-              ..lineTo(bx - lx * 7, by - ly * 7)
+              ..moveTo(shape.x2, fy(shape.y2))
+              ..lineTo(bx + lx * 7, fy(by + ly * 7))
+              ..lineTo(bx - lx * 7, fy(by - ly * 7))
               ..closePath()
               ..setFillColor(pdf.PdfColor.fromInt(shape.colorValue))
               ..fillPath();
@@ -407,7 +424,7 @@ class PdfService {
         final w = (shape.x2 - shape.x1).abs();
         final h = (shape.y2 - shape.y1).abs();
         canvas
-          ..drawRect(left, top, w, h)
+          ..drawRect(left, fy(top + h), w, h)
           ..strokePath();
       case ShapeKind.ellipse:
         final left = shape.x1 < shape.x2 ? shape.x1 : shape.x2;
@@ -415,20 +432,21 @@ class PdfService {
         final w = (shape.x2 - shape.x1).abs();
         final h = (shape.y2 - shape.y1).abs();
         canvas
-          ..drawEllipse(left + w / 2, top + h / 2, w / 2, h / 2)
+          ..drawEllipse(left + w / 2, fy(top + h / 2), w / 2, h / 2)
           ..strokePath();
       case ShapeKind.circle:
         final radius = math.sqrt(
           math.pow(shape.x2 - shape.x1, 2) + math.pow(shape.y2 - shape.y1, 2),
         );
         canvas
-          ..drawEllipse(shape.x1, shape.y1, radius, radius)
+          ..drawEllipse(shape.x1, fy(shape.y1), radius, radius)
           ..strokePath();
     }
   }
 
-  void _paintStroke(pdf.PdfGraphics canvas, InkStroke stroke) {
+  void _paintStroke(pdf.PdfGraphics canvas, InkStroke stroke, double pageH) {
     if (stroke.points.isEmpty) return;
+    double fy(double y) => pageH - y;
     final base = pdf.PdfColor.fromInt(stroke.colorValue);
 
     if (stroke.isFountain || stroke.isPencil) {
@@ -446,8 +464,8 @@ class PdfService {
           ..setStrokeColor(pdf.PdfColor(base.red, base.green, base.blue, alpha))
           ..setLineWidth(width)
           ..setLineCap(pdf.PdfLineCap.round)
-          ..moveTo(a.x, a.y)
-          ..lineTo(b.x, b.y)
+          ..moveTo(a.x, fy(a.y))
+          ..lineTo(b.x, fy(b.y))
           ..strokePath();
       }
       if (stroke.points.length == 1) {
@@ -461,7 +479,7 @@ class PdfService {
             : 1.0;
         canvas
           ..setFillColor(pdf.PdfColor(base.red, base.green, base.blue, alpha))
-          ..drawEllipse(p.x, p.y, width / 2, width / 2)
+          ..drawEllipse(p.x, fy(p.y), width / 2, width / 2)
           ..fillPath();
       }
       return;
@@ -478,9 +496,9 @@ class PdfService {
       ..setLineJoin(pdf.PdfLineJoin.round);
 
     final first = stroke.points.first;
-    canvas.moveTo(first.x, first.y);
+    canvas.moveTo(first.x, fy(first.y));
     for (final point in stroke.points.skip(1)) {
-      canvas.lineTo(point.x, point.y);
+      canvas.lineTo(point.x, fy(point.y));
     }
     canvas.strokePath();
   }

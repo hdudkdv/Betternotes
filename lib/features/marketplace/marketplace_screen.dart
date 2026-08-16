@@ -22,6 +22,8 @@ class MarketplaceScreen extends ConsumerWidget {
     FeatureKeys.asyncCollab => l10n.featureAsyncCollab,
     FeatureKeys.whiteboard => l10n.featureWhiteboard,
     FeatureKeys.cloudSync => l10n.featureCloudSync,
+    FeatureKeys.aiAssistant => l10n.featureAiAssistant,
+    FeatureKeys.studyMode => l10n.featureStudyMode,
     _ => key,
   };
 

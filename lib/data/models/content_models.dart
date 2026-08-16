@@ -354,7 +354,7 @@ class PaperTemplate extends Equatable {
   final int backgroundColor;
   final int lineColor;
 
-  /// `blank` | `lined` | `grid` | `custom`
+  /// `blank` | `lined` | `grid` | `dotted` | `custom`
   final String style;
   final bool isBuiltin;
 
@@ -560,7 +560,7 @@ class PaperTemplate extends Equatable {
       marginTop: 24,
       backgroundColor: 0xFFFFFFF8,
       lineColor: 0xFFD0D5DC,
-      style: 'grid',
+      style: 'dotted',
       isBuiltin: true,
     ),
   ];

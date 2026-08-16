@@ -472,7 +472,11 @@ class InkCanvasState extends State<InkCanvas>
 
   bool _isActiveStylus(PointerEvent event) =>
       event.kind == PointerDeviceKind.stylus ||
-      event.kind == PointerDeviceKind.invertedStylus;
+      event.kind == PointerDeviceKind.invertedStylus ||
+      // Cheap pens and some Windows/Android stacks report a stylus as touch
+      // but still expose a pressure range or a tiny contact patch.
+      (event.kind == PointerDeviceKind.touch &&
+          (event.pressureMax > 1.0 || (event.size > 0 && event.size < 0.08)));
 
   /// Whether this pointer should ink (vs. pan / page-browse).
   bool _canDrawWith(PointerEvent event) {
@@ -482,15 +486,10 @@ class InkCanvasState extends State<InkCanvas>
     if (widget.engine.tool == InkTool.text) {
       return true; // tap to place text
     }
-    // Stylus-only mode (normal notebook pages): only the pencil inks.
-    // Touch, mouse and trackpad navigate / flip pages — critical on desktop.
-    if (widget.fingerPanZoom) {
-      return _isActiveStylus(event);
-    }
-    // Freehand with any pointing device.
-    return _isActiveStylus(event) ||
-        _isTouch(event) ||
-        event.kind == PointerDeviceKind.mouse;
+    if (_isActiveStylus(event)) return true;
+    // Stylus-only mode (normal notebook pages): fingers navigate.
+    if (widget.fingerPanZoom) return false;
+    return _isTouch(event) || event.kind == PointerDeviceKind.mouse;
   }
 
   bool _canBrowseWith(PointerEvent event) {

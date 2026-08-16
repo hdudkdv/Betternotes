@@ -65,9 +65,14 @@ class EditorTopBar extends StatelessWidget {
     required this.onPickImage,
     required this.onCalculator,
     required this.onFormulaBook,
+    this.calculatorOpen = false,
+    this.formulaBookOpen = false,
+    this.assistantOpen = false,
+    this.onAssistant,
     required this.onAddPage,
     required this.onToggleLock,
     required this.onToggleStudy,
+    this.studyModeUnlocked = false,
     required this.onPresent,
     required this.onMenuAction,
   });
@@ -91,9 +96,14 @@ class EditorTopBar extends StatelessWidget {
   final VoidCallback onPickImage;
   final VoidCallback onCalculator;
   final VoidCallback onFormulaBook;
+  final bool calculatorOpen;
+  final bool formulaBookOpen;
+  final bool assistantOpen;
+  final VoidCallback? onAssistant;
   final VoidCallback onAddPage;
   final VoidCallback onToggleLock;
   final VoidCallback onToggleStudy;
+  final bool studyModeUnlocked;
   final VoidCallback onPresent;
   final ValueChanged<EditorMenuAction> onMenuAction;
 
@@ -139,9 +149,14 @@ class EditorTopBar extends StatelessWidget {
             onPickImage: onPickImage,
             onCalculator: onCalculator,
             onFormulaBook: onFormulaBook,
+            calculatorOpen: calculatorOpen,
+            formulaBookOpen: formulaBookOpen,
+            assistantOpen: assistantOpen,
+            onAssistant: onAssistant,
             onAddPage: onAddPage,
             onToggleLock: onToggleLock,
             onToggleStudy: onToggleStudy,
+            studyModeUnlocked: studyModeUnlocked,
             onPresent: onPresent,
             onMenuAction: onMenuAction,
           ),
@@ -167,9 +182,14 @@ class _ToolRow extends StatelessWidget {
     required this.onPickImage,
     required this.onCalculator,
     required this.onFormulaBook,
+    required this.calculatorOpen,
+    required this.formulaBookOpen,
+    required this.assistantOpen,
+    this.onAssistant,
     required this.onAddPage,
     required this.onToggleLock,
     required this.onToggleStudy,
+    this.studyModeUnlocked = false,
     required this.onPresent,
     required this.onMenuAction,
   });
@@ -188,9 +208,14 @@ class _ToolRow extends StatelessWidget {
   final VoidCallback onPickImage;
   final VoidCallback onCalculator;
   final VoidCallback onFormulaBook;
+  final bool calculatorOpen;
+  final bool formulaBookOpen;
+  final bool assistantOpen;
+  final VoidCallback? onAssistant;
   final VoidCallback onAddPage;
   final VoidCallback onToggleLock;
   final VoidCallback onToggleStudy;
+  final bool studyModeUnlocked;
   final VoidCallback onPresent;
   final ValueChanged<EditorMenuAction> onMenuAction;
 
@@ -292,6 +317,7 @@ class _ToolRow extends StatelessWidget {
                           icon: Icons.calculate_outlined,
                           tooltip: l10n.calculator,
                           label: l10n.calculator,
+                          active: calculatorOpen,
                           enabled: !locked && !studyMode,
                           onTap: onCalculator,
                         ),
@@ -299,9 +325,19 @@ class _ToolRow extends StatelessWidget {
                           icon: Icons.menu_book_outlined,
                           tooltip: l10n.formulaBook,
                           label: l10n.formulaBook,
+                          active: formulaBookOpen,
                           enabled: !locked && !studyMode,
                           onTap: onFormulaBook,
                         ),
+                        if (onAssistant != null)
+                          _BarIcon(
+                            icon: Icons.auto_awesome_outlined,
+                            tooltip: l10n.assistant,
+                            label: l10n.assistant,
+                            active: assistantOpen,
+                            enabled: !locked && !studyMode,
+                            onTap: onAssistant,
+                          ),
                         _BarIcon(
                           icon: Icons.add_photo_alternate_outlined,
                           tooltip: l10n.insertImage,
@@ -330,13 +366,14 @@ class _ToolRow extends StatelessWidget {
                 active: locked,
                 onTap: onToggleLock,
               ),
-              _BarIcon(
-                icon: Icons.school_outlined,
-                tooltip: l10n.studyMode,
-                label: studyMode ? l10n.studyMode : null,
-                active: studyMode,
-                onTap: onToggleStudy,
-              ),
+              if (studyModeUnlocked || studyMode)
+                _BarIcon(
+                  icon: Icons.school_outlined,
+                  tooltip: l10n.studyMode,
+                  label: studyMode ? l10n.studyMode : null,
+                  active: studyMode,
+                  onTap: onToggleStudy,
+                ),
               _BarIcon(
                 icon: Icons.visibility_outlined,
                 tooltip: l10n.presentView,
@@ -357,6 +394,7 @@ class _ToolRow extends StatelessWidget {
                   canvasMode: canvasMode,
                   defaultPaperFormat: defaultPaperFormat,
                   defaultOrientation: defaultOrientation,
+                  studyModeUnlocked: studyModeUnlocked,
                   onAction: onMenuAction,
                 ),
               ),

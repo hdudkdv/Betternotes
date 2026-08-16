@@ -534,12 +534,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             SliverAppBar(
               pinned: true,
               expandedHeight: folderId == null ? 140 : 100,
-              // Cream brand header stays light in every theme — force dark
-              // chrome so the title/icons stay readable (dark mode was washing
-              // AppTheme.ink into near-white on this gradient).
-              foregroundColor: const Color(0xFF17171C),
-              iconTheme: const IconThemeData(color: Color(0xFF17171C)),
-              actionsIconTheme: const IconThemeData(color: Color(0xFF17171C)),
+              backgroundColor: AppTheme.toolbar,
+              surfaceTintColor: Colors.transparent,
+              foregroundColor: AppTheme.ink,
+              iconTheme: IconThemeData(color: AppTheme.ink),
+              actionsIconTheme: IconThemeData(color: AppTheme.ink),
               leading: folderId == null
                   ? null
                   : IconButton(
@@ -557,19 +556,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       : (currentFolder?.name ?? l10n.folder),
                   style: AppTheme.headline(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF17171C),
+                    color: AppTheme.ink,
                     fontSize: folderId == null ? 30 : 26,
                   ),
                 ),
-                background: Container(
-                  decoration: const BoxDecoration(
+                background: DecoratedBox(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Color(0xFFF7F2E8),
-                        Color(0xFFE7F0EB),
-                        Color(0xFFEDE6D8),
+                        AppTheme.toolbar,
+                        AppTheme.paper,
+                        AppTheme.paperDeep,
                       ],
                     ),
                   ),

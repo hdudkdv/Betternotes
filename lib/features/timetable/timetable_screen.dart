@@ -273,9 +273,9 @@ class _NowBanner extends ConsumerWidget {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Color(now.lesson.colorValue).withValues(alpha: 0.18),
+        color: Color(displayLessonColor(now.lesson)).withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Color(now.lesson.colorValue), width: 1.5),
+        border: Border.all(color: Color(displayLessonColor(now.lesson)), width: 1.5),
       ),
       child: Row(
         children: [
@@ -283,7 +283,7 @@ class _NowBanner extends ConsumerWidget {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: Color(now.lesson.colorValue),
+              color: Color(displayLessonColor(now.lesson)),
               shape: BoxShape.circle,
             ),
           ),
@@ -605,10 +605,16 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     var first = _first.copyWith(
       subject: _subject1.text.trim(),
       room: _room1.text.trim(),
+      colorValue: _first.folderId == null
+          ? colorForSubject(_subject1.text)
+          : _first.colorValue,
     );
     var second = _second.copyWith(
       subject: _subject2.text.trim(),
       room: _room2.text.trim(),
+      colorValue: _second.folderId == null
+          ? colorForSubject(_subject2.text)
+          : _second.colorValue,
     );
     if (!_split) {
       second = const TimetableLesson();
@@ -745,7 +751,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                color: Color(lesson.colorValue),
+                color: Color(displayLessonColor(lesson)),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -988,7 +994,7 @@ class _TimetableGrid extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: Color(lesson.colorValue).withValues(alpha: 0.22),
+        color: Color(displayLessonColor(lesson)).withValues(alpha: 0.22),
         border: Border(
           bottom: top && !fill
               ? BorderSide(color: AppTheme.ink.withValues(alpha: 0.12))
@@ -1069,14 +1075,14 @@ class TimetableHomeCard extends ConsumerWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: now != null
-                      ? Color(now.lesson.colorValue).withValues(alpha: 0.25)
+                      ? Color(displayLessonColor(now.lesson)).withValues(alpha: 0.25)
                       : AppTheme.accentSoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.calendar_view_week_rounded,
                   color: now != null
-                      ? Color(now.lesson.colorValue)
+                      ? Color(displayLessonColor(now.lesson))
                       : AppTheme.accent,
                 ),
               ),
@@ -1142,7 +1148,7 @@ class NowSubjectBanner extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
       child: Material(
-        color: Color(now.lesson.colorValue).withValues(alpha: 0.16),
+        color: Color(displayLessonColor(now.lesson)).withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -1158,7 +1164,7 @@ class NowSubjectBanner extends ConsumerWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Color(now.lesson.colorValue),
+                    color: Color(displayLessonColor(now.lesson)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.schedule, color: Colors.white),
@@ -1198,7 +1204,7 @@ class NowSubjectBanner extends ConsumerWidget {
                 if (folder != null)
                   Icon(
                     Icons.folder_open_rounded,
-                    color: Color(now.lesson.colorValue),
+                    color: Color(displayLessonColor(now.lesson)),
                   ),
               ],
             ),

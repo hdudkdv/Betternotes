@@ -67,6 +67,9 @@ class PageBackgroundPainter extends CustomPainter {
       case 'grid':
         _paintGrid(canvas, pageSize, clip, linePaint);
         break;
+      case 'dotted':
+        _paintDotted(canvas, pageSize, clip, linePaint);
+        break;
       default:
         break;
     }
@@ -157,6 +160,25 @@ class PageBackgroundPainter extends CustomPainter {
       if (y < clip.top - 1 || y > clip.bottom + 1) continue;
       final yy = infinite ? y : y.roundToDouble();
       canvas.drawLine(Offset(0, yy), Offset(pageSize.width, yy), linePaint);
+    }
+  }
+
+  void _paintDotted(Canvas canvas, Size pageSize, Rect clip, Paint linePaint) {
+    final spacing = paper?.gridSize ?? 16.0;
+    final dot = Paint()
+      ..color = linePaint.color
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+    final xStart = infinite ? ((clip.left / spacing).floor() * spacing) : spacing;
+    final yStart = infinite ? ((clip.top / spacing).floor() * spacing) : spacing;
+    final xEnd = infinite ? clip.right : pageSize.width - 8;
+    final yEnd = infinite ? clip.bottom : pageSize.height - 8;
+    for (var x = xStart; x <= xEnd + 0.01; x += spacing) {
+      for (var y = yStart; y <= yEnd + 0.01; y += spacing) {
+        if (x < clip.left - 2 || x > clip.right + 2) continue;
+        if (y < clip.top - 2 || y > clip.bottom + 2) continue;
+        canvas.drawCircle(Offset(x, y), 1.15, dot);
+      }
     }
   }
 

@@ -45,6 +45,10 @@ class _PaperCreatorScreenState extends ConsumerState<PaperCreatorScreen> {
     0xFFF5F0FF,
     0xFFECEFF1,
     0xFFFFFFFF,
+    0xFF1C1C1E,
+    0xFF243028,
+    0xFF1E2430,
+    0xFF2A2420,
   ];
 
   static const _lineColors = <int>[
@@ -130,6 +134,29 @@ class _PaperCreatorScreenState extends ConsumerState<PaperCreatorScreen> {
     });
   }
 
+  Future<void> _saveAsPreset() async {
+    final saved = PaperTemplate.create(
+      name: _draft.name,
+      lineSpacing: _lineSpacing,
+      gridSize: _gridSize,
+      marginLeft: _marginLeft,
+      marginTop: _marginTop,
+      backgroundColor: _bg,
+      lineColor: _line,
+      style: _style,
+    );
+    await ref.read(notebookRepositoryProvider).savePaperTemplate(saved);
+    ref.invalidate(_paperTemplatesProvider);
+    if (!mounted) return;
+    setState(() {
+      _editingId = saved.id;
+      _isBuiltin = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.save)),
+    );
+  }
+
   void _resetSpacing() {
     setState(() {
       if (_style == 'grid') {
@@ -191,6 +218,13 @@ class _PaperCreatorScreenState extends ConsumerState<PaperCreatorScreen> {
             child: Text(
               l10n.resetDefaults,
               style: TextStyle(color: EditorChrome.onDarkMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: _saveAsPreset,
+            child: Text(
+              l10n.save,
+              style: TextStyle(color: EditorChrome.onDark),
             ),
           ),
           const SizedBox(width: 4),
@@ -320,6 +354,8 @@ class _PaperCreatorScreenState extends ConsumerState<PaperCreatorScreen> {
         return l10n.blank;
       case 'grid':
         return '${l10n.grid} · ${_gridSize.toStringAsFixed(0)} pt';
+      case 'dotted':
+        return '${l10n.dotGrid} · ${_gridSize.toStringAsFixed(0)} pt';
       default:
         return '${l10n.lined} · ${_lineSpacing.toStringAsFixed(0)} pt';
     }
@@ -423,34 +459,40 @@ class _PaperCreatorScreenState extends ConsumerState<PaperCreatorScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
+          GridView.count(
+            crossAxisCount: MediaQuery.sizeOf(context).width >= 700 ? 4 : 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: MediaQuery.sizeOf(context).width >= 700
+                ? 0.5
+                : 0.85,
             children: [
-              for (final style in const ['blank', 'lined', 'grid']) ...[
-                Expanded(
-                  child: _StyleCard(
-                    style: style,
-                    selected: _style == style,
-                    label: switch (style) {
-                      'blank' => l10n.blank,
-                      'grid' => l10n.grid,
-                      _ => l10n.lined,
-                    },
-                    bg: _bg,
-                    line: _line,
-                    onTap: () => setState(() {
-                      _style = style;
-                      if (style == 'grid' && _marginLeft > 60) {
-                        _marginLeft = 36;
-                        _marginTop = 36;
-                      } else if (style == 'lined' && _marginLeft < 48) {
-                        _marginLeft = 72;
-                        _marginTop = 48;
-                      }
-                    }),
-                  ),
+              for (final style in const ['blank', 'lined', 'grid', 'dotted'])
+                _StyleCard(
+                  style: style,
+                  selected: _style == style,
+                  label: switch (style) {
+                    'blank' => l10n.blank,
+                    'grid' => l10n.grid,
+                    'dotted' => l10n.dotGrid,
+                    _ => l10n.lined,
+                  },
+                  bg: _bg,
+                  line: _line,
+                  onTap: () => setState(() {
+                    _style = style;
+                    if ((style == 'grid' || style == 'dotted') &&
+                        _marginLeft > 60) {
+                      _marginLeft = 36;
+                      _marginTop = 36;
+                    } else if (style == 'lined' && _marginLeft < 48) {
+                      _marginLeft = 72;
+                      _marginTop = 48;
+                    }
+                  }),
                 ),
-                if (style != 'grid') const SizedBox(width: 10),
-              ],
             ],
           ),
           const SizedBox(height: 22),
@@ -477,24 +519,28 @@ class _PaperCreatorScreenState extends ConsumerState<PaperCreatorScreen> {
               onChanged: (v) => setState(() => _marginTop = v),
             ),
           ],
-          if (_style == 'grid') ...[
-            _sectionTitle(l10n.gridSize),
+          if (_style == 'grid' || _style == 'dotted') ...[
+            _sectionTitle(
+              _style == 'dotted' ? l10n.dotGrid : l10n.gridSize,
+            ),
             _sliderRow(
               value: _gridSize,
               min: 10,
               max: 48,
               onChanged: (v) => setState(() => _gridSize = v),
             ),
-            _sectionTitle(l10n.topMargin),
-            _sliderRow(
-              value: _marginTop,
-              min: 8,
-              max: 80,
-              onChanged: (v) => setState(() {
-                _marginTop = v;
-                _marginLeft = v;
-              }),
-            ),
+            if (_style == 'grid') ...[
+              _sectionTitle(l10n.topMargin),
+              _sliderRow(
+                value: _marginTop,
+                min: 8,
+                max: 80,
+                onChanged: (v) => setState(() {
+                  _marginTop = v;
+                  _marginLeft = v;
+                }),
+              ),
+            ],
           ],
           if (_style == 'blank') ...[
             Text(
@@ -714,12 +760,10 @@ class _StyleCard extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
           decoration: BoxDecoration(
-            color: selected
-                ? AppTheme.accentSoft
-                : Colors.white.withValues(alpha: 0.65),
+            color: selected ? AppTheme.accentSoft : AppTheme.card,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected ? AppTheme.accent : Colors.black12,
+              color: selected ? AppTheme.accent : AppTheme.outline,
               width: selected ? 2 : 1,
             ),
           ),
@@ -900,6 +944,13 @@ class _MiniPaperPainter extends CustomPainter {
         }
         for (var y = 6.0; y < size.height - 2; y += 7) {
           canvas.drawLine(Offset(4, y), Offset(size.width - 4, y), paint);
+        }
+        break;
+      case 'dotted':
+        for (var x = 6.0; x < size.width - 2; x += 7) {
+          for (var y = 6.0; y < size.height - 2; y += 7) {
+            canvas.drawCircle(Offset(x, y), 0.9, paint);
+          }
         }
         break;
       default:

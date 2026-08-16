@@ -345,13 +345,30 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     setState(() => _flipping = true);
   }
 
+  int _viewportPointers = 0;
+
   bool _isBrowseKind(PointerEvent event) {
+    if (event.kind == PointerDeviceKind.stylus ||
+        event.kind == PointerDeviceKind.invertedStylus) {
+      return false;
+    }
+    if (event.kind == PointerDeviceKind.touch &&
+        (event.pressureMax > 1.0 || (event.size > 0 && event.size < 0.08))) {
+      return false;
+    }
     return event.kind == PointerDeviceKind.touch ||
         event.kind == PointerDeviceKind.mouse ||
         event.kind == PointerDeviceKind.trackpad;
   }
 
   void _onViewportPointerDown(PointerDownEvent event) {
+    _viewportPointers++;
+    if (_viewportPointers >= 2) {
+      _browsePointer = null;
+      _browseDown = null;
+      _browseLastGlobal = null;
+      return;
+    }
     if (_scrollLock || _zoomed) return;
     if (!_isBrowseKind(event)) return;
     _browsePointer = event.pointer;
@@ -360,6 +377,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   void _onViewportPointerMove(PointerMoveEvent event) {
+    if (_viewportPointers >= 2) return;
     if (_scrollLock || _zoomed) return;
     if (!_isBrowseKind(event)) return;
     if (_browsePointer != null && event.pointer != _browsePointer) return;
@@ -377,7 +395,8 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
 
     if (!_flipping) {
       final slop = event.position - (_browseDown ?? event.position);
-      if (slop.distance < 8) return;
+      // Keep the live canvas interactive until this is clearly a page swipe.
+      if (slop.distance < 36) return;
       if (slop.dx.abs() < slop.dy.abs() * 1.15) return;
     }
 
@@ -393,7 +412,13 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   void _finishViewportBrowse(int pointer) {
-    if (_browsePointer != pointer) return;
+    _viewportPointers = (_viewportPointers - 1).clamp(0, 8);
+    if (_browsePointer != pointer) {
+      if (_viewportPointers == 0 && _flipping && !_committing) {
+        handleBrowsePanEnd();
+      }
+      return;
+    }
     final shouldCommit = _flipping || _swipeAccum.abs() > 1;
     _browsePointer = null;
     _browseDown = null;
@@ -594,6 +619,12 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
       // Absorb vertical movement at fit zoom so the page cannot drift.
       if (delta.dx.abs() < delta.dy.abs() * 0.85) return true;
+      _swipeAccum += delta.dx;
+      // Hide the live canvas only after a real page-turn swipe, otherwise
+      // writing / pinch-zoom die because the canvas goes Offstage.
+      if (!_flipping && _swipeAccum.abs() < 36) {
+        return true;
+      }
       _enterFlip();
       PagePreviewCache.instance.setPaused(true);
 
@@ -615,7 +646,6 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
         );
         pc.jumpTo(next);
       }
-      _swipeAccum += delta.dx;
       return true;
     }
 

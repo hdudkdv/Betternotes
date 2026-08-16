@@ -20,6 +20,8 @@ abstract final class FeatureKeys {
   static const asyncCollab = 'asyncCollab';
   static const whiteboard = 'whiteboard';
   static const cloudSync = 'cloudSync';
+  static const aiAssistant = 'aiAssistant';
+  static const studyMode = 'studyMode';
 
   static const all = <String>[
     premiumPaper,
@@ -32,14 +34,16 @@ abstract final class FeatureKeys {
     asyncCollab,
     whiteboard,
     cloudSync,
+    aiAssistant,
+    studyMode,
   ];
 
   static int coinCost(String key) => switch (key) {
     premiumPaper || premiumCover => 20,
     pdfCompress => 30,
     handwritingOcr || audioTranscription || cloudSync => 50,
-    whiteboard => 80,
-    sessionCollab => 40,
+    whiteboard || aiAssistant => 80,
+    sessionCollab || studyMode => 40,
     asyncCollab => 100,
     noForcedAds => 60,
     _ => 25,

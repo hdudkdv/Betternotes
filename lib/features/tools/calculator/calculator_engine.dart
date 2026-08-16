@@ -54,7 +54,7 @@ class CalculatorEngine {
     var i = 0;
     while (i < src.length) {
       final ch = src[i];
-      if ('+-*/^()'.contains(ch)) {
+      if ('+-*/^()=!%'.contains(ch)) {
         out.add(ch);
         i++;
       } else if (ch == '.' || _isDigit(ch)) {
@@ -73,6 +73,57 @@ class CalculatorEngine {
         out.add(src.substring(start, i));
       } else {
         throw 'Zeichen';
+      }
+    }
+    return _insertImplicitMultiplication(out);
+  }
+
+  static const _fnNames = {
+    'sin',
+    'cos',
+    'tan',
+    'sqrt',
+    'ln',
+    'log',
+    'abs',
+    'asin',
+    'acos',
+    'atan',
+    'exp',
+    'floor',
+    'ceil',
+    'round',
+    'fact',
+  };
+
+  static bool _isValueToken(String token) {
+    if (token == 'x' || token == 'pi' || token == 'e' || token == ')' ||
+        token == '!' ||
+        token == '%') {
+      return true;
+    }
+    return double.tryParse(token) != null;
+  }
+
+  static bool _startsValueToken(String token) {
+    if (token == '(' || token == 'x' || token == 'pi' || token == 'e') {
+      return true;
+    }
+    if (_fnNames.contains(token)) return true;
+    return double.tryParse(token) != null;
+  }
+
+  List<String> _insertImplicitMultiplication(List<String> tokens) {
+    if (tokens.length < 2) return tokens;
+    final out = <String>[];
+    for (var i = 0; i < tokens.length; i++) {
+      out.add(tokens[i]);
+      if (i + 1 >= tokens.length) continue;
+      final a = tokens[i];
+      final b = tokens[i + 1];
+      if (_fnNames.contains(a) && b == '(') continue;
+      if (_isValueToken(a) && _startsValueToken(b)) {
+        out.add('*');
       }
     }
     return out;
@@ -134,7 +185,16 @@ class _Parser {
       _take();
       return _parseUnary();
     }
-    return _parsePrimary();
+    var value = _parsePrimary();
+    if (_peek == '%') {
+      _take();
+      return value / 100;
+    }
+    if (_peek == '!') {
+      _take();
+      return _factorial(value);
+    }
+    return value;
   }
 
   double _parsePrimary() {
@@ -184,6 +244,11 @@ class _Parser {
     'asin',
     'acos',
     'atan',
+    'exp',
+    'floor',
+    'ceil',
+    'round',
+    'fact',
   }.contains(name);
 
   double _apply(String name, double arg) => switch (name) {
@@ -197,6 +262,80 @@ class _Parser {
     'asin' => math.asin(arg),
     'acos' => math.acos(arg),
     'atan' => math.atan(arg),
+    'exp' => math.exp(arg),
+    'floor' => arg.floorToDouble(),
+    'ceil' => arg.ceilToDouble(),
+    'round' => arg.roundToDouble(),
+    'fact' => _factorial(arg),
     _ => throw 'Funktion',
   };
+
+  static double _factorial(double arg) {
+    if (arg < 0 || arg != arg.roundToDouble() || arg > 170) {
+      throw 'Fakultät';
+    }
+    var n = 1.0;
+    for (var i = 2; i <= arg.round(); i++) {
+      n *= i;
+    }
+    return n;
+  }
+}
+
+extension CalculatorSolve on CalculatorEngine {
+  /// Evaluates `expr` or solves `left = right` for `x`.
+  CalcResult evaluateOrSolve(String source) {
+    final trimmed = source.trim();
+    if (trimmed.contains('=')) return solve(trimmed);
+    return evaluate(trimmed);
+  }
+
+  CalcResult solve(String source) {
+    final parts = source.split('=');
+    if (parts.length != 2) {
+      return const CalcResult(ok: false, value: 0, error: 'solve: a=b');
+    }
+    final left = parts[0];
+    final right = parts[1];
+    final usesX =
+        left.toLowerCase().contains('x') || right.toLowerCase().contains('x');
+    if (!usesX) {
+      final l = evaluate(left);
+      final r = evaluate(right);
+      if (!l.ok) return l;
+      if (!r.ok) return r;
+      return CalcResult(ok: true, value: l.value - r.value);
+    }
+
+    double? f(double x) {
+      final l = evaluate(left, x: x);
+      final r = evaluate(right, x: x);
+      if (!l.ok || !r.ok) return null;
+      return l.value - r.value;
+    }
+
+    for (final guess in const [0.0, 1.0, -1.0, 2.0, 10.0, -10.0, 0.5]) {
+      final root = _newton(f, guess);
+      if (root != null) return CalcResult(ok: true, value: root);
+    }
+    return const CalcResult(ok: false, value: 0, error: 'keine Lösung');
+  }
+
+  double? _newton(double? Function(double x) f, double x0) {
+    var x = x0;
+    for (var i = 0; i < 40; i++) {
+      final y = f(x);
+      if (y == null) return null;
+      if (y.abs() < 1e-9) return x;
+      final y2 = f(x + 1e-6);
+      if (y2 == null) return null;
+      final d = (y2 - y) / 1e-6;
+      if (d.abs() < 1e-12) return null;
+      x = x - y / d;
+      if (!x.isFinite) return null;
+    }
+    final y = f(x);
+    if (y == null || y.abs() > 1e-6) return null;
+    return x;
+  }
 }

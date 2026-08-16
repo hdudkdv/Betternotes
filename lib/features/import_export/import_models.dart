@@ -29,11 +29,16 @@ ImportKind classifyImport({required String name, String? mimeType}) {
         'png',
         'jpg',
         'jpeg',
+        'jpe',
+        'jfif',
         'webp',
         'gif',
         'bmp',
+        'tif',
+        'tiff',
         'heic',
         'heif',
+        'avif',
       }.contains(ext) ||
       mime.startsWith('image/')) {
     return ImportKind.image;
@@ -41,15 +46,54 @@ ImportKind classifyImport({required String name, String? mimeType}) {
   if (ext == 'goodnotes' || name.toLowerCase().endsWith('.goodnotes')) {
     return ImportKind.goodnotes;
   }
-  if (const {'docx', 'pptx', 'xlsx', 'odt', 'odp', 'ods'}.contains(ext) ||
+  if (const {
+        'docx',
+        'pptx',
+        'xlsx',
+        'odt',
+        'odp',
+        'ods',
+        'doc',
+        'ppt',
+        'xls',
+      }.contains(ext) ||
       mime.contains('officedocument') ||
       mime.contains('msword') ||
       mime.contains('ms-excel') ||
       mime.contains('ms-powerpoint')) {
     return ImportKind.office;
   }
-  if (ext == 'zip') return ImportKind.archive;
-  if (ext == 'txt' || ext == 'md' || mime.startsWith('text/')) {
+  if (const {'zip', 'epub', 'pages', 'key', 'numbers'}.contains(ext) ||
+      mime.contains('epub') ||
+      mime.contains('iwork')) {
+    return ImportKind.archive;
+  }
+  if (const {
+        'txt',
+        'md',
+        'markdown',
+        'html',
+        'htm',
+        'xhtml',
+        'csv',
+        'tsv',
+        'json',
+        'xml',
+        'opml',
+        'ics',
+        'tex',
+        'log',
+        'srt',
+        'vtt',
+        'gdoc',
+        'gsheet',
+        'gslides',
+        'rtf',
+      }.contains(ext) ||
+      mime.startsWith('text/') ||
+      mime.contains('html') ||
+      mime.contains('rtf') ||
+      mime.contains('google-apps')) {
     return ImportKind.text;
   }
   return ImportKind.attachment;

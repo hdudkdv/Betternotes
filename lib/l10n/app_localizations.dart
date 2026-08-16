@@ -971,7 +971,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchEverything.
   ///
   /// In en, this message translates to:
-  /// **'Search or @Economics addition …'**
+  /// **'Search or @Economics …'**
   String get searchEverything;
 
   /// No description provided for @shareExport.
@@ -5054,6 +5054,18 @@ abstract class AppLocalizations {
   /// **'Cloud sync'**
   String get featureCloudSync;
 
+  /// No description provided for @featureAiAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant (Gemma)'**
+  String get featureAiAssistant;
+
+  /// No description provided for @featureStudyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Study mode'**
+  String get featureStudyMode;
+
   /// No description provided for @scanPages.
   ///
   /// In en, this message translates to:
@@ -5117,7 +5129,7 @@ abstract class AppLocalizations {
   /// No description provided for @calculatorHint.
   ///
   /// In en, this message translates to:
-  /// **'e.g. 2+3*4 or sin(x)'**
+  /// **'e.g. 2+3*4, sin(x) or 2x+3=11'**
   String get calculatorHint;
 
   /// No description provided for @calculatorEquals.
@@ -5125,6 +5137,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'='**
   String get calculatorEquals;
+
+  /// No description provided for @calculatorSolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Solve'**
+  String get calculatorSolve;
+
+  /// No description provided for @calculatorBasic.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbers'**
+  String get calculatorBasic;
+
+  /// No description provided for @calculatorFn.
+  ///
+  /// In en, this message translates to:
+  /// **'Functions'**
+  String get calculatorFn;
 
   /// No description provided for @calculatorPlot.
   ///
@@ -5137,6 +5167,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recent calculations'**
   String get calculatorHistory;
+
+  /// No description provided for @assistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant'**
+  String get assistant;
+
+  /// No description provided for @assistantHint.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device help for calculations. Try 2x+3=11 or sin(pi/2).'**
+  String get assistantHint;
+
+  /// No description provided for @assistantLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock the assistant in the Marketplace (Gemma / on-device).'**
+  String get assistantLocked;
+
+  /// No description provided for @assistantInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Expression or equation'**
+  String get assistantInputHint;
+
+  /// No description provided for @assistantMathHint.
+  ///
+  /// In en, this message translates to:
+  /// **'I can evaluate expressions and solve equations in x. Example: 2x+3=11'**
+  String get assistantMathHint;
 
   /// No description provided for @formulaBook.
   ///
@@ -5357,7 +5417,7 @@ abstract class AppLocalizations {
   /// No description provided for @tourSearchBody.
   ///
   /// In en, this message translates to:
-  /// **'Try @Economics addition to search inside one subject only.'**
+  /// **'Try @Economics to search inside one subject only.'**
   String get tourSearchBody;
 
   /// No description provided for @tourSettingsTitle.

@@ -22,12 +22,16 @@ class CalculatorPanel extends StatefulWidget {
   State<CalculatorPanel> createState() => _CalculatorPanelState();
 }
 
+enum _CalcPad { numbers, functions }
+
 class _CalculatorPanelState extends State<CalculatorPanel> {
   final _engine = CalculatorEngine();
   final _input = TextEditingController();
   String _output = '';
+  String _ans = '';
   late List<CalcHistoryEntry> _history;
   bool _plotting = false;
+  _CalcPad _pad = _CalcPad.numbers;
 
   @override
   void initState() {
@@ -36,6 +40,7 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
     if (_history.isNotEmpty) {
       _input.text = _history.first.expression;
       _output = _history.first.result;
+      _ans = _history.first.result;
     }
   }
 
@@ -45,15 +50,23 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
     super.dispose();
   }
 
-  Future<void> _eval() async {
-    final expr = _input.text.trim();
+  Future<void> _eval({bool solve = false}) async {
+    var expr = _input.text.trim();
     if (expr.isEmpty) return;
-    final result = _engine.evaluate(expr);
-    setState(() => _output = result.display);
+    if (expr.contains('ans') && _ans.isNotEmpty) {
+      expr = expr.replaceAll('ans', _ans);
+    }
+    final result = solve || expr.contains('=')
+        ? _engine.evaluateOrSolve(expr)
+        : _engine.evaluate(expr);
+    setState(() => _output = result.ok && expr.contains('=') && expr.contains('x')
+        ? 'x = ${result.display}'
+        : result.display);
     if (!result.ok) return;
+    _ans = result.display;
     final entry = CalcHistoryEntry(
       expression: expr,
-      result: result.display,
+      result: _output,
       at: DateTime.now(),
     );
     await widget.store.add(widget.notebookId, entry);
@@ -74,6 +87,18 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
   }
 
   void _append(String value) {
+    if (value == 'C') {
+      _input.clear();
+      setState(() => _output = '');
+      return;
+    }
+    if (value == '⌫') {
+      final text = _input.text;
+      if (text.isEmpty) return;
+      _input.text = text.substring(0, text.length - 1);
+      _input.selection = TextSelection.collapsed(offset: _input.text.length);
+      return;
+    }
     final sel = _input.selection;
     final text = _input.text;
     final start = sel.isValid ? sel.start : text.length;
@@ -89,19 +114,21 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
       child: Column(
         children: [
           TextField(
             controller: _input,
-            autofocus: false,
             keyboardType: TextInputType.text,
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9a-zA-Z+\-*/^().,x ]')),
+              FilteringTextInputFormatter.allow(
+                RegExp(r"[0-9a-zA-Z+\-*/^()=.,x!% ]"),
+              ),
             ],
             decoration: InputDecoration(
               hintText: l10n.calculatorHint,
               isDense: true,
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (_) => _eval(),
           ),
@@ -109,63 +136,40 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              _output,
+              _output.isEmpty ? ' ' : _output,
               style: AppTheme.headline(fontSize: 22, fontWeight: FontWeight.w800),
             ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final key in const [
-                '7',
-                '8',
-                '9',
-                '/',
-                '4',
-                '5',
-                '6',
-                '*',
-                '1',
-                '2',
-                '3',
-                '-',
-                '0',
-                '.',
-                '(',
-                '+',
-                ')',
-                '^',
-                'x',
-                'sin(',
-                'cos(',
-                'sqrt(',
-              ])
-                SizedBox(
-                  width: 52,
-                  height: 34,
-                  child: OutlinedButton(
-                    onPressed: () => _append(key),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: Text(key, style: const TextStyle(fontSize: 12)),
-                  ),
-                ),
+          const SizedBox(height: 4),
+          SegmentedButton<_CalcPad>(
+            segments: [
+              ButtonSegment(value: _CalcPad.numbers, label: Text(l10n.calculatorBasic)),
+              ButtonSegment(value: _CalcPad.functions, label: Text(l10n.calculatorFn)),
             ],
+            selected: {_pad},
+            onSelectionChanged: (next) => setState(() => _pad = next.first),
+            showSelectedIcon: false,
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          _Keypad(pad: _pad, onKey: _append),
+          const SizedBox(height: 6),
           Row(
             children: [
               Expanded(
                 child: FilledButton(
-                  onPressed: _eval,
+                  onPressed: () => _eval(),
                   child: Text(l10n.calculatorEquals),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: () => _eval(solve: true),
+                  child: Text(l10n.calculatorSolve),
+                ),
+              ),
+              const SizedBox(width: 6),
               Expanded(
                 child: OutlinedButton(
                   onPressed: _plotting ? null : _plot,
@@ -175,20 +179,19 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(l10n.calculatorPlot),
+                      : Text(l10n.calculatorPlot, overflow: TextOverflow.ellipsis),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
               l10n.calculatorHistory,
-              style: AppTheme.body(fontWeight: FontWeight.w700, fontSize: 13),
+              style: AppTheme.body(fontWeight: FontWeight.w700, fontSize: 12),
             ),
           ),
-          const SizedBox(height: 4),
           Expanded(
             child: ListView.builder(
               itemCount: _history.length,
@@ -196,8 +199,9 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
                 final item = _history[index];
                 return ListTile(
                   dense: true,
+                  visualDensity: VisualDensity.compact,
                   contentPadding: EdgeInsets.zero,
-                  title: Text(item.expression),
+                  title: Text(item.expression, maxLines: 1),
                   trailing: Text(item.result),
                   onTap: () {
                     _input.text = item.expression;
@@ -209,6 +213,64 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _Keypad extends StatelessWidget {
+  const _Keypad({required this.pad, required this.onKey});
+
+  final _CalcPad pad;
+  final ValueChanged<String> onKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final keys = pad == _CalcPad.numbers
+        ? const [
+            ['C', '⌫', '(', ')'],
+            ['7', '8', '9', '/'],
+            ['4', '5', '6', '*'],
+            ['1', '2', '3', '-'],
+            ['0', '.', '%', '+'],
+          ]
+        : const [
+            ['sin(', 'cos(', 'tan(', '√('],
+            ['ln(', 'log(', 'exp(', '^'],
+            ['π', 'e', 'x', 'ans'],
+            ['abs(', 'fact(', '=', '!'],
+          ];
+    return Column(
+      children: [
+        for (final row in keys)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                for (final key in row)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: SizedBox(
+                        height: 34,
+                        child: OutlinedButton(
+                          onPressed: () => onKey(switch (key) {
+                            '√(' => 'sqrt(',
+                            'π' => 'pi',
+                            _ => key,
+                          }),
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: Text(key, style: const TextStyle(fontSize: 13)),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

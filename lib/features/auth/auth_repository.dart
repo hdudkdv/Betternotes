@@ -68,27 +68,54 @@ class AuthRepository extends StateNotifier<AppAuthState> {
   Future<void> signInWithApple() async {
     _requireFirebase();
     try {
-      final rawNonce = _nonce();
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-        nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
-      );
-      final credential = OAuthProvider(
-        'apple.com',
-      ).credential(idToken: appleCredential.identityToken, rawNonce: rawNonce);
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.iOS ||
+              defaultTargetPlatform == TargetPlatform.macOS)) {
+        final provider = AppleAuthProvider()
+          ..addScope('email')
+          ..addScope('name');
+        await FirebaseAuth.instance.signInWithProvider(provider);
+      } else {
+        final rawNonce = _nonce();
+        final appleCredential = await SignInWithApple.getAppleIDCredential(
+          scopes: [
+            AppleIDAuthorizationScopes.email,
+            AppleIDAuthorizationScopes.fullName,
+          ],
+          nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+        );
+        final credential = OAuthProvider('apple.com').credential(
+          idToken: appleCredential.identityToken,
+          rawNonce: rawNonce,
+        );
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
       await _ensureProfile();
     } catch (error) {
       state = AppAuthState(
         firebaseAvailable: true,
         user: FirebaseAuth.instance.currentUser,
-        error: '$error',
+        error: _friendlyAppleError(error),
       );
-      rethrow;
+      throw StateError(_friendlyAppleError(error));
     }
+  }
+
+  String _friendlyAppleError(Object error) {
+    final raw = '$error';
+    final lower = raw.toLowerCase();
+    if (lower.contains('1000') ||
+        lower.contains('authorizationerrorcode.unknown') ||
+        lower.contains('authorizationerror')) {
+      return 'Apple-Anmeldung braucht eine vom App Store oder TestFlight '
+          'signierte Notis-Version. Sideload ohne gültiges Provisioning '
+          'scheitert mit Fehler 1000. Auf dem Gerät muss ein Apple-Konto '
+          'angemeldet sein, und in Firebase muss der Apple-Anbieter aktiv sein.';
+    }
+    if (lower.contains('canceled') || lower.contains('cancelled')) {
+      return 'Apple-Anmeldung abgebrochen.';
+    }
+    return raw;
   }
 
   Future<void> signOut() async {

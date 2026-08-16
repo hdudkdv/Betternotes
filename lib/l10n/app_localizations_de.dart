@@ -471,7 +471,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tapToFlip => 'Tippen zum Umdrehen';
 
   @override
-  String get searchEverything => 'Suchen oder @Wirtschaft addition …';
+  String get searchEverything => 'Suchen oder @Wirtschaft …';
 
   @override
   String get shareExport => 'Teilen & exportieren';
@@ -2192,7 +2192,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importAddFilesHint =>
-      'PDF, Bilder, Office, GoodNotes oder ZIP wählen';
+      'PDF, Bilder, Office, Google Docs, HTML, RTF, EPUB, Pages oder ZIP wählen';
 
   @override
   String get importNoFilesYet => 'Noch keine Dateien zum Import';
@@ -2726,6 +2726,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get featureCloudSync => 'Cloud-Sync';
 
   @override
+  String get featureAiAssistant => 'Assistent (Gemma)';
+
+  @override
+  String get featureStudyMode => 'Lernmodus';
+
+  @override
   String get scanPages => 'Seiten scannen';
 
   @override
@@ -2769,16 +2775,43 @@ class AppLocalizationsDe extends AppLocalizations {
   String get calculator => 'Taschenrechner';
 
   @override
-  String get calculatorHint => 'z. B. 2+3*4 oder sin(x)';
+  String get calculatorHint => 'z. B. 2+3*4, sin(x) oder 2x+3=11';
 
   @override
   String get calculatorEquals => '=';
+
+  @override
+  String get calculatorSolve => 'Lösen';
+
+  @override
+  String get calculatorBasic => 'Zahlen';
+
+  @override
+  String get calculatorFn => 'Funktionen';
 
   @override
   String get calculatorPlot => 'Funktion einfügen';
 
   @override
   String get calculatorHistory => 'Letzte Rechnungen';
+
+  @override
+  String get assistant => 'Assistent';
+
+  @override
+  String get assistantHint =>
+      'On-Device-Hilfe für Rechnungen. Tippe z. B. 2x+3=11 oder sin(pi/2).';
+
+  @override
+  String get assistantLocked =>
+      'Assistent im Marketplace freischalten (Gemma / On-Device).';
+
+  @override
+  String get assistantInputHint => 'Rechnung oder Gleichung';
+
+  @override
+  String get assistantMathHint =>
+      'Ich kann Ausdrücke berechnen und Gleichungen mit x lösen. Beispiel: 2x+3=11';
 
   @override
   String get formulaBook => 'Tafelwerk';
@@ -2909,7 +2942,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get tourSearchBody =>
-      'Tippe z. B. @Wirtschaft addition, um nur in einem Fach zu suchen.';
+      'Tippe z. B. @Wirtschaft, um nur in einem Fach zu suchen.';
 
   @override
   String get tourSettingsTitle => 'Einstellungen';

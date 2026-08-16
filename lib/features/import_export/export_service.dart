@@ -36,19 +36,6 @@ class ExportService {
     );
   }
 
-  /// GoodNotes-compatible export: a regular PDF (GoodNotes imports PDFs).
-  Future<void> shareNotebookPdfForGoodNotes({
-    required Notebook notebook,
-    required List<NotePage> pages,
-  }) async {
-    final bytes = await _pdf.buildNotebookPdfBytes(notebook, pages);
-    await _shareBytes(
-      bytes: bytes,
-      filename: '${_safe(notebook.title)}_goodnotes.pdf',
-      mime: 'application/pdf',
-    );
-  }
-
   Future<void> _shareBytes({
     required Uint8List bytes,
     required String filename,

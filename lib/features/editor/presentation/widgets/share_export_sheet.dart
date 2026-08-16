@@ -12,7 +12,6 @@ enum ShareExportAction {
   sharePdf,
   shareCurrentPage,
   sharePageAsImage,
-  sharePdfForGoodNotes,
   savePageAsTemplate,
   indexHandwriting,
 }
@@ -53,16 +52,6 @@ Future<ShareExportAction?> showShareExportSheet(BuildContext context) {
                 chevron: false,
                 onTap: () =>
                     Navigator.pop(context, ShareExportAction.sharePageAsImage),
-              ),
-              EditorSheetTile(
-                icon: Icons.auto_stories_outlined,
-                label: l10n.exportPdfForGoodNotes,
-                subtitle: l10n.exportPdfForGoodNotesHint,
-                chevron: false,
-                onTap: () => Navigator.pop(
-                  context,
-                  ShareExportAction.sharePdfForGoodNotes,
-                ),
               ),
               EditorSheetTile(
                 icon: Icons.dashboard_customize_outlined,

@@ -67,6 +67,8 @@ import '../../tools/calculator/function_plotter.dart';
 import '../../tools/editor_tool_panel.dart';
 import '../../tools/formula_book/formula_book_panel.dart';
 import '../../tools/formula_book/formula_book_store.dart';
+import '../../tools/assistant/assistant_panel.dart';
+import '../../entitlements/entitlement_model.dart';
 
 final editorControllerProvider = ChangeNotifierProvider.autoDispose
     .family<EditorController, String>((ref, notebookId) {
@@ -920,7 +922,7 @@ class EditorController extends ChangeNotifier {
       await repository.savePaperTemplate(saved);
     }
     final pageTemplate = switch (saved.style) {
-      'grid' => PageTemplate.grid,
+      'grid' || 'dotted' => PageTemplate.grid,
       'lined' => PageTemplate.lined,
       'custom' => saved.hasRuledLines ? PageTemplate.lined : PageTemplate.blank,
       _ => PageTemplate.blank,
@@ -1287,6 +1289,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   bool _calcPinned = false;
   bool _bookOpen = false;
   bool _bookPinned = false;
+  bool _assistantOpen = false;
+  bool _assistantPinned = false;
   String? _toolPageId;
   String? _bookChapterId;
 
@@ -1343,25 +1347,31 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   }
 
   void _closeEditorTools() {
-    if (!_calcOpen && !_bookOpen) return;
+    if (!_calcOpen && !_bookOpen && !_assistantOpen) return;
     setState(() {
       _calcOpen = false;
       _bookOpen = false;
+      _assistantOpen = false;
       _calcPinned = false;
       _bookPinned = false;
+      _assistantPinned = false;
       _toolPageId = null;
     });
   }
 
   void _dismissUnpinnedTools() {
-    if ((_calcOpen && !_calcPinned) || (_bookOpen && !_bookPinned)) {
+    if ((_calcOpen && !_calcPinned) ||
+        (_bookOpen && !_bookPinned) ||
+        (_assistantOpen && !_assistantPinned)) {
       setState(() {
         if (!_calcPinned) _calcOpen = false;
         if (!_bookPinned) _bookOpen = false;
-        if (!_calcOpen && !_bookOpen) {
+        if (!_assistantPinned) _assistantOpen = false;
+        if (!_calcOpen && !_bookOpen && !_assistantOpen) {
           _toolPageId = null;
           _calcPinned = false;
           _bookPinned = false;
+          _assistantPinned = false;
         }
       });
     }
@@ -1407,6 +1417,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       _bookPinned = false;
       _bookChapterId = chapterId;
       _toolPageId = controller.currentPage?.id;
+    });
+  }
+
+  void _openAssistant(EditorController controller) {
+    setState(() {
+      _assistantOpen = !_assistantOpen;
+      if (_assistantOpen) {
+        _assistantPinned = false;
+        _toolPageId = controller.currentPage?.id;
+      } else if (!_calcOpen && !_bookOpen) {
+        _toolPageId = null;
+        _assistantPinned = false;
+      }
     });
   }
 
@@ -1573,13 +1596,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
               notebook: nb,
               pages: controller.pages,
               pageIndex: controller.pageIndex,
-            );
-      case ShareExportAction.sharePdfForGoodNotes:
-        final nb = controller.notebook;
-        if (nb == null) return;
-        await ref.read(exportServiceProvider).shareNotebookPdfForGoodNotes(
-              notebook: nb,
-              pages: controller.pages,
             );
       case ShareExportAction.indexHandwriting:
         final page = controller.currentPage;
@@ -2273,6 +2289,27 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
               ),
             ),
           ),
+        if (_assistantOpen && !presenting)
+          Positioned(
+            right: 12,
+            top: _calcOpen ? 530 : 56,
+            child: EditorToolPanel(
+              title: l10n.assistant,
+              pinned: _assistantPinned,
+              onPin: () =>
+                  setState(() => _assistantPinned = !_assistantPinned),
+              onClose: () => setState(() {
+                _assistantOpen = false;
+                _assistantPinned = false;
+                if (!_calcOpen && !_bookOpen) _toolPageId = null;
+              }),
+              child: AssistantPanel(
+                unlocked: ref
+                    .watch(entitlementProvider)
+                    .hasAccess(FeatureKeys.aiAssistant),
+              ),
+            ),
+          ),
         if (_bookOpen && !presenting)
           Positioned(
             left: _sidebarOpen ? PageSidebar.width + 12 : 12,
@@ -2368,8 +2405,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 onPickImage: controller.pickAndInsertImage,
                 onCalculator: () => _openCalculator(controller),
                 onFormulaBook: () => _openFormulaBook(controller),
+                calculatorOpen: _calcOpen,
+                formulaBookOpen: _bookOpen,
+                assistantOpen: _assistantOpen,
+                onAssistant: () => _openAssistant(controller),
                 onAddPage: () => _addPage(controller),
                 onToggleLock: controller.toggleInteractionMode,
+                studyModeUnlocked: ref
+                    .watch(entitlementProvider)
+                    .hasAccess(FeatureKeys.studyMode),
                 onToggleStudy: controller.toggleStudyMode,
                 onPresent: controller.togglePresentationMode,
                 onMenuAction: (action) =>
