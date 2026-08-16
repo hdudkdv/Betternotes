@@ -1,0 +1,49 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Create or reuse a Distribution cert and App Store profile via the Connect API key"
+  lane :ci_signing do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+      duration: 1200,
+      in_house: false
+    )
+
+    cert(
+      api_key: api_key,
+      development: false,
+      force: false,
+      keychain_path: ENV.fetch("KEYCHAIN_PATH"),
+      keychain_password: ENV.fetch("KEYCHAIN_PASSWORD")
+    )
+
+    sigh(
+      api_key: api_key,
+      app_identifier: "de.notis.app",
+      adhoc: false,
+      development: false,
+      force: true,
+      filename: "Notis_AppStore.mobileprovision"
+    )
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      team_id: ENV.fetch("APPLE_TEAM_ID"),
+      bundle_identifier: "de.notis.app",
+      code_sign_identity: "Apple Distribution",
+      profile_name: lane_context[SharedValues::SIGH_NAME],
+      targets: ["Runner"]
+    )
+
+    github_env = ENV["GITHUB_ENV"]
+    next if github_env.to_s.empty?
+
+    File.open(github_env, "a") do |file|
+      file.puts "SIGH_NAME=#{lane_context[SharedValues::SIGH_NAME]}"
+      file.puts "SIGH_UDID=#{lane_context[SharedValues::SIGH_UDID]}"
+    end
+  end
+end

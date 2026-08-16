@@ -1,0 +1,7 @@
+report.xml
+Preview.html
+*.mobileprovision
+*.cer
+*.p12
+*.certSigningRequest
+README.md
