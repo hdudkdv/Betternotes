@@ -123,11 +123,13 @@ jobs:
       - name: Prepare iOS project
         run: |
           set -euo pipefail
-          flutter build ios --release --config-only
+          # Flutter still looks for an iOS Development cert unless we skip
+          # codesign. Distribution signing happens in the archive step.
+          printf '\nDEVELOPMENT_TEAM=%s\n' "$APPLE_TEAM_ID" >> ios/Flutter/Release.xcconfig
+          flutter build ios --release --no-codesign --config-only
           # Runner-only. Do not pass PROVISIONING_PROFILE_SPECIFIER to
           # xcodebuild — that leaks the app profile onto Pods and SPM packages.
           {
-            echo "DEVELOPMENT_TEAM=$APPLE_TEAM_ID"
             echo "CODE_SIGN_STYLE=Manual"
             echo "CODE_SIGN_IDENTITY=Apple Distribution"
             echo "PROVISIONING_PROFILE_SPECIFIER=$SIGH_NAME"
