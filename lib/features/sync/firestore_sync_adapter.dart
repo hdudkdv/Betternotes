@@ -2,17 +2,23 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/content_models.dart';
 import '../../data/models/notebook.dart';
 import '../../data/repositories/notebook_repository.dart';
+import '../../shared/utils/file_store.dart';
+import 'cloud_store.dart';
+import 'cloud_store_factory.dart';
+import 'page_cloud_codec.dart';
 import 'sync_merge.dart';
 
-/// User-scoped Firestore transport. Local persistence remains authoritative:
-/// this adapter is called only after a change has been committed locally.
+/// User-scoped transport: Firestore holds tiny pointers, [CloudStore] holds
+/// gzip page bodies and binary assets.
 class FirestoreSyncAdapter {
   FirestoreSyncAdapter(
     this._repository, {
@@ -20,18 +26,29 @@ class FirestoreSyncAdapter {
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
     FirebaseStorage? storage,
+    CloudStore? store,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
        _auth = auth ?? FirebaseAuth.instance,
        _storageOverride = storage,
+       _storeOverride = store,
        _preferences = preferences;
 
   final NotebookRepository _repository;
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
-  FirebaseStorage? _storageOverride;
   final SharedPreferences _preferences;
+  FirebaseStorage? _storageOverride;
+  CloudStore? _storeOverride;
+  final FileStore _files = createFileStore();
 
   FirebaseStorage get _storage => _storageOverride ??= FirebaseStorage.instance;
+
+  CloudStore get _store {
+    return _storeOverride ??= createCloudStore(
+      uid: _uid,
+      storage: _storage,
+    );
+  }
 
   static const _appStateKeys = <String>[
     'plannerV1',
@@ -60,6 +77,8 @@ class FirestoreSyncAdapter {
   DocumentReference<Map<String, dynamic>> get _user =>
       _firestore.collection('users').doc(_uid);
 
+  String get _cursorKey => 'cloudPullCursorV1_$_uid';
+
   Future<void> ensureProfile() async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -74,6 +93,7 @@ class FirestoreSyncAdapter {
     final payload = Map<String, dynamic>.from(
       jsonDecode(operation.payloadJson) as Map,
     );
+    payload.remove('searchIndex');
     final now = DateTime.now().toIso8601String();
     switch (operation.entityType) {
       case 'notebook':
@@ -82,19 +102,8 @@ class FirestoreSyncAdapter {
           'updatedAt': payload['updatedAt'] ?? now,
         }, SetOptions(merge: true));
       case 'page':
-        final notebookId = payload['notebookId']?.toString();
-        if (notebookId == null || notebookId.isEmpty) {
-          throw const FormatException('Page ohne notebookId');
-        }
-        await _user
-            .collection('notebooks')
-            .doc(notebookId)
-            .collection('pages')
-            .doc(operation.entityId)
-            .set({
-              ...payload,
-              'updatedAt': payload['updatedAt'] ?? now,
-            }, SetOptions(merge: true));
+        final page = NotePage.fromJson(payload);
+        await _pushPage(page);
       case 'delete_notebook':
         final pages = await _user
             .collection('notebooks')
@@ -102,6 +111,10 @@ class FirestoreSyncAdapter {
             .collection('pages')
             .get();
         for (final doc in pages.docs) {
+          final blobKey = doc.data()['blobKey']?.toString();
+          if (blobKey != null && blobKey.isNotEmpty) {
+            await _store.delete(blobKey);
+          }
           await doc.reference.delete();
         }
         await _user.collection('notebooks').doc(operation.entityId).delete();
@@ -110,12 +123,21 @@ class FirestoreSyncAdapter {
         if (notebookId == null || notebookId.isEmpty) {
           throw const FormatException('delete_page ohne notebookId');
         }
-        await _user
+        final pageRef = _user
             .collection('notebooks')
             .doc(notebookId)
             .collection('pages')
-            .doc(operation.entityId)
-            .delete();
+            .doc(operation.entityId);
+        final existing = await pageRef.get();
+        final blobKey = existing.data()?['blobKey']?.toString();
+        if (blobKey != null && blobKey.isNotEmpty) {
+          await _store.delete(blobKey);
+        }
+        await pageRef.delete();
+        await _touchNotebook(notebookId);
+      case 'crdt':
+      case 'checkpoint':
+        return;
       default:
         await _user.collection('sync_ops').doc(operation.id).set({
           'entityType': operation.entityType,
@@ -127,24 +149,174 @@ class FirestoreSyncAdapter {
     }
   }
 
+  Future<void> _pushPage(NotePage page) async {
+    final body = await _rewriteAssetsForUpload(PageCloudCodec.bodyJson(page));
+    final hash = PageCloudCodec.hashBody(body);
+    final blobKey = 'pages/${page.id}/$hash.bin';
+    await _store.put(
+      blobKey,
+      PageCloudCodec.encodeBody(body),
+      contentType: 'application/gzip',
+    );
+    final pointer = PageCloudCodec.pointer(
+      page: page,
+      contentHash: hash,
+      blobKey: blobKey,
+      assetKeys: [
+        for (final value in body.values)
+          if (value is String && PageCloudCodec.isRemotePath(value))
+            PageCloudCodec.keyFromCloudPath(value)!,
+      ],
+    );
+    await _user
+        .collection('notebooks')
+        .doc(page.notebookId)
+        .collection('pages')
+        .doc(page.id)
+        .set(pointer, SetOptions(merge: true));
+    await _touchNotebook(page.notebookId);
+  }
+
+  Future<void> _touchNotebook(String notebookId) async {
+    await _user.collection('notebooks').doc(notebookId).set({
+      'updatedAt': DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<Map<String, dynamic>> _rewriteAssetsForUpload(
+    Map<String, dynamic> body,
+  ) async {
+    final next = Map<String, dynamic>.from(body);
+    final background = next['backgroundPdfPath']?.toString();
+    if (PageCloudCodec.isUploadablePath(background)) {
+      next['backgroundPdfPath'] = PageCloudCodec.cloudPath(
+        await _uploadAsset(background!),
+      );
+    }
+    final images = next['images'];
+    if (images is List) {
+      next['images'] = [
+        for (final item in images)
+          if (item is Map)
+            await _rewriteImage(Map<String, dynamic>.from(item))
+          else
+            item,
+      ];
+    }
+    return next;
+  }
+
+  Future<Map<String, dynamic>> _rewriteImage(Map<String, dynamic> image) async {
+    final path = image['localPath']?.toString();
+    if (!PageCloudCodec.isUploadablePath(path)) return image;
+    return {...image, 'localPath': PageCloudCodec.cloudPath(await _uploadAsset(path!))};
+  }
+
+  Future<String> _uploadAsset(String path) async {
+    final bytes = await _files.readBytes(path);
+    final hash = sha256.convert(bytes).toString();
+    final ext = p.extension(path).replaceFirst('.', '');
+    final key = 'assets/$hash${ext.isEmpty ? '' : '.$ext'}';
+    await _store.put(key, bytes);
+    return key;
+  }
+
+  Future<Map<String, dynamic>> _hydrateAssets(
+    Map<String, dynamic> body,
+  ) async {
+    final filesDir = await _repository.resolveFilesDir();
+    final next = Map<String, dynamic>.from(body);
+    final background = next['backgroundPdfPath']?.toString();
+    final bgKey = PageCloudCodec.keyFromCloudPath(background);
+    if (bgKey != null) {
+      next['backgroundPdfPath'] = await _downloadAsset(filesDir, bgKey);
+    }
+    final images = next['images'];
+    if (images is List) {
+      next['images'] = [
+        for (final item in images)
+          if (item is Map)
+            await _hydrateImage(filesDir, Map<String, dynamic>.from(item))
+          else
+            item,
+      ];
+    }
+    return next;
+  }
+
+  Future<Map<String, dynamic>> _hydrateImage(
+    String filesDir,
+    Map<String, dynamic> image,
+  ) async {
+    final key = PageCloudCodec.keyFromCloudPath(image['localPath']?.toString());
+    if (key == null) return image;
+    return {...image, 'localPath': await _downloadAsset(filesDir, key)};
+  }
+
+  Future<String> _downloadAsset(String filesDir, String key) async {
+    final name = key.replaceAll('/', '_');
+    final dest = p.join(filesDir, 'cloud_$name');
+    try {
+      await _files.readBytes(dest);
+      return dest;
+    } catch (_) {}
+    final bytes = await _store.get(key);
+    if (bytes == null) return PageCloudCodec.cloudPath(key);
+    await _files.writeBytes(dest, bytes);
+    return dest;
+  }
+
   /// Imports remote notebooks and pages, merging list fields by id when both
   /// sides have content (CRDT-oriented block merge).
-  Future<void> pullRemoteChanges() async {
-    final remoteNotebooks = await _user.collection('notebooks').get();
+  Future<void> pullRemoteChanges({bool full = false}) async {
+    final cursor = full ? null : _preferences.getString(_cursorKey);
+    Query<Map<String, dynamic>> query = _user.collection('notebooks');
+    if (cursor != null && cursor.isNotEmpty) {
+      query = query.where('updatedAt', isGreaterThan: cursor);
+    }
+    QuerySnapshot<Map<String, dynamic>> remoteNotebooks;
+    try {
+      remoteNotebooks = await query.get();
+    } catch (_) {
+      remoteNotebooks = await _user.collection('notebooks').get();
+    }
+
+    String? newest = cursor;
     for (final remote in remoteNotebooks.docs) {
       final data = remote.data();
       if (!data.containsKey('id')) continue;
       final notebook = Notebook.fromJson(data);
+      final stamp = data['updatedAt']?.toString();
+      if (stamp != null && (newest == null || stamp.compareTo(newest) > 0)) {
+        newest = stamp;
+      }
       final local = await _repository.getNotebook(notebook.id);
       if (local == null || notebook.updatedAt.isAfter(local.updatedAt)) {
         await _repository.upsertRemoteNotebook(notebook);
       }
 
-      final remotePages = await remote.reference.collection('pages').get();
+      Query<Map<String, dynamic>> pageQuery = remote.reference.collection(
+        'pages',
+      );
+      if (cursor != null && cursor.isNotEmpty && !full) {
+        pageQuery = pageQuery.where('updatedAt', isGreaterThan: cursor);
+      }
+      QuerySnapshot<Map<String, dynamic>> remotePages;
+      try {
+        remotePages = await pageQuery.get();
+      } catch (_) {
+        remotePages = await remote.reference.collection('pages').get();
+      }
       for (final remotePage in remotePages.docs) {
         final pageData = remotePage.data();
         if (!pageData.containsKey('id')) continue;
-        final remoteNote = NotePage.fromJson(pageData);
+        final pageStamp = pageData['updatedAt']?.toString();
+        if (pageStamp != null &&
+            (newest == null || pageStamp.compareTo(newest) > 0)) {
+          newest = pageStamp;
+        }
+        final remoteNote = await _materializePage(pageData);
+        if (remoteNote == null) continue;
         final localPage = await _repository.getPage(remoteNote.id);
         final remoteUpdated = remoteNote.updatedAt ?? notebook.updatedAt;
         final localUpdated = localPage?.updatedAt ?? local?.updatedAt;
@@ -159,13 +331,32 @@ class FirestoreSyncAdapter {
           SyncMerge.mergeCrdtMaps(
             localPage.toJson(),
             remoteNote.toJson(),
-            localUpdated: localUpdated ?? DateTime.fromMillisecondsSinceEpoch(0),
+            localUpdated:
+                localUpdated ?? DateTime.fromMillisecondsSinceEpoch(0),
             remoteUpdated: remoteUpdated,
           ),
         );
         await _repository.upsertRemotePage(merged);
       }
     }
+    if (newest != null && newest.isNotEmpty) {
+      await _preferences.setString(_cursorKey, newest);
+    }
+  }
+
+  Future<NotePage?> _materializePage(Map<String, dynamic> data) async {
+    if (!PageCloudCodec.isPointer(data)) {
+      final copy = Map<String, dynamic>.from(data)..remove('searchIndex');
+      return NotePage.fromJson(copy);
+    }
+    final blobKey = data['blobKey']?.toString();
+    if (blobKey == null || blobKey.isEmpty) return null;
+    final bytes = await _store.get(blobKey);
+    if (bytes == null) return null;
+    final body = await _hydrateAssets(PageCloudCodec.decodeBody(bytes));
+    body['updatedAt'] = data['updatedAt'] ?? body['updatedAt'];
+    body.remove('searchIndex');
+    return NotePage.fromJson(body);
   }
 
   /// Synchronizes small app-wide JSON documents (planner, timetable and local
@@ -214,17 +405,7 @@ class FirestoreSyncAdapter {
           .doc(notebook.id)
           .set(notebook.toJson(), SetOptions(merge: true));
       for (final page in await _repository.getPages(notebook.id)) {
-        await _user
-            .collection('notebooks')
-            .doc(notebook.id)
-            .collection('pages')
-            .doc(page.id)
-            .set({
-              ...page.toJson(),
-              'updatedAt':
-                  page.updatedAt?.toIso8601String() ??
-                  notebook.updatedAt.toIso8601String(),
-            }, SetOptions(merge: true));
+        await _pushPage(page);
       }
     }
   }
@@ -235,11 +416,7 @@ class FirestoreSyncAdapter {
     required Uint8List bytes,
     String? contentType,
   }) async {
-    final reference = _storage.ref('users/$_uid/$remotePath');
-    await reference.putData(
-      bytes,
-      contentType == null ? null : SettableMetadata(contentType: contentType),
-    );
-    return reference.getDownloadURL();
+    await _store.put(remotePath, bytes, contentType: contentType);
+    return remotePath;
   }
 }

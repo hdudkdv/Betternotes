@@ -3518,6 +3518,12 @@ abstract class AppLocalizations {
   /// **'Sync paused'**
   String get syncStatusPaused;
 
+  /// No description provided for @syncStatusCloudNotEntitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud sync is a Pro / Marketplace feature'**
+  String get syncStatusCloudNotEntitled;
+
   /// No description provided for @lockPage.
   ///
   /// In en, this message translates to:

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../features/search/fuzzy_match.dart';
 import '../../features/search/search_query.dart';
+import '../../features/sync/sync_queue.dart';
 import '../models/content_models.dart';
 import '../models/notebook.dart';
 
@@ -673,8 +674,11 @@ mixin ContentExtrasMixin {
           SyncOp.fromJson(Map<String, dynamic>.from(item as Map)),
       ]);
     }
-    ops.add(op);
-    await writeKv('sync_ops', jsonEncode(ops.map((o) => o.toJson()).toList()));
+    final next = appendCoalesced(ops, op);
+    await writeKv(
+      'sync_ops',
+      jsonEncode(next.map((o) => o.toJson()).toList()),
+    );
   }
 
   Future<void> markSyncOpSynced(String id) async {

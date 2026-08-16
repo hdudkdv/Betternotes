@@ -2,20 +2,26 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/models/content_models.dart';
+import '../../data/models/notebook.dart';
 import '../../data/repositories/notebook_repository.dart';
+import '../auth/auth_repository.dart';
 import '../entitlements/entitlement_model.dart';
 import '../library/providers/library_providers.dart';
-import 'firebase_bootstrap.dart';
-import 'firestore_sync_adapter.dart';
+import 'crdt_apply.dart';
 import 'crdt_delta.dart';
+import 'firebase_bootstrap.dart';
+import 'firestore_live_channel.dart';
+import 'firestore_sync_adapter.dart';
+import 'live_channel.dart';
 import 'sync_merge.dart';
 import 'transport_manager.dart';
+import 'vector_clock.dart';
 
 enum SyncStatus {
   idle,
@@ -26,10 +32,11 @@ enum SyncStatus {
   authenticationRequired,
   preparingCloud,
   paused,
+  cloudNotEntitled,
 }
 
 /// Offline-first sync engine with local queue and CRDT-oriented merge stubs.
-class SyncEngine extends ChangeNotifier {
+class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
   SyncEngine(
     this._repo,
     this._preferences,
@@ -37,7 +44,9 @@ class SyncEngine extends ChangeNotifier {
     TransportManager? transport,
   }) : _transport = transport {
     _refresh();
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) => flush());
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) => _tick());
+    final binding = WidgetsBinding.instance;
+    binding.addObserver(this);
   }
 
   final NotebookRepository _repo;
@@ -46,11 +55,30 @@ class SyncEngine extends ChangeNotifier {
   final TransportManager? _transport;
   Timer? _timer;
   FirestoreSyncAdapter? _adapter;
+  LiveChannel? _live;
+  StreamSubscription<CrdtDelta>? _liveSub;
+  String? _watchingNotebookId;
+  final _appliedDeltaIds = <String>{};
+  final _remoteListeners = <String, void Function(NotePage page)>{};
+  VectorClock _clock = VectorClock.empty();
   bool syncing = false;
   SyncStatus syncStatus = SyncStatus.idle;
   String? errorMessage;
   int pending = 0;
   DateTime? lastSyncAt;
+
+  static const _idleFlush = Duration(seconds: 8);
+  static const _deviceIdKey = 'syncDeviceIdV1';
+
+  String get deviceId {
+    final existing = _preferences.getString(_deviceIdKey);
+    if (existing != null && existing.isNotEmpty) return existing;
+    final created = const Uuid().v4();
+    _preferences.setString(_deviceIdKey, created);
+    return created;
+  }
+
+  bool get _cloudAllowed => _transport?.cloudPremium == true;
 
   Future<void> _refresh() async {
     pending = await _repo.pendingSyncCount();
@@ -70,11 +98,37 @@ class SyncEngine extends ChangeNotifier {
     remoteUpdated: remoteUpdated,
   );
 
-  Future<void> flush() async {
+  Future<void> _tick() async {
+    if (syncing) return;
+    final ops = await _repo.getPendingSyncOps();
+    pending = ops.length;
+    if (ops.isEmpty) {
+      if (syncStatus == SyncStatus.idle) notifyListeners();
+      return;
+    }
+    final newest = ops
+        .map((op) => op.createdAt)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+    if (DateTime.now().difference(newest) >= _idleFlush) {
+      await flush();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      unawaited(flush(force: true));
+    }
+  }
+
+  Future<void> flush({bool force = false}) async {
     if (syncing) return;
     final route = _transport?.routeAfterLocalPersist();
-    if (route == TransportRoute.p2p && _transport?.cloudPremium != true) {
-      // Live P2P already carries deltas; park cloud until premium + no P2P.
+    if (route == TransportRoute.p2p && !_cloudAllowed) {
       syncStatus = SyncStatus.upToDate;
       await _refresh();
       return;
@@ -89,12 +143,19 @@ class SyncEngine extends ChangeNotifier {
       await _refresh();
       return;
     }
+    if (!_cloudAllowed) {
+      syncStatus = SyncStatus.cloudNotEntitled;
+      await _refresh();
+      return;
+    }
     final ops = await _repo.getPendingSyncOps();
     if (ops.isEmpty) {
-      syncStatus = SyncStatus.upToDate;
-      pending = 0;
-      notifyListeners();
-      return;
+      if (!force) {
+        syncStatus = SyncStatus.upToDate;
+        pending = 0;
+        notifyListeners();
+        return;
+      }
     }
 
     syncing = true;
@@ -134,6 +195,11 @@ class SyncEngine extends ChangeNotifier {
     if (!_firebaseAvailable || FirebaseAuth.instance.currentUser == null) {
       return;
     }
+    if (!_cloudAllowed) {
+      syncStatus = SyncStatus.cloudNotEntitled;
+      notifyListeners();
+      return;
+    }
     if (syncing) return;
     syncing = true;
     syncStatus = SyncStatus.preparingCloud;
@@ -144,7 +210,7 @@ class SyncEngine extends ChangeNotifier {
         preferences: _preferences,
       );
       await adapter.ensureProfile();
-      await adapter.pullRemoteChanges();
+      await adapter.pullRemoteChanges(full: true);
       await adapter.syncAppState();
       await adapter.pushLocalSnapshot();
       final ops = await _repo.getPendingSyncOps();
@@ -165,7 +231,88 @@ class SyncEngine extends ChangeNotifier {
     }
   }
 
+  Future<void> publishLocalEdit({
+    required NotePage? previous,
+    required NotePage next,
+  }) async {
+    if (!_cloudAllowed || !_firebaseAvailable) return;
+    if (FirebaseAuth.instance.currentUser == null) return;
+    final deltas = diffsBetweenPages(
+      previous: previous,
+      next: next,
+      deviceId: deviceId,
+      clock: _clock,
+    );
+    if (deltas.isEmpty) return;
+    _clock = deltas.last.clock;
+    final live = _ensureLive();
+    await live.heartbeat(notebookId: next.notebookId);
+    if (!await live.hasRemotePeer()) return;
+    for (final delta in deltas) {
+      _appliedDeltaIds.add(delta.id);
+      await live.publish(delta);
+    }
+  }
+
+  void watchNotebook(
+    String notebookId, {
+    required void Function(NotePage page) onRemotePage,
+  }) {
+    _remoteListeners[notebookId] = onRemotePage;
+    if (_watchingNotebookId == notebookId) return;
+    unawaited(_startWatch(notebookId));
+  }
+
+  void unwatchNotebook(String notebookId) {
+    _remoteListeners.remove(notebookId);
+    if (_watchingNotebookId == notebookId) {
+      unawaited(_stopWatch());
+    }
+  }
+
+  LiveChannel _ensureLive() {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return _live ??= FirestoreLiveChannel(uid: uid, deviceId: deviceId);
+  }
+
+  Future<void> _startWatch(String notebookId) async {
+    await _stopWatch();
+    if (!_cloudAllowed || FirebaseAuth.instance.currentUser == null) return;
+    _watchingNotebookId = notebookId;
+    final live = _ensureLive();
+    await live.heartbeat(notebookId: notebookId);
+    _liveSub = live.watch(notebookId).listen(_onRemoteDelta);
+  }
+
+  Future<void> _stopWatch() async {
+    await _liveSub?.cancel();
+    _liveSub = null;
+    _watchingNotebookId = null;
+  }
+
+  Future<void> _onRemoteDelta(CrdtDelta delta) async {
+    if (!_appliedDeltaIds.add(delta.id)) return;
+    _clock = _clock.merge(delta.clock);
+    final pageId = delta.pageId;
+    if (pageId == null) return;
+    final page = await _repo.getPage(pageId);
+    if (page == null) return;
+    final updated = applyCrdtDelta(page, delta);
+    await _repo.upsertRemotePage(updated);
+    _remoteListeners[updated.notebookId]?.call(updated);
+  }
+
   Future<void> enqueueDelta(CrdtDelta delta) async {
+    _clock = _clock.merge(delta.clock).increment(deviceId);
+    if (_cloudAllowed) {
+      final live = _ensureLive();
+      await live.heartbeat(notebookId: delta.notebookId);
+      if (await live.hasRemotePeer()) {
+        _appliedDeltaIds.add(delta.id);
+        await live.publish(delta);
+        return;
+      }
+    }
     await _repo.enqueueSyncOp(
       SyncOp(
         id: delta.id,
@@ -176,7 +323,6 @@ class SyncEngine extends ChangeNotifier {
       ),
     );
     await _refresh();
-    await flush();
   }
 
   Future<void> enqueueManualCheckpoint(String notebookId) async {
@@ -193,23 +339,27 @@ class SyncEngine extends ChangeNotifier {
       ),
     );
     await _refresh();
-    await flush();
+    await flush(force: true);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    unawaited(_stopWatch());
+    unawaited(_live?.dispose());
     super.dispose();
   }
 }
 
 final syncEngineProvider = ChangeNotifierProvider<SyncEngine>((ref) {
-  final transport = ref.read(transportManagerProvider);
-  final entitlements = ref.read(entitlementProvider);
+  final transport = ref.watch(transportManagerProvider);
+  final entitlements = ref.watch(entitlementProvider);
   final firebase = ref.watch(firebaseBootstrapProvider).available;
+  final signedIn = ref.watch(authProvider).signedIn;
   transport.setCloud(
     premium: entitlements.hasAccess(FeatureKeys.cloudSync),
-    reachable: firebase && FirebaseAuth.instance.currentUser != null,
+    reachable: firebase && signedIn,
   );
   return SyncEngine(
     ref.watch(notebookRepositoryProvider),

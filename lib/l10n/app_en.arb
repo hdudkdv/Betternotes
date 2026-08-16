@@ -819,6 +819,7 @@
   "syncStatusAuthenticationRequired": "Sign-in required",
   "syncStatusPreparingCloud": "Preparing cloud data",
   "syncStatusPaused": "Sync paused",
+  "syncStatusCloudNotEntitled": "Cloud sync is a Pro / Marketplace feature",
   "lockPage": "Lock page",
   "unlockPage": "Unlock page",
   "pageLocked": "Page locked",

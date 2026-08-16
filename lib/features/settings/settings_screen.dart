@@ -79,6 +79,7 @@ class SettingsScreen extends ConsumerWidget {
     SyncStatus.authenticationRequired => l10n.syncStatusAuthenticationRequired,
     SyncStatus.preparingCloud => l10n.syncStatusPreparingCloud,
     SyncStatus.paused => l10n.syncStatusPaused,
+    SyncStatus.cloudNotEntitled => l10n.syncStatusCloudNotEntitled,
   };
 
   Future<void> _signIn(

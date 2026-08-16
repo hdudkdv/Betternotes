@@ -69,23 +69,26 @@ import '../../tools/formula_book/formula_book_panel.dart';
 import '../../tools/formula_book/formula_book_store.dart';
 import '../../tools/assistant/assistant_panel.dart';
 import '../../entitlements/entitlement_model.dart';
+import '../../sync/sync_engine.dart';
 
 final editorControllerProvider = ChangeNotifierProvider.autoDispose
     .family<EditorController, String>((ref, notebookId) {
-      return EditorController(
+      final controller = EditorController(
         notebookId: notebookId,
         repository: ref.watch(notebookRepositoryProvider),
         pdfService: ref.watch(pdfServiceProvider),
         lastPageStore: ref.watch(lastPageStoreProvider),
         fingerPanZoom: ref.watch(settingsProvider).fingerPanZoom,
       );
+      _bindCloudLive(ref, controller, notebookId);
+      return controller;
     });
 
 /// Family key includes optional deep-link targets so search can open a chapter.
 final editorControllerDeepLinkProvider = ChangeNotifierProvider.autoDispose
     .family<EditorController, ({String id, String? pageId, String? outlineId})>(
       (ref, args) {
-        return EditorController(
+        final controller = EditorController(
           notebookId: args.id,
           repository: ref.watch(notebookRepositoryProvider),
           pdfService: ref.watch(pdfServiceProvider),
@@ -94,8 +97,23 @@ final editorControllerDeepLinkProvider = ChangeNotifierProvider.autoDispose
           initialPageId: args.pageId,
           initialOutlineId: args.outlineId,
         );
+        _bindCloudLive(ref, controller, args.id);
+        return controller;
       },
     );
+
+void _bindCloudLive(
+  Ref ref,
+  EditorController controller,
+  String notebookId,
+) {
+  final engine = ref.read(syncEngineProvider);
+  controller.onLocalEdit = (previous, next) {
+    unawaited(engine.publishLocalEdit(previous: previous, next: next));
+  };
+  engine.watchNotebook(notebookId, onRemotePage: controller.applyRemotePage);
+  ref.onDispose(() => engine.unwatchNotebook(notebookId));
+}
 
 class EditorController extends ChangeNotifier {
   EditorController({
@@ -126,6 +144,7 @@ class EditorController extends ChangeNotifier {
   /// Optional hook used by nearby LAN sync after a local page save.
   void Function(NotePage page)? onPagePersisted;
   void Function(String pageId)? onPageDeleted;
+  void Function(NotePage? previous, NotePage next)? onLocalEdit;
 
   Notebook? notebook;
   List<NotePage> pages = [];
@@ -166,6 +185,23 @@ class EditorController extends ChangeNotifier {
 
   NotePage? get currentPage =>
       pages.isEmpty ? null : pages[pageIndex.clamp(0, pages.length - 1)];
+
+  void applyRemotePage(NotePage page) {
+    if (_disposed) return;
+    final index = pages.indexWhere((item) => item.id == page.id);
+    if (index < 0) {
+      pages = [...pages, page]..sort((a, b) => a.index.compareTo(b.index));
+    } else {
+      pages[index] = page;
+    }
+    if (currentPage?.id == page.id) {
+      ink.replaceStrokes(page.strokes, quiet: true);
+      textBlocks = page.textBlocks;
+      shapes = page.shapes;
+      images = page.images;
+    }
+    notifyListeners();
+  }
 
   PaperTemplate? get activePaper => currentPage?.customPaper;
 
@@ -347,6 +383,7 @@ class EditorController extends ChangeNotifier {
     _saveTimer?.cancel();
     final page = currentPage;
     if (page == null) return;
+    final previous = currentPage;
     final updated = page.copyWith(
       strokes: ink.strokes,
       textBlocks: textBlocks,
@@ -361,6 +398,7 @@ class EditorController extends ChangeNotifier {
     }
     await repository.savePage(updated);
     onPagePersisted?.call(updated);
+    onLocalEdit?.call(previous?.id == updated.id ? previous : null, updated);
     unawaited(_refreshSearchIndex(updated));
   }
 

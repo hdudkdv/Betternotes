@@ -1858,6 +1858,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncStatusPaused => 'Sync paused';
 
   @override
+  String get syncStatusCloudNotEntitled =>
+      'Cloud sync is a Pro / Marketplace feature';
+
+  @override
   String get lockPage => 'Lock page';
 
   @override

@@ -793,6 +793,7 @@
   "syncStatusAuthenticationRequired": "Anmeldung erforderlich",
   "syncStatusPreparingCloud": "Cloud-Daten werden vorbereitet",
   "syncStatusPaused": "Synchronisierung pausiert",
+  "syncStatusCloudNotEntitled": "Cloud-Sync ist eine Pro-/Marketplace-Funktion",
   "lockPage": "Seite sperren",
   "unlockPage": "Seite entsperren",
   "pageLocked": "Seite gesperrt",
