@@ -74,6 +74,17 @@ class PrefsNotebookRepository extends NotebookRepository
   Future<String> resolveFilesDir() async => 'web_files';
 
   @override
+  Future<void> clearLocalNotebooksForCloudReload() async {
+    final notebooks = _readNotebooks();
+    for (final notebook in notebooks) {
+      await _prefs.remove('$_pagesPrefix${notebook.id}');
+      await deleteKv('outline_${notebook.id}');
+    }
+    await _prefs.remove(_notebooksKey);
+    await deleteKv('sync_ops');
+  }
+
+  @override
   Future<List<Notebook>> getNotebooks({String query = ''}) async {
     var list = _readNotebooks();
     if (query.trim().isNotEmpty) {

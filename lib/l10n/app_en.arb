@@ -799,12 +799,7 @@
   "signInApple": "Sign in with Apple",
   "signOut": "Sign out",
   "cloudSyncOffline": "Offline-first: without signing in, data stays on this device.",
-  "cloudSyncError": "Sign-in failed: {message}",
-  "@cloudSyncError": {
-    "placeholders": {
-      "message": {"type": "String"}
-    }
-  },
+  "cloudSyncError": "Sign-in did not work. Please try again.",
   "developerTools": "Developer tools",
   "developerTierHint": "For local testing only — does not replace a store purchase.",
   "editSupportDetails": "Edit support details",
@@ -1332,5 +1327,21 @@
   "assignmentCorrection": "Send a correction to this device",
   "assignmentLeaveSignals": "Left / lost focus",
   "assignmentPoolLocked": "Exchange: publish once to browse other public assignments.",
-  "assignmentPoolUnlocked": "Exchange is unlocked. Other teachers' public items appear once cloud sync is connected."
+  "assignmentPoolUnlocked": "Exchange is unlocked. Other teachers' public items appear once cloud sync is connected.",
+  "webOpenApp": "Open notebooks",
+  "webCloudSignInTitle": "Open your secured notebooks in the browser",
+  "webCloudSignInBody": "Sign in with the same Google account as in the app. Notis then loads the current cloud notebooks — not a stale browser copy.",
+  "webCloudSignedIn": "Cloud connected",
+  "webCloudSignedInBody": "Signed in as {email}. “Refresh” pulls the latest notebooks from the cloud.",
+  "@webCloudSignedInBody": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "webReloadFromCloud": "Refresh",
+  "webUploadFiles": "Upload files",
+  "webCloudUpdated": "Latest cloud notebooks loaded.",
+  "webAudioUnavailable": "Audio recordings are not available in the browser. Please use the tablet app.",
+  "webLoginHeadline": "Sign in with your account",
+  "webLoginBody": "Google or Apple — the same account as in the app. Notis then loads your current cloud notebooks."
 }

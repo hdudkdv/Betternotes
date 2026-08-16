@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
@@ -10,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../app/theme.dart';
+import '../../shared/utils/file_store.dart';
 import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../lan_sync/lan_sync_controller.dart';
@@ -905,7 +905,7 @@ class _MaterialsPageState extends ConsumerState<_MaterialsPage> {
         if (path == null || path.isEmpty || kIsWeb) {
           throw StateError('missing_file');
         }
-        final bytes = await File(path).readAsBytes();
+        final bytes = await createFileStore().readBytes(path);
         url = await ref.read(oerMaterialRepositoryProvider).uploadPrivate(
           bytes: bytes,
           fileName: material.title,

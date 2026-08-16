@@ -127,6 +127,36 @@ a:hover { color: var(--blue-deep); }
   max-width: 36rem;
 }
 
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-family: "Outfit", sans-serif;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--blue-bright), var(--blue));
+  color: #fff;
+}
+
+.btn-ghost {
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: #fff;
+}
+
 .hero-card {
   background: var(--card);
   border-radius: 28px;
@@ -148,6 +178,31 @@ a:hover { color: var(--blue-deep); }
   font-size: 0.78rem;
   color: var(--blue);
   margin: 0 0 10px;
+}
+
+.purpose {
+  background: var(--card);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 28px 28px 32px;
+  margin: 8px 0 28px;
+}
+
+.purpose h2 {
+  font-family: "Outfit", sans-serif;
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+}
+
+.purpose p,
+.purpose li {
+  color: #243140;
+  line-height: 1.5;
+}
+
+.purpose ul {
+  margin: 12px 0 0;
+  padding-left: 1.2rem;
 }
 
 .grid {
@@ -194,6 +249,12 @@ a:hover { color: var(--blue-deep); }
   font-family: "Outfit", sans-serif;
   font-size: 1.15rem;
   margin: 1.6rem 0 0.5rem;
+}
+
+.legal h3 {
+  font-family: "Outfit", sans-serif;
+  font-size: 1.02rem;
+  margin: 1.1rem 0 0.4rem;
 }
 
 .legal p, .legal li {

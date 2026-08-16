@@ -1,10 +1,7 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
+import '../../../shared/widgets/local_file_image.dart';
 
 class CatalogImage extends StatelessWidget {
   const CatalogImage({
@@ -18,18 +15,11 @@ class CatalogImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget child;
-    if (path.startsWith('memory:')) {
-      child = Image.memory(
-        base64Decode(path.substring(7)),
-        fit: BoxFit.contain,
-        errorBuilder: _broken,
-      );
-    } else if (kIsWeb) {
-      child = Image.network(path, fit: BoxFit.contain, errorBuilder: _broken);
-    } else {
-      child = Image.file(File(path), fit: BoxFit.contain, errorBuilder: _broken);
-    }
+    final child = LocalFileImage(
+      path,
+      fit: BoxFit.contain,
+      errorBuilder: _broken,
+    );
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: ColoredBox(

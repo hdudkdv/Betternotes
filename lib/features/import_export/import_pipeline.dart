@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
@@ -34,10 +33,7 @@ class ImportPipeline {
     required String notebookId,
     required InboxFile file,
   }) async {
-    if (kIsWeb) {
-      throw UnsupportedError('Import is not available on web');
-    }
-    final bytes = await File(file.path).readAsBytes();
+    final bytes = file.bytes ?? await _files.readBytes(file.path);
     final kind = classifyImport(name: file.name, mimeType: file.mimeType);
     switch (kind) {
       case ImportKind.pdf:

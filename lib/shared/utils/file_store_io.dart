@@ -15,6 +15,9 @@ class IoFileStore implements FileStore {
     await file.parent.create(recursive: true);
     await file.writeAsBytes(bytes);
   }
+
+  @override
+  Uint8List? peekBytes(String path) => null;
 }
 
 FileStore createFileStore() => IoFileStore();

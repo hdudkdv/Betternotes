@@ -1,8 +1,5 @@
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -41,15 +38,10 @@ class ExportService {
     required String filename,
     required String mime,
   }) async {
-    if (kIsWeb) {
-      await Printing.sharePdf(bytes: bytes, filename: filename);
-      return;
-    }
-    final dir = await getTemporaryDirectory();
-    final file = File(p.join(dir.path, filename));
-    await file.writeAsBytes(bytes, flush: true);
     await SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path, mimeType: mime, name: filename)]),
+      ShareParams(
+        files: [XFile.fromData(bytes, mimeType: mime, name: filename)],
+      ),
     );
   }
 

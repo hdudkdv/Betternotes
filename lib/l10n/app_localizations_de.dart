@@ -1815,9 +1815,8 @@ class AppLocalizationsDe extends AppLocalizations {
       'Offline-first: Ohne Anmeldung bleiben Daten nur auf diesem Gerät.';
 
   @override
-  String cloudSyncError(String message) {
-    return 'Anmeldung fehlgeschlagen: $message';
-  }
+  String get cloudSyncError =>
+      'Anmeldung hat nicht geklappt. Bitte nochmal versuchen.';
 
   @override
   String get developerTools => 'Entwicklungswerkzeuge';
@@ -3222,4 +3221,42 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get assignmentPoolUnlocked =>
       'Tauschbörse ist offen. Öffentliche Einträge anderer Lehrer erscheinen, sobald die Cloud verbunden ist.';
+
+  @override
+  String get webOpenApp => 'Notizbücher öffnen';
+
+  @override
+  String get webCloudSignInTitle => 'Gesicherte Notizbücher im Browser';
+
+  @override
+  String get webCloudSignInBody =>
+      'Mit demselben Google-Konto anmelden wie in der App. Danach lädt Notis die aktuellen Cloud-Hefte — nicht eine alte Browser-Kopie.';
+
+  @override
+  String get webCloudSignedIn => 'Cloud verbunden';
+
+  @override
+  String webCloudSignedInBody(String email) {
+    return 'Angemeldet als $email. „Aktualisieren“ holt den neuesten Stand aus der Cloud.';
+  }
+
+  @override
+  String get webReloadFromCloud => 'Aktualisieren';
+
+  @override
+  String get webUploadFiles => 'Dateien hochladen';
+
+  @override
+  String get webCloudUpdated => 'Aktuelle Cloud-Daten geladen.';
+
+  @override
+  String get webAudioUnavailable =>
+      'Audio-Aufnahmen sind im Browser nicht verfügbar. Bitte die App auf dem Tablet nutzen.';
+
+  @override
+  String get webLoginHeadline => 'Mit deinem Konto anmelden';
+
+  @override
+  String get webLoginBody =>
+      'Google oder Apple — dasselbe Konto wie in der App. Danach lädt Notis deine aktuellen Cloud-Notizbücher.';
 }

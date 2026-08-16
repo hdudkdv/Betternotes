@@ -268,7 +268,10 @@ class FirestoreSyncAdapter {
 
   /// Imports remote notebooks and pages, merging list fields by id when both
   /// sides have content (CRDT-oriented block merge).
-  Future<void> pullRemoteChanges({bool full = false}) async {
+  Future<void> pullRemoteChanges({
+    bool full = false,
+    bool preferRemote = false,
+  }) async {
     final cursor = full ? null : _preferences.getString(_cursorKey);
     Query<Map<String, dynamic>> query = _user.collection('notebooks');
     if (cursor != null && cursor.isNotEmpty) {
@@ -291,7 +294,9 @@ class FirestoreSyncAdapter {
         newest = stamp;
       }
       final local = await _repository.getNotebook(notebook.id);
-      if (local == null || notebook.updatedAt.isAfter(local.updatedAt)) {
+      if (local == null ||
+          preferRemote ||
+          notebook.updatedAt.isAfter(local.updatedAt)) {
         await _repository.upsertRemoteNotebook(notebook);
       }
 
@@ -320,7 +325,7 @@ class FirestoreSyncAdapter {
         final localPage = await _repository.getPage(remoteNote.id);
         final remoteUpdated = remoteNote.updatedAt ?? notebook.updatedAt;
         final localUpdated = localPage?.updatedAt ?? local?.updatedAt;
-        if (localPage == null) {
+        if (localPage == null || preferRemote) {
           await _repository.upsertRemotePage(remoteNote);
           continue;
         }
@@ -362,10 +367,11 @@ class FirestoreSyncAdapter {
   /// Synchronizes small app-wide JSON documents (planner, timetable and local
   /// entitlement state). The first signed-in device imports an existing cloud
   /// copy once; later calls publish its current local state.
-  Future<void> syncAppState() async {
+  Future<void> syncAppState({bool preferRemote = false}) async {
     final document = await _user.collection('meta').doc('app_state').get();
     final loadedKey = 'cloudStateLoadedV1_$_uid';
-    if (_preferences.getBool(loadedKey) != true && document.exists) {
+    if ((preferRemote || _preferences.getBool(loadedKey) != true) &&
+        document.exists) {
       final remote = document.data()?['data'];
       if (remote is Map) {
         for (final key in _appStateKeys) {

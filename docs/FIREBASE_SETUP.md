@@ -27,9 +27,16 @@ gehören zum jeweiligen Firebase-Projekt und enthalten keine Platzhalterwerte.
 1. In Firebase Authentication Google und Apple als Provider aktivieren.
 2. Für Google die Android-SHA-1/SHA-256-Fingerprints und die erlaubten Web-Domains
    eintragen.
-3. Für Apple im Apple Developer Portal die Sign-in-with-Apple-Capability,
-   Service-ID, Team-ID und den privaten Key konfigurieren; die Werte anschließend
-   im Firebase-Apple-Provider hinterlegen.
+3. Für Apple im Apple Developer Portal:
+   - App-ID `de.notis.app` mit Capability **Sign in with Apple**
+   - **Services ID** z. B. `de.notis.app.web` (für den Browser-Login)
+   - Domains: `notis-2dee0.firebaseapp.com` und `notis-notizbuecher.web.app`
+   - Return URLs:
+     `https://notis-notizbuecher.web.app/__/auth/handler`
+     und `https://notis-2dee0.firebaseapp.com/__/auth/handler`
+   - Key mit Sign in with Apple → Team-ID, Key-ID und `.p8` in Firebase
+     Authentication → Sign-in method → Apple eintragen
+4. Authorized domains in Firebase: `notis-notizbuecher.web.app`
 
 Google Calendar wird nicht angefragt oder synchronisiert. Login dient in dieser
 Ausbaustufe ausschließlich dem persönlichen Cloud-Speicher.

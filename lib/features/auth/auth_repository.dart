@@ -11,6 +11,86 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../sync/firebase_bootstrap.dart';
 
+class AuthFailure implements Exception {
+  const AuthFailure(this.message, {this.cancelled = false});
+
+  final String message;
+  final bool cancelled;
+
+  @override
+  String toString() => message.isEmpty ? 'AuthFailure' : message;
+
+  static bool looksTechnical(Object error) {
+    final lower = '$error'.toLowerCase();
+    return lower.contains('typeerror') ||
+        lower.contains('jsobject') ||
+        lower.contains('javascriptobject') ||
+        lower.contains('minified:') ||
+        lower.contains('bad state') ||
+        lower.contains('stateerror') ||
+        lower.contains('instance of') ||
+        lower.contains('firebase_auth/') ||
+        lower.contains('exception:');
+  }
+
+  static AuthFailure map(Object error) {
+    if (error is AuthFailure) return error;
+    final code = error is FirebaseAuthException ? error.code.toLowerCase() : '';
+    final raw = error is FirebaseAuthException
+        ? '${error.code} ${error.message ?? ''}'
+        : '$error';
+    final lower = raw.toLowerCase();
+    final cancelled =
+        code == 'user-cancelled' ||
+        code == 'popup-closed-by-user' ||
+        code == 'web-context-cancelled' ||
+        code == 'cancelled' ||
+        code == 'canceled' ||
+        lower.contains('user-cancelled') ||
+        lower.contains('popup-closed') ||
+        lower.contains('idp denied access') ||
+        lower.contains('refuses to grant permission') ||
+        lower.contains('authorizationerrorcode.canceled') ||
+        (lower.contains('canceled') && !lower.contains('unauthorized')) ||
+        (lower.contains('cancelled') && !lower.contains('unauthorized'));
+    if (cancelled) {
+      return const AuthFailure('', cancelled: true);
+    }
+    if (lower.contains('unauthorized-domain')) {
+      return const AuthFailure(
+        'Diese Website ist für die Anmeldung noch nicht freigegeben.',
+      );
+    }
+    if (lower.contains('1000') ||
+        lower.contains('authorizationerrorcode.unknown') ||
+        lower.contains('authorizationerror')) {
+      return const AuthFailure(
+        'Apple-Anmeldung braucht eine vom App Store oder TestFlight '
+        'signierte Notis-Version.',
+      );
+    }
+    if (lower.contains('operation-not-allowed') ||
+        lower.contains('invalid-client') ||
+        lower.contains('unauthorized-client') ||
+        lower.contains('invalid-oauth-client-id') ||
+        lower.contains('oauth client was not found')) {
+      return const AuthFailure(
+        'Apple-Anmeldung im Browser ist in Firebase noch nicht eingetragen. '
+        'Unter Authentication → Apple die Services-ID und den '
+        'Sign-in-with-Apple-Schlüssel speichern.',
+      );
+    }
+    if (lower.contains('network') || lower.contains('unavailable')) {
+      return const AuthFailure(
+        'Keine Verbindung. Bitte Internet prüfen und nochmal versuchen.',
+      );
+    }
+    return const AuthFailure(
+      'Anmeldung hat nicht geklappt. Bitte nochmal versuchen.',
+    );
+  }
+}
+
 class AppAuthState {
   const AppAuthState({required this.firebaseAvailable, this.user, this.error});
 
@@ -36,7 +116,17 @@ class AuthRepository extends StateNotifier<AppAuthState> {
 
   void _requireFirebase() {
     if (!_bootstrap.available) {
-      throw StateError('Firebase ist noch nicht eingerichtet.');
+      throw const AuthFailure('Firebase ist noch nicht eingerichtet.');
+    }
+  }
+
+  /// Popup can succeed in Firebase while Dart fails to cast the JS result.
+  Future<void> _signInWithPopup(AuthProvider provider) async {
+    try {
+      await FirebaseAuth.instance.signInWithPopup(provider);
+    } catch (error) {
+      if (FirebaseAuth.instance.currentUser != null) return;
+      rethrow;
     }
   }
 
@@ -44,7 +134,7 @@ class AuthRepository extends StateNotifier<AppAuthState> {
     _requireFirebase();
     try {
       if (kIsWeb) {
-        await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+        await _signInWithPopup(GoogleAuthProvider());
       } else {
         await GoogleSignIn.instance.initialize();
         final account = await GoogleSignIn.instance.authenticate();
@@ -56,24 +146,31 @@ class AuthRepository extends StateNotifier<AppAuthState> {
       }
       await _ensureProfile();
     } catch (error) {
+      if (FirebaseAuth.instance.currentUser != null) {
+        await _ensureProfile();
+        return;
+      }
+      final failure = AuthFailure.map(error);
       state = AppAuthState(
         firebaseAvailable: true,
         user: FirebaseAuth.instance.currentUser,
-        error: '$error',
+        error: failure.cancelled ? null : failure.message,
       );
-      rethrow;
+      if (failure.cancelled) return;
+      throw failure;
     }
   }
 
   Future<void> signInWithApple() async {
     _requireFirebase();
     try {
-      if (!kIsWeb &&
-          (defaultTargetPlatform == TargetPlatform.iOS ||
-              defaultTargetPlatform == TargetPlatform.macOS)) {
-        final provider = AppleAuthProvider()
-          ..addScope('email')
-          ..addScope('name');
+      final provider = AppleAuthProvider()
+        ..addScope('email')
+        ..addScope('name');
+      if (kIsWeb) {
+        await _signInWithPopup(provider);
+      } else if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
         await FirebaseAuth.instance.signInWithProvider(provider);
       } else {
         final rawNonce = _nonce();
@@ -92,30 +189,19 @@ class AuthRepository extends StateNotifier<AppAuthState> {
       }
       await _ensureProfile();
     } catch (error) {
+      if (FirebaseAuth.instance.currentUser != null) {
+        await _ensureProfile();
+        return;
+      }
+      final failure = AuthFailure.map(error);
       state = AppAuthState(
         firebaseAvailable: true,
         user: FirebaseAuth.instance.currentUser,
-        error: _friendlyAppleError(error),
+        error: failure.cancelled ? null : failure.message,
       );
-      throw StateError(_friendlyAppleError(error));
+      if (failure.cancelled) return;
+      throw failure;
     }
-  }
-
-  String _friendlyAppleError(Object error) {
-    final raw = '$error';
-    final lower = raw.toLowerCase();
-    if (lower.contains('1000') ||
-        lower.contains('authorizationerrorcode.unknown') ||
-        lower.contains('authorizationerror')) {
-      return 'Apple-Anmeldung braucht eine vom App Store oder TestFlight '
-          'signierte Notis-Version. Sideload ohne gültiges Provisioning '
-          'scheitert mit Fehler 1000. Auf dem Gerät muss ein Apple-Konto '
-          'angemeldet sein, und in Firebase muss der Apple-Anbieter aktiv sein.';
-    }
-    if (lower.contains('canceled') || lower.contains('cancelled')) {
-      return 'Apple-Anmeldung abgebrochen.';
-    }
-    return raw;
   }
 
   Future<void> signOut() async {

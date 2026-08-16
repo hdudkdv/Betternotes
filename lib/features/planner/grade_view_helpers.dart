@@ -1,9 +1,7 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../../shared/widgets/local_file_image.dart';
 import 'school_year.dart';
 
 /// WiSe / SoSe options for a school year, plus any extras already used.
@@ -27,23 +25,10 @@ List<String> semesterChoicesFor(
 const ectsChoices = <int>[1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 20];
 
 Widget gradeScanThumbnail(String path, {double size = 88}) {
-  if (kIsWeb) {
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppTheme.paperDeep,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Icon(Icons.image_outlined),
-    );
-  }
-  final file = File(path);
   return ClipRRect(
     borderRadius: BorderRadius.circular(12),
-    child: Image.file(
-      file,
+    child: LocalFileImage(
+      path,
       width: size,
       height: size,
       fit: BoxFit.cover,

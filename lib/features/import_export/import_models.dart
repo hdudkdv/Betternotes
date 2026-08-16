@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:path/path.dart' as p;
 
 /// A file staged in the app inbox awaiting import into a notebook.
@@ -6,11 +8,13 @@ class InboxFile {
     required this.path,
     required this.name,
     this.mimeType,
+    this.bytes,
   });
 
   final String path;
   final String name;
   final String? mimeType;
+  final Uint8List? bytes;
 
   String get extension {
     final ext = p.extension(name).toLowerCase();

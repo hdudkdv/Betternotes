@@ -21,6 +21,7 @@ import '../library/providers/library_providers.dart';
 import '../onboarding/app_tour.dart';
 import '../planner/education_settings.dart';
 import '../planner/planner_model.dart';
+import '../sync/cloud_session.dart';
 import '../sync/sync_engine.dart';
 import '../timetable/timetable_model.dart';
 
@@ -87,18 +88,15 @@ class SettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     Future<void> Function() signIn,
   ) async {
-    final l10n = AppLocalizations.of(context)!;
     try {
-      await signIn();
-      await ref.read(syncEngineProvider).bootstrapCloud();
-      ref.invalidate(plannerProvider);
-      ref.invalidate(timetableProvider);
-      ref.invalidate(entitlementProvider);
+      await signInAndLoadCloud(ref, signIn);
     } catch (error) {
       if (!context.mounted) return;
+      final failure = error is AuthFailure ? error : AuthFailure.map(error);
+      if (failure.cancelled) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(l10n.cloudSyncError('$error'))));
+      ).showSnackBar(SnackBar(content: Text(failure.message)));
     }
   }
 

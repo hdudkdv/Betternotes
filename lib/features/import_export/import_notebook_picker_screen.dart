@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import '../../app/theme.dart';
 import '../../data/models/notebook.dart';
 import '../../l10n/app_localizations.dart';
 import '../library/providers/library_providers.dart';
+import '../sync/sync_engine.dart';
 import 'import_export_providers.dart';
 import 'import_models.dart';
 
@@ -37,13 +39,23 @@ class _ImportNotebookPickerScreenState
   Future<void> _pickMoreFiles() async {
     final result = await FilePicker.pickFiles(
       allowMultiple: true,
-      withData: false,
+      withData: true,
       type: FileType.any,
     );
     if (result == null || result.files.isEmpty) return;
     final inbox = ref.read(inboxServiceProvider);
     final staged = <InboxFile>[];
     for (final f in result.files) {
+      final bytes = f.bytes;
+      if (bytes != null) {
+        staged.add(
+          await inbox.stageBytes(
+            bytes: bytes,
+            name: f.name,
+          ),
+        );
+        continue;
+      }
       final path = f.path;
       if (path == null) continue;
       staged.add(
@@ -71,6 +83,9 @@ class _ImportNotebookPickerScreenState
           notebookId: notebook.id,
           file: file,
         );
+      }
+      if (kIsWeb) {
+        await ref.read(syncEngineProvider).flush(force: true);
       }
       if (!mounted) return;
       final pageId = last?.firstPageId;

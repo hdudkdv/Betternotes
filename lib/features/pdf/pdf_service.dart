@@ -80,16 +80,12 @@ class PdfService {
               'bytes': rgba,
             });
 
-            if (kIsWeb) {
-              imagePath = 'memory:${base64Encode(encoded)}';
-            } else {
-              final outPath = p.join(
-                filesDir,
-                '${notebookId}_pdf_${stamp}_${i + 1}.jpg',
-              );
-              await _files.writeBytes(outPath, encoded);
-              imagePath = outPath;
-            }
+            final outPath = p.join(
+              filesDir,
+              '${notebookId}_pdf_${stamp}_${i + 1}.jpg',
+            );
+            await _files.writeBytes(outPath, encoded);
+            imagePath = outPath;
           }
         } catch (_) {
           // Keep importing remaining pages.
@@ -308,10 +304,8 @@ class PdfService {
       late Uint8List bytes;
       if (path.startsWith('memory:')) {
         bytes = base64Decode(path.substring(7));
-      } else if (!kIsWeb) {
-        bytes = await _files.readBytes(path);
       } else {
-        return null;
+        bytes = await _files.readBytes(path);
       }
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();

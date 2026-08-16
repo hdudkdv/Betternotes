@@ -3,7 +3,7 @@
     {
       "site": "notis-notizbuecher",
       "public": "hosting",
-      "cleanUrls": true,
+      "cleanUrls": false,
       "trailingSlash": false,
       "ignore": [
         "firebase.json",
@@ -15,9 +15,52 @@
         { "source": "/terms", "destination": "/agb", "type": 301 },
         { "source": "/legal-notice", "destination": "/impressum", "type": 301 }
       ],
+      "rewrites": [
+        { "source": "/datenschutz", "destination": "/datenschutz.html" },
+        { "source": "/agb", "destination": "/agb.html" },
+        { "source": "/impressum", "destination": "/impressum.html" },
+        { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
+        { "source": "/app/**", "destination": "/app/index.html" }
+      ],
       "headers": [
         {
-          "source": "**/*.@(js|css|png|svg|ico|webp)",
+          "source": "/app/index.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/flutter_service_worker.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/flutter.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/flutter_bootstrap.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/main.dart.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/manifest.json",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "**/*.@(css|png|svg|ico|webp|wasm)",
           "headers": [
             {
               "key": "Cache-Control",
@@ -30,7 +73,7 @@
     {
       "site": "notis-2dee0",
       "public": "hosting",
-      "cleanUrls": true,
+      "cleanUrls": false,
       "trailingSlash": false,
       "ignore": [
         "firebase.json",
@@ -38,16 +81,15 @@
         "**/node_modules/**"
       ],
       "redirects": [
-        {
-          "source": "/",
-          "destination": "https://notis-notizbuecher.web.app",
-          "type": 301
-        },
-        {
-          "source": "/:path*",
-          "destination": "https://notis-notizbuecher.web.app/:path",
-          "type": 301
-        }
+        { "source": "/privacy", "destination": "/datenschutz", "type": 301 },
+        { "source": "/terms", "destination": "/agb", "type": 301 },
+        { "source": "/legal-notice", "destination": "/impressum", "type": 301 }
+      ],
+      "rewrites": [
+        { "source": "/datenschutz", "destination": "/datenschutz.html" },
+        { "source": "/agb", "destination": "/agb.html" },
+        { "source": "/impressum", "destination": "/impressum.html" },
+        { "source": "/app/**", "destination": "/app/index.html" }
       ]
     }
   ],
@@ -72,7 +114,7 @@
           "configurations": {
             "android": "1:471441564519:android:8f6f81842723b83c6305c2",
             "ios": "1:471441564519:ios:5255a010c86d17696305c2",
-            "web": "1:786794204952:web:077a37bbdc9c7cc8c3d86d"
+            "web": "1:471441564519:web:d10cb07fedecc4fa6305c2"
           }
         }
       }

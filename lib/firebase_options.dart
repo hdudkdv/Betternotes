@@ -47,14 +47,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDJDxJXszMZS_PmkG6Baja7RC8FEIADd8o',
-    appId: '1:786794204952:web:077a37bbdc9c7cc8c3d86d',
-    messagingSenderId: '786794204952',
-    projectId: 'notizenapp-82537',
-    authDomain: 'notizenapp-82537.firebaseapp.com',
-    databaseURL:
-        'https://notizenapp-82537-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'notizenapp-82537.firebasestorage.app',
+    apiKey: 'AIzaSyD_m99wiatNfAR4jGKAlKDBv-wrKCl0IOM',
+    appId: '1:471441564519:web:d10cb07fedecc4fa6305c2',
+    messagingSenderId: '471441564519',
+    projectId: 'notis-2dee0',
+    authDomain: 'notis-notizbuecher.web.app',
+    storageBucket: 'notis-2dee0.firebasestorage.app',
+    measurementId: 'G-VV7FTHBJ66',
   );
 
   static const FirebaseOptions android = FirebaseOptions(

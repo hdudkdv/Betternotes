@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +18,7 @@ import '../../onboarding/app_tour.dart';
 import '../../planner/planner_screen.dart';
 import '../../planner/school_year_rollover.dart';
 import '../../lan_sync/lan_sync_controller.dart';
+import '../../sync/web_cloud_bar.dart';
 import '../../timetable/timetable_screen.dart';
 import '../providers/library_providers.dart';
 import 'widgets/library_create_dialogs.dart';
@@ -607,6 +609,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (kIsWeb) const WebCloudBar(),
                     TextField(
                       key: _searchFieldKey,
                       controller: _searchController,

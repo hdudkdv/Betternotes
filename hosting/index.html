@@ -3,23 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Notis — Notizen für Schule und Studium</title>
-  <meta name="description" content="Notis ist die tablet-first Notiz-App für Schule und Studium. Handschrift, Stundenplan, Karteikarten und Marketplace.">
+  <title>Notis — Notiz-App für Schule und Studium</title>
+  <meta name="application-name" content="Notis">
+  <meta name="apple-mobile-web-app-title" content="Notis">
+  <meta name="description" content="Notis ist eine App für handschriftliche Notizbücher in Schule und Studium. Schreiben, Stundenplan, Noten und Karteikarten — offline zuerst, optional mit Cloud-Konto.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Notis">
+  <meta property="og:title" content="Notis">
+  <meta property="og:description" content="Notis is a notes app for school and university. Handwritten notebooks, timetable, grades and flashcards.">
+  <meta property="og:url" content="https://notis-2dee0.firebaseapp.com/">
+  <meta property="og:image" content="https://notis-2dee0.firebaseapp.com/img/app_icon.png">
+  <link rel="canonical" href="https://notis-2dee0.firebaseapp.com/">
   <link rel="icon" type="image/png" href="/img/app_icon.png">
   <link rel="apple-touch-icon" href="/img/app_icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Notis",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Android, iOS, Web",
+    "url": "https://notis-2dee0.firebaseapp.com/",
+    "image": "https://notis-2dee0.firebaseapp.com/img/app_icon.png",
+    "description": "Notis is a notebook app for school and university: handwritten notes, timetable, grades and flashcards. Offline first, with optional cloud sign-in.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+    "publisher": { "@type": "Organization", "name": "Notis" }
+  }
+  </script>
 </head>
 <body>
   <div class="wrap">
     <header class="top">
       <a class="brand" href="/">
-        <img src="/img/app_icon.png" alt="Notis">
+        <img src="/img/app_icon.png" alt="Notis App-Icon">
         <strong>Notis</strong>
       </a>
       <nav class="nav">
+        <a href="/app/">Web-App</a>
         <a href="/datenschutz">Datenschutz</a>
         <a href="/agb">AGB</a>
         <a href="/impressum">Impressum</a>
@@ -32,37 +56,61 @@
 
     <section class="hero">
       <div>
-        <p class="kicker" data-lang="de">Für Schule und Studium</p>
-        <p class="kicker" data-lang="en" hidden>For school and university</p>
-        <h1 data-lang="de">Notizen, die sich wie Papier anfühlen.</h1>
-        <h1 data-lang="en" hidden>Notes that still feel like paper.</h1>
-        <p data-lang="de">Notis ist die tablet-first App für handschriftliche Hefte, Stundenplan, Noten und Karteikarten. Offline zuerst, optional mit Cloud, Abos und belohnten Anzeigen.</p>
-        <p data-lang="en" hidden>Notis is a tablet-first app for handwritten notebooks, timetables, grades and flashcards. Offline first, with optional cloud, subscriptions and rewarded ads.</p>
+        <p class="kicker" data-lang="de">Die App Notis</p>
+        <p class="kicker" data-lang="en" hidden>The Notis app</p>
+        <h1>Notis</h1>
+        <p><strong>App name: Notis</strong></p>
+        <p><strong>Notis</strong> ist eine Notiz-App für Schule und Studium. Du führst handschriftliche Notizbücher, importierst PDFs, planst den Stundenplan, trägst Noten ein und lernst mit Karteikarten — zuerst lokal auf dem Gerät, optional mit Cloud-Konto.</p>
+        <p><strong>Notis</strong> is a notes app for school and university. Keep handwritten notebooks, import PDFs, plan your timetable, record grades and study with flashcards. Offline first; optional Google or Apple sign-in for cloud notebooks.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/app/">
+            <span data-lang="de">Notis im Browser öffnen</span>
+            <span data-lang="en" hidden>Open Notis in the browser</span>
+          </a>
+          <a class="btn btn-ghost" href="/app/">
+            <span data-lang="de">Mit Google oder Apple anmelden</span>
+            <span data-lang="en" hidden>Sign in with Google or Apple</span>
+          </a>
+        </div>
       </div>
       <div class="hero-card">
         <img src="/img/app_icon.png" alt="Notis Logo">
-        <p class="kicker">iOS · Android</p>
+        <p class="kicker">Notis · iOS · Android · Web</p>
+        <p data-lang="de">Dieselbe App, dasselbe Konto.</p>
+        <p data-lang="en" hidden>The same app, the same account.</p>
       </div>
+    </section>
+
+    <section class="purpose">
+      <h2>What is Notis for? / Wozu dient Notis?</h2>
+      <p>Notis replaces paper notebooks at school and university. Notes stay on your device first. Optional Google or Apple sign-in syncs cloud notebooks across devices and the browser.</p>
+      <p>Notis ersetzt Papierhefte im Unterricht und im Studium. Die App speichert deine Notizen primär auf dem Gerät. Optional meldest du dich mit Google oder Apple an, damit Notis Cloud-Notizbücher zwischen Geräten und dem Browser abgleicht.</p>
+      <ul>
+        <li><strong>Notis handwriting / Handschrift:</strong> create pages, write with a stylus, import PDFs.</li>
+        <li><strong>Notis school / Schule:</strong> timetable, grades and dates.</li>
+        <li><strong>Notis study / Lernen:</strong> flashcards from your notes.</li>
+        <li><strong>Notis account (optional):</strong> Google or Apple sign-in only for cloud sync, not for advertising your notes.</li>
+      </ul>
     </section>
 
     <section class="grid">
       <article class="card">
-        <h2 data-lang="de">Handschrift</h2>
-        <h2 data-lang="en" hidden>Handwriting</h2>
-        <p data-lang="de">Seiten umblättern, PDFs importieren, mit Stift schreiben — so, wie in einem echten Heft.</p>
-        <p data-lang="en" hidden>Flip pages, import PDFs and write with a stylus, like a real notebook.</p>
+        <h2 data-lang="de">Offline zuerst</h2>
+        <h2 data-lang="en" hidden>Offline first</h2>
+        <p data-lang="de">Ohne Anmeldung bleiben Notizbücher auf diesem Gerät. Cloud ist freiwillig.</p>
+        <p data-lang="en" hidden>Without signing in, notebooks stay on this device. Cloud is optional.</p>
       </article>
       <article class="card">
-        <h2 data-lang="de">Schule</h2>
-        <h2 data-lang="en" hidden>School</h2>
-        <p data-lang="de">Stundenplan, Noten und Planner bleiben auf dem Gerät, bis du Sync bewusst einschaltest.</p>
-        <p data-lang="en" hidden>Timetable, grades and planner stay on-device until you choose to sync.</p>
+        <h2 data-lang="de">Web, Tablet, Handy</h2>
+        <h2 data-lang="en" hidden>Web, tablet, phone</h2>
+        <p data-lang="de">Notis läuft im Browser und als App für iOS und Android.</p>
+        <p data-lang="en" hidden>Notis runs in the browser and as an iOS and Android app.</p>
       </article>
       <article class="card">
-        <h2 data-lang="de">Marketplace</h2>
-        <h2 data-lang="en" hidden>Marketplace</h2>
-        <p data-lang="de">Coins durch belohnte Werbung, optionale Pläne für Schüler und Lehrer.</p>
-        <p data-lang="en" hidden>Earn coins from rewarded ads, with optional student and teacher plans.</p>
+        <h2 data-lang="de">Rechtliches</h2>
+        <h2 data-lang="en" hidden>Legal</h2>
+        <p data-lang="de"><a href="/datenschutz">Datenschutzerklärung</a>, <a href="/agb">Nutzungsbedingungen</a> und <a href="/impressum">Impressum</a>.</p>
+        <p data-lang="en" hidden><a href="/datenschutz">Privacy policy</a>, <a href="/agb">terms</a> and <a href="/impressum">legal notice</a>.</p>
       </article>
     </section>
 

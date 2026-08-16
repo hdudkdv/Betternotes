@@ -76,6 +76,9 @@ abstract class NotebookRepository {
 
   Future<String> resolveFilesDir();
 
+  /// Drops local notebooks/pages so a web session can be replaced from cloud.
+  Future<void> clearLocalNotebooksForCloudReload() async {}
+
   // Outline
   Future<List<OutlineNode>> getOutline(String notebookId);
   Future<void> saveOutline(String notebookId, List<OutlineNode> nodes);

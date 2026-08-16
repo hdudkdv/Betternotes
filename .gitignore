@@ -46,3 +46,6 @@ app.*.map.json
 
 # Firebase Hosting cache
 .firebase/
+
+# Built Flutter web app copied into the marketing site before deploy
+/hosting/app/

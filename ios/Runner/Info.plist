@@ -258,6 +258,8 @@
 			<string>3qcr597p9d.skadnetwork</string>
 		</dict>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Notis importiert geteilte Fotos in Notizbücher.</string>
 	<key>NSCameraUsageDescription</key>

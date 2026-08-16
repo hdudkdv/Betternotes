@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
+import 'app/url_strategy.dart';
 import 'data/local/local_database.dart';
 import 'features/entitlements/rewarded_ad_service.dart';
 import 'features/library/providers/library_providers.dart';
@@ -13,6 +14,7 @@ import 'features/sync/firebase_bootstrap.dart';
 import 'startup_error_log.dart';
 
 Future<void> main() async {
+  configureUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
 
   // Show UI immediately so startup failures are visible instead of a white crash.

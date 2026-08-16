@@ -1,18 +1,16 @@
-import 'package:purchases_flutter/purchases_flutter.dart';
-
 enum PaywallResult { notPresented, cancelled, error, purchased, restored }
 
-Future<PaywallResult> presentRevenueCatPaywall({Offering? offering}) async {
+Future<PaywallResult> presentRevenueCatPaywall({Object? offering}) async {
   return PaywallResult.notPresented;
 }
 
 Future<PaywallResult> presentRevenueCatPaywallIfNeeded({
   required String entitlementId,
-  Offering? offering,
+  Object? offering,
 }) async {
   return PaywallResult.notPresented;
 }
 
 Future<void> presentRevenueCatCustomerCenter({
-  void Function(CustomerInfo info)? onRestoreCompleted,
+  void Function(Object info)? onRestoreCompleted,
 }) async {}

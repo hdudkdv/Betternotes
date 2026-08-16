@@ -1810,9 +1810,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Offline-first: without signing in, data stays on this device.';
 
   @override
-  String cloudSyncError(String message) {
-    return 'Sign-in failed: $message';
-  }
+  String get cloudSyncError => 'Sign-in did not work. Please try again.';
 
   @override
   String get developerTools => 'Developer tools';
@@ -3206,4 +3204,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assignmentPoolUnlocked =>
       'Exchange is unlocked. Other teachers\' public items appear once cloud sync is connected.';
+
+  @override
+  String get webOpenApp => 'Open notebooks';
+
+  @override
+  String get webCloudSignInTitle =>
+      'Open your secured notebooks in the browser';
+
+  @override
+  String get webCloudSignInBody =>
+      'Sign in with the same Google account as in the app. Notis then loads the current cloud notebooks — not a stale browser copy.';
+
+  @override
+  String get webCloudSignedIn => 'Cloud connected';
+
+  @override
+  String webCloudSignedInBody(String email) {
+    return 'Signed in as $email. “Refresh” pulls the latest notebooks from the cloud.';
+  }
+
+  @override
+  String get webReloadFromCloud => 'Refresh';
+
+  @override
+  String get webUploadFiles => 'Upload files';
+
+  @override
+  String get webCloudUpdated => 'Latest cloud notebooks loaded.';
+
+  @override
+  String get webAudioUnavailable =>
+      'Audio recordings are not available in the browser. Please use the tablet app.';
+
+  @override
+  String get webLoginHeadline => 'Sign in with your account';
+
+  @override
+  String get webLoginBody =>
+      'Google or Apple — the same account as in the app. Notis then loads your current cloud notebooks.';
 }

@@ -1,31 +1,25 @@
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../data/repositories/notebook_repository.dart';
+import '../../shared/utils/file_store.dart';
 import 'import_models.dart';
 
 class InboxService {
   InboxService(this._repository);
 
   final NotebookRepository _repository;
+  final FileStore _files = createFileStore();
   static const _uuid = Uuid();
 
   Future<String> _inboxDir() async {
-    final root = await _repository.resolveFilesDir();
-    final dir = Directory(p.join(root, 'inbox'));
-    if (!await dir.exists()) await dir.create(recursive: true);
-    return dir.path;
+    return p.join(await _repository.resolveFilesDir(), 'inbox');
   }
 
   Future<String> _attachmentsDir() async {
-    final root = await _repository.resolveFilesDir();
-    final dir = Directory(p.join(root, 'attachments'));
-    if (!await dir.exists()) await dir.create(recursive: true);
-    return dir.path;
+    return p.join(await _repository.resolveFilesDir(), 'attachments');
   }
 
   Future<InboxFile> stageBytes({
@@ -33,13 +27,10 @@ class InboxService {
     required String name,
     String? mimeType,
   }) async {
-    if (kIsWeb) {
-      throw UnsupportedError('Inbox staging is not available on web');
-    }
     final safe = _safeName(name);
     final out = p.join(await _inboxDir(), '${_uuid.v4()}_$safe');
-    await File(out).writeAsBytes(bytes);
-    return InboxFile(path: out, name: safe, mimeType: mimeType);
+    await _files.writeBytes(out, bytes);
+    return InboxFile(path: out, name: safe, mimeType: mimeType, bytes: bytes);
   }
 
   Future<InboxFile> stagePath({
@@ -47,11 +38,7 @@ class InboxService {
     String? name,
     String? mimeType,
   }) async {
-    if (kIsWeb) {
-      throw UnsupportedError('Inbox staging is not available on web');
-    }
-    final source = File(sourcePath);
-    final bytes = await source.readAsBytes();
+    final bytes = await _files.readBytes(sourcePath);
     return stageBytes(
       bytes: bytes,
       name: name ?? p.basename(sourcePath),
@@ -65,7 +52,7 @@ class InboxService {
   }) async {
     final safe = _safeName(name);
     final out = p.join(await _attachmentsDir(), '${_uuid.v4()}_$safe');
-    await File(out).writeAsBytes(bytes);
+    await _files.writeBytes(out, bytes);
     return out;
   }
 

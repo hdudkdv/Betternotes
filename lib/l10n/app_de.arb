@@ -773,12 +773,7 @@
   "signInApple": "Mit Apple anmelden",
   "signOut": "Abmelden",
   "cloudSyncOffline": "Offline-first: Ohne Anmeldung bleiben Daten nur auf diesem Gerät.",
-  "cloudSyncError": "Anmeldung fehlgeschlagen: {message}",
-  "@cloudSyncError": {
-    "placeholders": {
-      "message": {"type": "String"}
-    }
-  },
+  "cloudSyncError": "Anmeldung hat nicht geklappt. Bitte nochmal versuchen.",
   "developerTools": "Entwicklungswerkzeuge",
   "developerTierHint": "Nur für lokale Tests – ersetzt keinen Store-Kauf.",
   "editSupportDetails": "Unterstützungsdaten bearbeiten",
@@ -1306,5 +1301,21 @@
   "assignmentCorrection": "Korrektur an das Gerät senden",
   "assignmentLeaveSignals": "Verlassen / Fokus verloren",
   "assignmentPoolLocked": "Tauschbörse: Teile einmal öffentlich, um andere öffentliche Aufgaben zu sehen.",
-  "assignmentPoolUnlocked": "Tauschbörse ist offen. Öffentliche Einträge anderer Lehrer erscheinen, sobald die Cloud verbunden ist."
+  "assignmentPoolUnlocked": "Tauschbörse ist offen. Öffentliche Einträge anderer Lehrer erscheinen, sobald die Cloud verbunden ist.",
+  "webOpenApp": "Notizbücher öffnen",
+  "webCloudSignInTitle": "Gesicherte Notizbücher im Browser",
+  "webCloudSignInBody": "Mit demselben Google-Konto anmelden wie in der App. Danach lädt Notis die aktuellen Cloud-Hefte — nicht eine alte Browser-Kopie.",
+  "webCloudSignedIn": "Cloud verbunden",
+  "webCloudSignedInBody": "Angemeldet als {email}. „Aktualisieren“ holt den neuesten Stand aus der Cloud.",
+  "@webCloudSignedInBody": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "webReloadFromCloud": "Aktualisieren",
+  "webUploadFiles": "Dateien hochladen",
+  "webCloudUpdated": "Aktuelle Cloud-Daten geladen.",
+  "webAudioUnavailable": "Audio-Aufnahmen sind im Browser nicht verfügbar. Bitte die App auf dem Tablet nutzen.",
+  "webLoginHeadline": "Mit deinem Konto anmelden",
+  "webLoginBody": "Google oder Apple — dasselbe Konto wie in der App. Danach lädt Notis deine aktuellen Cloud-Notizbücher."
 }

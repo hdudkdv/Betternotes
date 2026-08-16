@@ -1,10 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../data/models/content_models.dart';
@@ -129,15 +126,12 @@ class CsvService {
   }
 
   Future<void> shareCsv(String csv, String filename) async {
-    if (kIsWeb) {
-      throw UnsupportedError('CSV share on web not supported');
-    }
-    final dir = await getTemporaryDirectory();
-    final file = File(p.join(dir.path, filename));
-    await file.writeAsString(csv, encoding: utf8);
+    final bytes = Uint8List.fromList(utf8.encode(csv));
     await SharePlus.instance.share(
       ShareParams(
-        files: [XFile(file.path, mimeType: 'text/csv', name: filename)],
+        files: [
+          XFile.fromData(bytes, mimeType: 'text/csv', name: filename),
+        ],
       ),
     );
   }
@@ -151,9 +145,7 @@ class CsvService {
     if (result == null || result.files.isEmpty) return null;
     final bytes = result.files.first.bytes;
     if (bytes != null) return utf8.decode(bytes);
-    final path = result.files.first.path;
-    if (path == null || kIsWeb) return null;
-    return File(path).readAsString();
+    return null;
   }
 
   Future<int> importFlashcardsToDeck({

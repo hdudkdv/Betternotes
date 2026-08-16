@@ -1,28 +1,27 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/content_models.dart';
 import '../../data/models/notebook.dart';
 import '../../data/repositories/notebook_repository.dart';
+import '../../shared/utils/file_store.dart';
+import 'backup_files.dart';
 
 class BackupService {
   BackupService(this._repository);
 
   final NotebookRepository _repository;
+  final FileStore _files = createFileStore();
 
   static const manifestVersion = 1;
 
-  Future<File> buildBackupZip({SharedPreferences? prefs}) async {
-    if (kIsWeb) throw UnsupportedError('Backup not available on web');
+  Future<Uint8List> buildBackupZipBytes({SharedPreferences? prefs}) async {
 
     final notebooks = await _repository.getNotebooks();
     final decks = await _repository.getAllFlashcardDecks();
@@ -88,37 +87,31 @@ class BackupService {
     );
 
     final filesDir = await _repository.resolveFilesDir();
-    final root = Directory(filesDir);
-    if (await root.exists()) {
-      await for (final entity in root.list(recursive: true, followLinks: false)) {
-        if (entity is! File) continue;
-        final rel = p.relative(entity.path, from: filesDir).replaceAll('\\', '/');
-        if (rel.startsWith('inbox/')) continue;
-        final bytes = await entity.readAsBytes();
-        archive.addFile(
-          ArchiveFile('files/$rel', bytes.length, bytes),
-        );
-      }
+    for (final entry in await listBackupFiles(filesDir)) {
+      archive.addFile(
+        ArchiveFile('files/${entry.rel}', entry.bytes.length, entry.bytes),
+      );
     }
 
     final encoded = ZipEncoder().encode(archive);
-    final dir = await getTemporaryDirectory();
+    return Uint8List.fromList(encoded);
+  }
+
+  Future<void> shareBackup({SharedPreferences? prefs}) async {
+    final bytes = await buildBackupZipBytes(prefs: prefs);
     final stamp = DateTime.now()
         .toIso8601String()
         .replaceAll(':', '-')
         .split('.')
         .first;
-    final out = File(p.join(dir.path, 'betternotes_backup_$stamp.zip'));
-    await out.writeAsBytes(Uint8List.fromList(encoded), flush: true);
-    return out;
-  }
-
-  Future<void> shareBackup({SharedPreferences? prefs}) async {
-    final file = await buildBackupZip(prefs: prefs);
     await SharePlus.instance.share(
       ShareParams(
         files: [
-          XFile(file.path, mimeType: 'application/zip', name: p.basename(file.path)),
+          XFile.fromData(
+            bytes,
+            mimeType: 'application/zip',
+            name: 'betternotes_backup_$stamp.zip',
+          ),
         ],
       ),
     );
@@ -128,7 +121,6 @@ class BackupService {
     required SharedPreferences prefs,
     required bool merge,
   }) async {
-    if (kIsWeb) throw UnsupportedError('Restore not available on web');
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['zip'],
@@ -168,9 +160,10 @@ class BackupService {
       final idx = name.indexOf('files/');
       final rel = name.substring(idx + 'files/'.length);
       if (rel.isEmpty) continue;
-      final out = File(p.join(filesDir, rel));
-      await out.parent.create(recursive: true);
-      await out.writeAsBytes(Uint8List.fromList(entry.content as List<int>));
+      await _files.writeBytes(
+        p.join(filesDir, rel),
+        Uint8List.fromList(entry.content as List<int>),
+      );
     }
 
     if (!merge) {

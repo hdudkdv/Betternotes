@@ -3431,8 +3431,8 @@ abstract class AppLocalizations {
   /// No description provided for @cloudSyncError.
   ///
   /// In en, this message translates to:
-  /// **'Sign-in failed: {message}'**
-  String cloudSyncError(String message);
+  /// **'Sign-in did not work. Please try again.'**
+  String get cloudSyncError;
 
   /// No description provided for @developerTools.
   ///
@@ -4127,7 +4127,7 @@ abstract class AppLocalizations {
   /// No description provided for @importAddFilesHint.
   ///
   /// In en, this message translates to:
-  /// **'Pick PDF, images, Office, GoodNotes, or ZIP files'**
+  /// **'Pick PDF, images, Office, Google Docs, HTML, RTF, EPUB, Pages, or ZIP files'**
   String get importAddFilesHint;
 
   /// No description provided for @importNoFilesYet.
@@ -5929,6 +5929,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exchange is unlocked. Other teachers\' public items appear once cloud sync is connected.'**
   String get assignmentPoolUnlocked;
+
+  /// No description provided for @webOpenApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open notebooks'**
+  String get webOpenApp;
+
+  /// No description provided for @webCloudSignInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open your secured notebooks in the browser'**
+  String get webCloudSignInTitle;
+
+  /// No description provided for @webCloudSignInBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with the same Google account as in the app. Notis then loads the current cloud notebooks — not a stale browser copy.'**
+  String get webCloudSignInBody;
+
+  /// No description provided for @webCloudSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud connected'**
+  String get webCloudSignedIn;
+
+  /// No description provided for @webCloudSignedInBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {email}. “Refresh” pulls the latest notebooks from the cloud.'**
+  String webCloudSignedInBody(String email);
+
+  /// No description provided for @webReloadFromCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get webReloadFromCloud;
+
+  /// No description provided for @webUploadFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload files'**
+  String get webUploadFiles;
+
+  /// No description provided for @webCloudUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest cloud notebooks loaded.'**
+  String get webCloudUpdated;
+
+  /// No description provided for @webAudioUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio recordings are not available in the browser. Please use the tablet app.'**
+  String get webAudioUnavailable;
+
+  /// No description provided for @webLoginHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your account'**
+  String get webLoginHeadline;
+
+  /// No description provided for @webLoginBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Google or Apple — the same account as in the app. Notis then loads your current cloud notebooks.'**
+  String get webLoginBody;
 }
 
 class _AppLocalizationsDelegate

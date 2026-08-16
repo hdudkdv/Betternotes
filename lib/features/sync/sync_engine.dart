@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -76,6 +77,11 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
     final created = const Uuid().v4();
     _preferences.setString(_deviceIdKey, created);
     return created;
+  }
+
+  String? _publicError(Object error) {
+    if (AuthFailure.map(error).cancelled) return null;
+    return 'Cloud-Sync hat nicht geklappt. Bitte nochmal versuchen.';
   }
 
   bool get _cloudAllowed => _transport?.cloudPremium == true;
@@ -181,7 +187,7 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
       errorMessage = null;
     } catch (e) {
       syncStatus = SyncStatus.paused;
-      errorMessage = '$e';
+      errorMessage = _publicError(e);
     } finally {
       syncing = false;
       pending = await _repo.pendingSyncCount();
@@ -189,15 +195,12 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Imports the cloud state and uploads the one-time local migration after
-  /// a successful Google/Apple sign-in.
-  Future<void> bootstrapCloud() async {
+  /// Imports the cloud state after a successful Google/Apple sign-in.
+  ///
+  /// On web, local IndexedDB/prefs notebooks are replaced so the browser does
+  /// not keep showing a stale copy. Writes still require [FeatureKeys.cloudSync].
+  Future<void> bootstrapCloud({bool replaceLocal = false}) async {
     if (!_firebaseAvailable || FirebaseAuth.instance.currentUser == null) {
-      return;
-    }
-    if (!_cloudAllowed) {
-      syncStatus = SyncStatus.cloudNotEntitled;
-      notifyListeners();
       return;
     }
     if (syncing) return;
@@ -210,21 +213,39 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
         preferences: _preferences,
       );
       await adapter.ensureProfile();
-      await adapter.pullRemoteChanges(full: true);
-      await adapter.syncAppState();
-      await adapter.pushLocalSnapshot();
-      final ops = await _repo.getPendingSyncOps();
-      for (final op in ops) {
-        await adapter.push(op);
-        await _repo.markSyncOpSynced(op.id);
+      await adapter.syncAppState(preferRemote: replaceLocal || kIsWeb);
+      final replace = replaceLocal || kIsWeb;
+      if (replace) {
+        await _repo.clearLocalNotebooksForCloudReload();
       }
-      await _repo.pruneSyncedOps();
+      await adapter.pullRemoteChanges(
+        full: true,
+        preferRemote: replace,
+      );
+      if (_cloudAllowed && !kIsWeb) {
+        await adapter.pushLocalSnapshot();
+        final ops = await _repo.getPendingSyncOps();
+        for (final op in ops) {
+          await adapter.push(op);
+          await _repo.markSyncOpSynced(op.id);
+        }
+        await _repo.pruneSyncedOps();
+      } else if (_cloudAllowed) {
+        final ops = await _repo.getPendingSyncOps();
+        for (final op in ops) {
+          await adapter.push(op);
+          await _repo.markSyncOpSynced(op.id);
+        }
+        await _repo.pruneSyncedOps();
+      }
       lastSyncAt = DateTime.now();
-      syncStatus = SyncStatus.synced;
+      syncStatus = _cloudAllowed
+          ? SyncStatus.synced
+          : SyncStatus.cloudNotEntitled;
       errorMessage = null;
     } catch (error) {
       syncStatus = SyncStatus.paused;
-      errorMessage = '$error';
+      errorMessage = _publicError(error);
     } finally {
       syncing = false;
       await _refresh();

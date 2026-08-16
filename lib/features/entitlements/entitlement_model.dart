@@ -156,6 +156,8 @@ class EntitlementNotifier extends StateNotifier<EntitlementState> {
   final SharedPreferences _prefs;
   static const _key = 'entitlementsV1';
 
+  void reloadFromPrefs() => _load();
+
   void _load() {
     try {
       final raw = _prefs.getString(_key);

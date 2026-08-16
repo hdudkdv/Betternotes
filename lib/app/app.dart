@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:collection/collection.dart';
 
 import '../features/auth/auth_repository.dart';
+import '../features/auth/web_login_screen.dart';
 import '../features/billing/revenuecat_billing.dart';
 import '../features/editor/presentation/editor_screen.dart';
 import '../features/entitlements/entitlement_model.dart';
@@ -26,6 +28,7 @@ import '../features/onboarding/profile_setup_screen.dart';
 import '../features/onboarding/role_onboarding_screen.dart';
 import '../features/search/global_search_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/sync/cloud_session.dart';
 import '../features/planner/planner_screen.dart';
 import '../features/teacher/catalog/assignment_page.dart';
 import '../features/teacher/catalog/assignment_results_page.dart';
@@ -49,11 +52,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
     (_, _) => refresh.bump(),
   );
+  ref.listen<bool>(
+    authProvider.select((auth) => auth.signedIn),
+    (_, _) => refresh.bump(),
+  );
   ref.onDispose(refresh.dispose);
 
   final initial = ref.read(settingsProvider);
+  final signedIn = ref.read(authProvider).signedIn;
   return GoRouter(
-    initialLocation: initial.userRole == null
+    initialLocation: kIsWeb && !signedIn
+        ? '/login'
+        : initial.userRole == null
         ? '/welcome'
         : (initial.profileSetupCompleted ? '/' : '/setup'),
     refreshListenable: refresh,
@@ -63,6 +73,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final loc = state.matchedLocation;
       final onWelcome = loc == '/welcome';
       final onSetup = loc == '/setup';
+      final onLogin = loc == '/login';
+      final onLegal = loc.startsWith('/legal');
+      if (kIsWeb && !ref.read(authProvider).signedIn) {
+        if (onLogin || onLegal) return null;
+        return '/login';
+      }
+      if (onLogin) {
+        if (role == null) return '/welcome';
+        if (!settings.profileSetupCompleted) return '/setup';
+        return '/';
+      }
       if (role == null && !onWelcome) return '/welcome';
       if (role != null && !settings.profileSetupCompleted && !onSetup) {
         return '/setup';
@@ -76,6 +97,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => const WebLoginScreen(),
+      ),
       GoRoute(
         path: '/welcome',
         name: 'welcome',
@@ -251,6 +277,9 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
         ref.read(appRouterProvider).go('/import');
       }
       await _startClassroomAutoConnect();
+      if (kIsWeb && ref.read(authProvider).signedIn) {
+        unawaited(loadCloudNotebooks(ref, replaceLocal: true));
+      }
     });
   }
 

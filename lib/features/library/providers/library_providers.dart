@@ -107,6 +107,75 @@ class AppSettings {
     this.threeFingerSwipeRightAction = EditorGestureAction.nextPage,
   });
 
+  factory AppSettings.fromPrefs(SharedPreferences prefs) {
+    return AppSettings(
+      fingerPanZoom: prefs.getBool('fingerPanZoomV2') ?? false,
+      defaultTemplate: PageTemplate.values.firstWhere(
+        (t) => t.name == (prefs.getString('defaultTemplate') ?? 'lined'),
+        orElse: () => PageTemplate.lined,
+      ),
+      localeCode: prefs.getString('localeCode') ?? 'system',
+      pageBrowseMode: PageBrowseMode.values.firstWhere(
+        (m) => m.name == (prefs.getString('pageBrowseMode') ?? ''),
+        orElse: () => PageBrowseMode.swipeHorizontal,
+      ),
+      educationLevel: EducationLevel.values.firstWhere(
+        (e) => e.name == (prefs.getString('educationLevel') ?? ''),
+        orElse: () => EducationLevel.sek1,
+      ),
+      germanState: GermanState.values.firstWhere(
+        (s) => s.name == (prefs.getString('germanState') ?? ''),
+        orElse: () => GermanState.nw,
+      ),
+      targetEcts: prefs.getInt('targetEcts') ?? 180,
+      abiCourseCount: prefs.getInt('abiCourseCount') ?? 40,
+      abiExamCount: prefs.getInt('abiExamCount') ?? 4,
+      look: AppLook.values.firstWhere(
+        (l) => l.name == (prefs.getString('appLook') ?? ''),
+        orElse: () => AppLook.studio,
+      ),
+      themeMode: ThemeMode.values.firstWhere(
+        (m) => m.name == (prefs.getString('themeMode') ?? ''),
+        orElse: () => ThemeMode.system,
+      ),
+      userRole: prefs.getString('userRole') == null
+          ? null
+          : AppUserRole.values.firstWhere(
+              (role) => role.name == prefs.getString('userRole'),
+              orElse: () => AppUserRole.student,
+            ),
+      teacherTrack: prefs.getString('teacherTrack') == null
+          ? null
+          : TeacherTrack.values.firstWhere(
+              (track) => track.name == prefs.getString('teacherTrack'),
+              orElse: () => TeacherTrack.qualified,
+            ),
+      profileSetupCompleted:
+          prefs.getBool('profileSetupCompleted') ??
+          prefs.getString('userRole') != null,
+      pencilDoubleTapAction: EditorGestureActionX.parse(
+        prefs.getString('gesturePencilDoubleTap'),
+        EditorGestureAction.toggleEraser,
+      ),
+      pencilSqueezeAction: EditorGestureActionX.parse(
+        prefs.getString('gesturePencilSqueeze'),
+        EditorGestureAction.openToolWheel,
+      ),
+      twoFingerTapAction: EditorGestureActionX.parse(
+        prefs.getString('gestureTwoFingerTap'),
+        EditorGestureAction.undo,
+      ),
+      threeFingerSwipeLeftAction: EditorGestureActionX.parse(
+        prefs.getString('gestureThreeFingerSwipeLeft'),
+        EditorGestureAction.previousPage,
+      ),
+      threeFingerSwipeRightAction: EditorGestureActionX.parse(
+        prefs.getString('gestureThreeFingerSwipeRight'),
+        EditorGestureAction.nextPage,
+      ),
+    );
+  }
+
   final bool fingerPanZoom;
   final PageTemplate defaultTemplate;
 
@@ -216,77 +285,13 @@ class AppSettings {
 }
 
 class SettingsNotifier extends StateNotifier<AppSettings> {
-  SettingsNotifier(this._prefs)
-    : super(
-        AppSettings(
-          fingerPanZoom: _prefs.getBool('fingerPanZoomV2') ?? false,
-          defaultTemplate: PageTemplate.values.firstWhere(
-            (t) => t.name == (_prefs.getString('defaultTemplate') ?? 'lined'),
-            orElse: () => PageTemplate.lined,
-          ),
-          localeCode: _prefs.getString('localeCode') ?? 'system',
-          pageBrowseMode: PageBrowseMode.values.firstWhere(
-            (m) => m.name == (_prefs.getString('pageBrowseMode') ?? ''),
-            orElse: () => PageBrowseMode.swipeHorizontal,
-          ),
-          educationLevel: EducationLevel.values.firstWhere(
-            (e) => e.name == (_prefs.getString('educationLevel') ?? ''),
-            orElse: () => EducationLevel.sek1,
-          ),
-          germanState: GermanState.values.firstWhere(
-            (s) => s.name == (_prefs.getString('germanState') ?? ''),
-            orElse: () => GermanState.nw,
-          ),
-          targetEcts: _prefs.getInt('targetEcts') ?? 180,
-          abiCourseCount: _prefs.getInt('abiCourseCount') ?? 40,
-          abiExamCount: _prefs.getInt('abiExamCount') ?? 4,
-          look: AppLook.values.firstWhere(
-            (l) => l.name == (_prefs.getString('appLook') ?? ''),
-            orElse: () => AppLook.studio,
-          ),
-          themeMode: ThemeMode.values.firstWhere(
-            (m) => m.name == (_prefs.getString('themeMode') ?? ''),
-            orElse: () => ThemeMode.system,
-          ),
-          userRole: _prefs.getString('userRole') == null
-              ? null
-              : AppUserRole.values.firstWhere(
-                  (role) => role.name == _prefs.getString('userRole'),
-                  orElse: () => AppUserRole.student,
-                ),
-          teacherTrack: _prefs.getString('teacherTrack') == null
-              ? null
-              : TeacherTrack.values.firstWhere(
-                  (track) => track.name == _prefs.getString('teacherTrack'),
-                  orElse: () => TeacherTrack.qualified,
-                ),
-          profileSetupCompleted:
-              _prefs.getBool('profileSetupCompleted') ??
-              _prefs.getString('userRole') != null,
-          pencilDoubleTapAction: EditorGestureActionX.parse(
-            _prefs.getString('gesturePencilDoubleTap'),
-            EditorGestureAction.toggleEraser,
-          ),
-          pencilSqueezeAction: EditorGestureActionX.parse(
-            _prefs.getString('gesturePencilSqueeze'),
-            EditorGestureAction.openToolWheel,
-          ),
-          twoFingerTapAction: EditorGestureActionX.parse(
-            _prefs.getString('gestureTwoFingerTap'),
-            EditorGestureAction.undo,
-          ),
-          threeFingerSwipeLeftAction: EditorGestureActionX.parse(
-            _prefs.getString('gestureThreeFingerSwipeLeft'),
-            EditorGestureAction.previousPage,
-          ),
-          threeFingerSwipeRightAction: EditorGestureActionX.parse(
-            _prefs.getString('gestureThreeFingerSwipeRight'),
-            EditorGestureAction.nextPage,
-          ),
-        ),
-      );
+  SettingsNotifier(this._prefs) : super(AppSettings.fromPrefs(_prefs));
 
   final SharedPreferences _prefs;
+
+  void reloadFromPrefs() {
+    state = AppSettings.fromPrefs(_prefs);
+  }
 
   Future<void> setFingerPanZoom(bool value) async {
     state = state.copyWith(fingerPanZoom: value);

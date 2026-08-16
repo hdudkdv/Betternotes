@@ -1,9 +1,7 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../data/models/content_models.dart';
+import '../../../../shared/widgets/local_file_image.dart';
 import '../editor_chrome.dart';
 
 class ImageElementsLayer extends StatelessWidget {
@@ -91,17 +89,8 @@ class ImageElementsLayer extends StatelessWidget {
   }
 
   Widget _buildImage(String path) {
-    if (kIsWeb) {
-      return Image.network(
-        path,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return const ColoredBox(color: Color(0xFFE0E0E0));
-        },
-      );
-    }
-    return Image.file(
-      File(path),
+    return LocalFileImage(
+      path,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         return const ColoredBox(color: Color(0xFFE0E0E0));

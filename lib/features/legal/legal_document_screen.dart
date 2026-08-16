@@ -54,17 +54,23 @@ Datenschutzerklärung – Notis
 Stand: Juli 2026
 
 1. Verantwortlicher
-Für die Verarbeitung personenbezogener Daten im Zusammenhang mit der App Notis ist der in der Impressum-Angabe genannte Anbieter verantwortlich. Kontaktdaten findest du unter „Impressum“.
+Marwin Maschke, Antonstraße 18, 01809 Dohna, Deutschland.
+E-Mail: valpulse.official@gmail.com
+Weitere Angaben unter „Impressum“.
 
 2. Welche Daten wir verarbeiten
 Notis ist offline-first. Ohne Anmeldung bleiben Notizbücher, Seiten, Zeitpläne, Noten und Karteikarten in der Regel nur lokal auf deinem Gerät.
 
 Optional und nur nach deiner Aktion können verarbeitet werden:
-• Konto- und Authentifizierungsdaten (z. B. Google- oder Apple-Anmeldung), wenn du dich anmeldest
+• Konto- und Authentifizierungsdaten (Google- oder Apple-Anmeldung), wenn du dich anmeldest
 • Cloud-Synchronisationsdaten (Notizbücher, Seiteninhalte, Einstellungsfragmente), wenn Sync aktiviert ist und ein Cloud-Dienst angebunden ist
 • Kauf- und Abo-Informationen über den jeweiligen Store/Payment-Anbieter (z. B. RevenueCat / Apple / Google)
 • Werbekennungen und Nutzungsdaten für belohnte Werbung (z. B. Google AdMob), sofern du Werbung nutzt und eingewilligt hast
 • Technische Diagnosedaten, die das Betriebssystem oder die Store-Plattform bereitstellt
+
+Google-Anmeldung: Wenn du dich mit Google anmeldest, erhalten wir von Google in der Regel Nutzer-ID, E-Mail-Adresse und ggf. Anzeigename. Wir nutzen das nur zur Anmeldung in Notis und zur Zuordnung optionaler Cloud-Notizbücher. Wir verkaufen diese Daten nicht. Die Anmeldung ist freiwillig.
+
+Apple-Anmeldung: Bei „Mit Apple anmelden“ erhalten wir eine Apple-Kennung und, falls erlaubt, Name oder E-Mail — ebenfalls nur für Anmeldung und Cloud-Zuordnung.
 
 Bei „Nahe Sync“ (WLAN/Hotspot) werden Notizbuchdaten direkt zwischen Geräten im lokalen Netz ausgetauscht. Dafür ist keine Anmeldung nötig; die Verbindung läuft über dein lokales Netzwerk.
 
@@ -114,17 +120,23 @@ Privacy Policy – Notis
 Last updated: July 2026
 
 1. Controller
-The provider named in the Legal notice (Impressum) is responsible for personal data processed in connection with Notis. Contact details are listed there.
+Marwin Maschke, Antonstraße 18, 01809 Dohna, Germany.
+Email: valpulse.official@gmail.com
+Further details are listed in the Legal notice (Impressum).
 
 2. What we process
 Notis is offline-first. Without signing in, notebooks, pages, planners, grades and flashcards usually stay only on your device.
 
 Optionally, and only after you choose to use a feature, we may process:
-• Account / authentication data (e.g. Google or Apple sign-in)
+• Account / authentication data (Google or Apple sign-in)
 • Cloud sync payloads (notebooks, page content, small settings blobs) when sync is enabled
 • Purchase / subscription data via the store / payment provider (e.g. RevenueCat / Apple / Google)
 • Ad identifiers and related data for rewarded ads (e.g. Google AdMob) if you use ads and consent where required
 • Technical diagnostics provided by the OS or store platforms
+
+Google sign-in: if you sign in with Google, we typically receive a user ID, email address and optional display name. We use this only to sign you in to Notis and to attach optional cloud notebooks. We do not sell this data. Sign-in is optional.
+
+Apple sign-in: with Sign in with Apple we receive an Apple identifier and, if you allow it, a name or email — also only for sign-in and cloud assignment.
 
 With Nearby Sync (Wi‑Fi / hotspot), notebook data is exchanged directly between devices on your local network. No account is required; traffic stays on the local network.
 
@@ -203,7 +215,7 @@ Wir können die AGB anpassen. Wesentliche Änderungen werden in der App oder auf
 Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des UN-Kaufrechts, sofern dem keine zwingenden Verbraucherschutzvorschriften am Wohnsitz entgegenstehen.
 
 11. Kontakt
-Siehe Impressum.
+Marwin Maschke, valpulse.official@gmail.com — siehe Impressum.
 ''';
 
 const _termsEn = '''
@@ -246,7 +258,7 @@ We may update these terms. Material changes will be communicated in the App or p
 German law applies, excluding CISG, unless mandatory consumer protections at your residence require otherwise.
 
 11. Contact
-See the Legal notice (Impressum).
+Marwin Maschke, valpulse.official@gmail.com — see the Legal notice (Impressum).
 ''';
 
 const _impressumDe = '''
@@ -255,21 +267,17 @@ Impressum
 Angaben gemäß § 5 TMG / § 18 MStV (soweit anwendbar)
 
 Notis
-[Vollständigen Namen / Firmennamen hier eintragen]
-[Straße und Hausnummer]
-[PLZ Ort]
+Marwin Maschke
+Antonstraße 18
+01809 Dohna
 Deutschland
 
 Kontakt
-E-Mail: [kontakt@example.com]
-[Optional: Telefon]
+E-Mail: valpulse.official@gmail.com
+Website: https://notis-notizbuecher.web.app
 
 Verantwortlich für den Inhalt
-[Name der verantwortlichen Person]
-[Anschrift, falls abweichend]
-
-Hinweis
-Bitte ersetze die Platzhalter vor einer öffentlichen Store-Veröffentlichung durch echte Anbieterdaten. Für rein private, nicht-gewerbliche Angebote können abweichende Pflichtangaben gelten – prüfe die aktuelle Rechtslage für deinen Fall.
+Marwin Maschke, Anschrift wie oben.
 
 Online-Streitbeilegung
 Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit: https://ec.europa.eu/consumers/odr/
@@ -282,21 +290,17 @@ Legal notice (Impressum)
 Information according to German Telemedia Act / applicable media law
 
 Notis
-[Full legal name / company name]
-[Street and number]
-[ZIP City]
+Marwin Maschke
+Antonstraße 18
+01809 Dohna
 Germany
 
 Contact
-Email: [contact@example.com]
-[Optional phone]
+Email: valpulse.official@gmail.com
+Website: https://notis-notizbuecher.web.app
 
 Responsible for content
-[Name]
-[Address if different]
-
-Note
-Replace the placeholders with real publisher details before a public store release. Private non-commercial projects may have different disclosure duties — check the rules that apply to you.
+Marwin Maschke, address as above.
 
 Online dispute resolution
 The European Commission provides a platform for online dispute resolution: https://ec.europa.eu/consumers/odr/
