@@ -61,13 +61,15 @@ jobs:
           # then compile unsigned via xcodebuild.
           printf '\nCODE_SIGNING_ALLOWED=NO\nCODE_SIGNING_REQUIRED=NO\nCODE_SIGN_IDENTITY=\nDEVELOPMENT_TEAM=\n' >> ios/Flutter/Release.xcconfig
           flutter build ios --release --no-codesign --config-only
+          # Keep app + CocoaPods resource bundles in one products dir.
+          # CONFIGURATION_BUILD_DIR breaks [CP] Copy Pods Resources (ML Kit).
           xcodebuild \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
-            CONFIGURATION_BUILD_DIR="$PWD/build/ios/iphoneos" \
+            -derivedDataPath "$PWD/build/ios-derived" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -78,10 +80,10 @@ jobs:
       - name: Compress Runner.app
         run: |
           set -euo pipefail
-          APP_PATH="build/ios/iphoneos/Runner.app"
+          APP_PATH="build/ios-derived/Build/Products/Release-iphoneos/Runner.app"
           if [ ! -d "$APP_PATH" ]; then
             echo "Runner.app not found at $APP_PATH"
-            ls -laR build/ios || true
+            ls -laR build/ios-derived/Build/Products || true
             exit 1
           fi
 
