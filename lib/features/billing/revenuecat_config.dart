@@ -25,8 +25,31 @@ abstract final class RevenueCatConfig {
   static const packageYearly = 'yearly';
   static const packageMonthly = 'monthly';
 
+  /// RevenueCat offering identifiers (dashboard → Offerings).
+  /// Prefer the role umbrellas; the rest are extra per-product offerings.
+  static const offeringStudent = 'schueler';
+  static const offeringTeacher = 'lehrer';
+  static const offeringStudentAliases = [
+    'schueler',
+    'student',
+    'schuelerLite',
+    'schuelerPro',
+    'schueler_lite_annual',
+    'Schueler_lite_lifetime',
+    'Schueler_Pro_annual',
+    'Schueler_Pro_lifetime',
+  ];
+  static const offeringTeacherAliases = [
+    'lehrer',
+    'teacher',
+    'lehrer_lite',
+    'lehrer_pro',
+  ];
+
   static const teacherEntitlements = {lehrerPro, teacher};
   static const teacherLiteEntitlements = {lehrerLite};
   static const studentProEntitlements = {schuelerPro, notisPro, proPlus};
   static const studentLiteEntitlements = {schuelerLite, pro};
 }
+
+enum PaywallAudience { student, teacher }

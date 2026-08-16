@@ -32,6 +32,59 @@ class RevenueCatBilling extends ChangeNotifier {
 
   Offering? get currentOffering => offerings?.current;
 
+  Offering? offeringForAudience(PaywallAudience audience) {
+    final all = offerings?.all ?? const <String, Offering>{};
+    final aliases = audience == PaywallAudience.teacher
+        ? RevenueCatConfig.offeringTeacherAliases
+        : RevenueCatConfig.offeringStudentAliases;
+    for (final alias in aliases) {
+      final exact = all[alias];
+      if (exact != null) return exact;
+      for (final entry in all.entries) {
+        if (entry.key.toLowerCase() == alias.toLowerCase()) return entry.value;
+      }
+    }
+    final current = currentOffering;
+    if (current != null && _offeringMatchesAudience(current, audience)) {
+      return current;
+    }
+    return null;
+  }
+
+  List<Package> packagesForAudience(PaywallAudience audience) {
+    final seen = <String>{};
+    final collected = <Package>[];
+    void addAll(Iterable<Package> packages) {
+      for (final package in packages) {
+        if (!_packageBelongsTo(package, audience)) continue;
+        final key = package.storeProduct.identifier;
+        if (!seen.add(key)) continue;
+        collected.add(package);
+      }
+    }
+
+    final dedicated = offeringForAudience(audience);
+    if (dedicated != null) addAll(dedicated.availablePackages);
+
+    final all = offerings?.all ?? const <String, Offering>{};
+    for (final entry in all.entries) {
+      if (!_offeringKeyMatchesAudience(entry.key, audience)) continue;
+      addAll(entry.value.availablePackages);
+    }
+    if (collected.isEmpty && currentOffering != null) {
+      addAll(currentOffering!.availablePackages);
+    }
+    return collected;
+  }
+
+  bool _offeringKeyMatchesAudience(String key, PaywallAudience audience) {
+    final id = key.toLowerCase();
+    if (audience == PaywallAudience.teacher) {
+      return id.contains('lehrer') || id.contains('teacher');
+    }
+    return id.contains('schueler') || id.contains('student');
+  }
+
   Package? get lifetimePackage => _package(
     RevenueCatConfig.packageLifetime,
     fallback: currentOffering?.lifetime,
@@ -188,15 +241,25 @@ class RevenueCatBilling extends ChangeNotifier {
     return purchase(package);
   }
 
-  Future<PurchaseOutcome> presentPaywall() async {
+  Future<PurchaseOutcome> presentPaywall({PaywallAudience? audience}) async {
     if (!configured) return PurchaseOutcome.unavailable;
     if (!paywallSupported) {
       error = 'Paywall ist auf dieser Plattform nicht verfügbar.';
       notifyListeners();
       return PurchaseOutcome.unavailable;
     }
+    final offering = audience == null
+        ? currentOffering
+        : offeringForAudience(audience);
+    if (offering == null) {
+      error = audience == PaywallAudience.teacher
+          ? 'Kein Lehrer-Offering. In RevenueCat das Offering „lehrer“ anlegen und eine Paywall anhängen.'
+          : 'Kein Schüler-Offering. In RevenueCat das Offering „schueler“ anlegen und eine Paywall anhängen.';
+      notifyListeners();
+      return PurchaseOutcome.unavailable;
+    }
     try {
-      final result = await presentRevenueCatPaywall(offering: currentOffering);
+      final result = await presentRevenueCatPaywall(offering: offering);
       return _outcomeFromPaywall(result);
     } catch (exception) {
       error = _friendlyError('$exception');
@@ -205,7 +268,9 @@ class RevenueCatBilling extends ChangeNotifier {
     }
   }
 
-  Future<PurchaseOutcome> presentPaywallIfNeeded() async {
+  Future<PurchaseOutcome> presentPaywallIfNeeded({
+    PaywallAudience? audience,
+  }) async {
     if (!configured) return PurchaseOutcome.unavailable;
     if (hasNotisPro) return PurchaseOutcome.success;
     if (!paywallSupported) {
@@ -213,10 +278,15 @@ class RevenueCatBilling extends ChangeNotifier {
       notifyListeners();
       return PurchaseOutcome.unavailable;
     }
+    final offering = audience == null
+        ? currentOffering
+        : offeringForAudience(audience);
     try {
       final result = await presentRevenueCatPaywallIfNeeded(
-        entitlementId: RevenueCatConfig.notisPro,
-        offering: currentOffering,
+        entitlementId: audience == PaywallAudience.teacher
+            ? RevenueCatConfig.lehrerPro
+            : RevenueCatConfig.schuelerPro,
+        offering: offering,
       );
       return _outcomeFromPaywall(result);
     } catch (exception) {
@@ -229,7 +299,9 @@ class RevenueCatBilling extends ChangeNotifier {
   Future<void> presentCustomerCenter() async {
     if (!configured || !paywallSupported) return;
     await presentRevenueCatCustomerCenter(
-      onRestoreCompleted: _applyCustomerInfo,
+      onRestoreCompleted: (info) {
+        if (info is CustomerInfo) _applyCustomerInfo(info);
+      },
     );
     await refresh();
   }
@@ -274,6 +346,8 @@ class RevenueCatBilling extends ChangeNotifier {
         fallback ??
         offering.getPackage(rcIdentifier);
   }
+
+  void applyCustomerInfo(CustomerInfo info) => _applyCustomerInfo(info);
 
   void _applyCustomerInfo(CustomerInfo info) {
     customerInfo = info;
@@ -320,6 +394,28 @@ class RevenueCatBilling extends ChangeNotifier {
       return 'Die Abo-Produkte kommen vom App Store. Sideload-Builds sehen keine Pläne — TestFlight oder App-Store-Build nutzen. In RevenueCat müssen die Produkte am Current Offering und an den Entitlements hängen.';
     }
     return raw;
+  }
+
+  bool _offeringMatchesAudience(Offering offering, PaywallAudience audience) {
+    final packages = offering.availablePackages;
+    if (packages.isEmpty) return false;
+    return packages.every((package) => _packageBelongsTo(package, audience));
+  }
+
+  bool _packageBelongsTo(Package package, PaywallAudience audience) {
+    final blob =
+        '${package.identifier} ${package.storeProduct.identifier} ${package.storeProduct.title}'
+            .toLowerCase();
+    final teacherHit = blob.contains('lehrer') || blob.contains('teacher');
+    final studentHit =
+        blob.contains('schueler') ||
+        blob.contains('schüler') ||
+        blob.contains('student');
+    if (audience == PaywallAudience.teacher) {
+      return teacherHit && !studentHit;
+    }
+    if (studentHit) return true;
+    return !teacherHit;
   }
 }
 

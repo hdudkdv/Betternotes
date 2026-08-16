@@ -25,6 +25,7 @@ class Offering {
 
 class Offerings {
   Offering? get current => null;
+  Map<String, Offering> get all => const {};
 }
 
 class CustomerInfo {}
@@ -41,6 +42,8 @@ class RevenueCatBilling extends ChangeNotifier {
   bool get paywallSupported => false;
 
   Offering? get currentOffering => null;
+  Offering? offeringForAudience(Object audience) => null;
+  List<Package> packagesForAudience(Object audience) => const [];
   Package? get lifetimePackage => null;
   Package? get yearlyPackage => null;
   Package? get monthlyPackage => null;
@@ -64,11 +67,13 @@ class RevenueCatBilling extends ChangeNotifier {
   Future<PurchaseOutcome> purchaseNamed(String packageId) async =>
       PurchaseOutcome.unavailable;
 
-  Future<PurchaseOutcome> presentPaywall() async =>
+  Future<PurchaseOutcome> presentPaywall({Object? audience}) async =>
       PurchaseOutcome.unavailable;
 
-  Future<PurchaseOutcome> presentPaywallIfNeeded() async =>
+  Future<PurchaseOutcome> presentPaywallIfNeeded({Object? audience}) async =>
       PurchaseOutcome.unavailable;
+
+  void applyCustomerInfo(Object info) {}
 
   Future<void> presentCustomerCenter() async {}
 }

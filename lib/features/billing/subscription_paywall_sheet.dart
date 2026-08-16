@@ -3,22 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../library/providers/library_providers.dart';
 import 'revenuecat_billing.dart';
+import 'revenuecat_config.dart';
 
 Future<PurchaseOutcome> showSubscriptionPaywall(
   BuildContext context,
   WidgetRef ref,
 ) async {
+  final role = ref.read(settingsProvider).userRole ?? AppUserRole.student;
+  final audience = role == AppUserRole.teacher
+      ? PaywallAudience.teacher
+      : PaywallAudience.student;
   final billing = ref.read(revenueCatBillingProvider);
-  if (billing.configured &&
-      billing.paywallSupported &&
-      billing.currentOffering != null &&
-      !billing.usesTestStore) {
-    final outcome = await billing.presentPaywall();
-    if (outcome == PurchaseOutcome.success ||
-        outcome == PurchaseOutcome.cancelled) {
-      return outcome;
-    }
+  if (billing.configured) {
+    await billing.refresh();
   }
   if (!context.mounted) return PurchaseOutcome.cancelled;
   final outcome = await showModalBottomSheet<PurchaseOutcome>(
@@ -28,7 +27,7 @@ Future<PurchaseOutcome> showSubscriptionPaywall(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (ctx) => const _SubscriptionPaywallSheet(),
+    builder: (ctx) => _SubscriptionPaywallSheet(audience: audience),
   );
   return outcome ?? PurchaseOutcome.cancelled;
 }
@@ -46,46 +45,52 @@ class _PlanCopy {
 }
 
 class _SubscriptionPaywallSheet extends ConsumerWidget {
-  const _SubscriptionPaywallSheet();
+  const _SubscriptionPaywallSheet({required this.audience});
+
+  final PaywallAudience audience;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final billing = ref.watch(revenueCatBillingProvider);
-    final packages = billing.currentOffering?.availablePackages ?? const [];
+    final packages = billing.packagesForAudience(audience);
+    final teacher = audience == PaywallAudience.teacher;
     final plans = <_PlanCopy>[
-      _PlanCopy(
-        title: l10n.planLehrerLite,
-        price: l10n.planLehrerLitePrice,
-        points: [
-          l10n.planPointWeeklyBackup,
-          l10n.planPointTeacherExchange,
-          l10n.planPointPartialMarketplace,
-        ],
-      ),
-      _PlanCopy(
-        title: l10n.planLehrerPro,
-        price: l10n.planLehrerProPrice,
-        points: [
-          l10n.planPointDailyBackup,
-          l10n.planPointFullMarketplace,
-          l10n.planPointClassLoans,
-        ],
-      ),
-      _PlanCopy(
-        title: l10n.planSchuelerLite,
-        price: l10n.planSchuelerLitePrice,
-        points: [l10n.planPointWeeklyBackup, l10n.planPointSyncFive],
-      ),
-      _PlanCopy(
-        title: l10n.planSchuelerPro,
-        price: l10n.planSchuelerProPrice,
-        points: [
-          l10n.planPointDailyBackup,
-          l10n.planPointSyncUnlimited,
-          l10n.planPointMarketplaceThree,
-        ],
-      ),
+      if (teacher) ...[
+        _PlanCopy(
+          title: l10n.planLehrerLite,
+          price: l10n.planLehrerLitePrice,
+          points: [
+            l10n.planPointWeeklyBackup,
+            l10n.planPointTeacherExchange,
+            l10n.planPointPartialMarketplace,
+          ],
+        ),
+        _PlanCopy(
+          title: l10n.planLehrerPro,
+          price: l10n.planLehrerProPrice,
+          points: [
+            l10n.planPointDailyBackup,
+            l10n.planPointFullMarketplace,
+            l10n.planPointClassLoans,
+          ],
+        ),
+      ] else ...[
+        _PlanCopy(
+          title: l10n.planSchuelerLite,
+          price: l10n.planSchuelerLitePrice,
+          points: [l10n.planPointWeeklyBackup, l10n.planPointSyncFive],
+        ),
+        _PlanCopy(
+          title: l10n.planSchuelerPro,
+          price: l10n.planSchuelerProPrice,
+          points: [
+            l10n.planPointDailyBackup,
+            l10n.planPointSyncUnlimited,
+            l10n.planPointMarketplaceThree,
+          ],
+        ),
+      ],
     ];
 
     return SafeArea(

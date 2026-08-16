@@ -61,6 +61,15 @@ class AuthFailure implements Exception {
         'Diese Website ist für die Anmeldung noch nicht freigegeben.',
       );
     }
+    if (lower.contains('redirect_uri_mismatch') ||
+        lower.contains('redirect-uri-mismatch') ||
+        lower.contains('invalid request')) {
+      return const AuthFailure(
+        'Google-Login auf dem Handy braucht die Redirect-URI '
+        'https://notis-notizbuecher.web.app/__/auth/handler '
+        'in der Google-Cloud-Konsole.',
+      );
+    }
     if (lower.contains('1000') ||
         lower.contains('authorizationerrorcode.unknown') ||
         lower.contains('authorizationerror')) {
@@ -120,6 +129,12 @@ class AuthRepository extends StateNotifier<AppAuthState> {
     }
   }
 
+  bool get _webUsesRedirect {
+    if (!kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.android;
+  }
+
   /// Popup can succeed in Firebase while Dart fails to cast the JS result.
   Future<void> _signInWithPopup(AuthProvider provider) async {
     try {
@@ -130,11 +145,19 @@ class AuthRepository extends StateNotifier<AppAuthState> {
     }
   }
 
+  Future<void> _signInOnWeb(AuthProvider provider) async {
+    if (_webUsesRedirect) {
+      await FirebaseAuth.instance.signInWithRedirect(provider);
+      return;
+    }
+    await _signInWithPopup(provider);
+  }
+
   Future<void> signInWithGoogle() async {
     _requireFirebase();
     try {
       if (kIsWeb) {
-        await _signInWithPopup(GoogleAuthProvider());
+        await _signInOnWeb(GoogleAuthProvider());
       } else {
         await GoogleSignIn.instance.initialize();
         final account = await GoogleSignIn.instance.authenticate();
@@ -168,7 +191,7 @@ class AuthRepository extends StateNotifier<AppAuthState> {
         ..addScope('email')
         ..addScope('name');
       if (kIsWeb) {
-        await _signInWithPopup(provider);
+        await _signInOnWeb(provider);
       } else if (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.macOS) {
         await FirebaseAuth.instance.signInWithProvider(provider);

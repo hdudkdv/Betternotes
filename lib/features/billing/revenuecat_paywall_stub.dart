@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 enum PaywallResult { notPresented, cancelled, error, purchased, restored }
 
 Future<PaywallResult> presentRevenueCatPaywall({Object? offering}) async {
@@ -12,5 +14,13 @@ Future<PaywallResult> presentRevenueCatPaywallIfNeeded({
 }
 
 Future<void> presentRevenueCatCustomerCenter({
-  void Function(Object info)? onRestoreCompleted,
+  void Function(dynamic info)? onRestoreCompleted,
 }) async {}
+
+Future<PaywallResult> presentEmbeddedRevenueCatPaywall(
+  BuildContext context, {
+  required Object offering,
+  void Function(dynamic info)? onCustomerInfo,
+}) async {
+  return PaywallResult.notPresented;
+}

@@ -187,7 +187,10 @@ class InkCanvasState extends State<InkCanvas>
   double _computeFitScale(Size viewport) {
     if (widget.canvasMode == CanvasMode.infinite) {
       final child = _childSize;
-      return math.min(viewport.width / child.width, viewport.height / child.height);
+      return math.min(
+        viewport.width / child.width,
+        viewport.height / child.height,
+      );
     }
     // GoodNotes-style: page floats centered with a clear workspace margin.
     return PageViewportFit.fitScale(viewport, widget.pageSize);
@@ -236,12 +239,12 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   /// Pan translation limits for the current scale (scene → viewport).
-  ({double minDx, double maxDx, double minDy, double maxDy}) _translationBounds([
-    double? scaleOverride,
-  ]) {
-    final scale =
-        (scaleOverride ?? _transform.value.getMaxScaleOnAxis())
-            .clamp(_minScale, _maxScale);
+  ({double minDx, double maxDx, double minDy, double maxDy})
+  _translationBounds([double? scaleOverride]) {
+    final scale = (scaleOverride ?? _transform.value.getMaxScaleOnAxis()).clamp(
+      _minScale,
+      _maxScale,
+    );
     final child = _childSize;
     final scaledW = child.width * scale;
     final scaledH = child.height * scale;
@@ -273,8 +276,7 @@ class InkCanvasState extends State<InkCanvas>
     final b = _translationBounds(scale);
     final dx = current.storage[12].clamp(b.minDx, b.maxDx);
     final dy = current.storage[13].clamp(b.minDy, b.maxDy);
-    final scaleChanged =
-        (current.getMaxScaleOnAxis() - scale).abs() > 0.0001;
+    final scaleChanged = (current.getMaxScaleOnAxis() - scale).abs() > 0.0001;
     final posChanged =
         (current.storage[12] - dx).abs() > 0.5 ||
         (current.storage[13] - dy).abs() > 0.5;
@@ -290,9 +292,10 @@ class InkCanvasState extends State<InkCanvas>
   void _snapToFitIfNeeded() {
     if (widget.canvasMode == CanvasMode.infinite) return;
     if (_viewportSize == Size.zero) return;
-    // Anything at/near fit zoom snaps back to a perfectly centered page.
-    if (_fitReady &&
-        _transform.value.getMaxScaleOnAxis() > _fitScale * 1.12) {
+    final scale = _transform.value.getMaxScaleOnAxis();
+    // Keep intentional zoom. Only settle back to fit when the user has
+    // pinched almost all the way out — snapping at 12% made zoom feel stuck.
+    if (_fitReady && scale > _fitScale * 1.03) {
       _clampView();
       _updateScrollLock();
       return;
@@ -307,10 +310,7 @@ class InkCanvasState extends State<InkCanvas>
 
   /// Smoothly pans so [pagePoint] sits near the top of the visible area
   /// (above the keyboard when open).
-  void ensurePagePointVisible(
-    Offset pagePoint, {
-    double topFraction = 0.2,
-  }) {
+  void ensurePagePointVisible(Offset pagePoint, {double topFraction = 0.2}) {
     if (_viewportSize == Size.zero) return;
     final matrix = _transform.value;
     final scale = matrix.getMaxScaleOnAxis();
@@ -330,11 +330,9 @@ class InkCanvasState extends State<InkCanvas>
     final inX = viewPoint.dx >= visibleLeft && viewPoint.dx <= visibleRight;
     if (inY && inX) return;
 
-    final targetY = visibleTop + (_viewportSize.height - insetBottom) * topFraction;
-    final targetX = viewPoint.dx.clamp(
-      visibleLeft + 40,
-      visibleRight - 40,
-    );
+    final targetY =
+        visibleTop + (_viewportSize.height - insetBottom) * topFraction;
+    final targetX = viewPoint.dx.clamp(visibleLeft + 40, visibleRight - 40);
     // view = page * scale + translation
     final newDx = matrix.storage[12] + (targetX - viewPoint.dx);
     final newDy = targetY - pagePoint.dy * scale;
@@ -354,9 +352,10 @@ class InkCanvasState extends State<InkCanvas>
       vsync: this,
       duration: const Duration(milliseconds: 280),
     );
-    final animation = Matrix4Tween(begin: start, end: end).animate(
-      CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
-    );
+    final animation = Matrix4Tween(
+      begin: start,
+      end: end,
+    ).animate(CurvedAnimation(parent: controller, curve: Curves.easeOutCubic));
     void tick() => _transform.value = animation.value;
     animation.addListener(tick);
     controller.addStatusListener((status) {
@@ -471,7 +470,7 @@ class InkCanvasState extends State<InkCanvas>
       ..setEntry(0, 3, focalLocal.dx * (1 - applied))
       ..setEntry(1, 3, focalLocal.dy * (1 - applied));
     _transform.value = zoom * current;
-    _clampView();
+    // Clamp on finger-up; doing it every pinch tick fights the gesture.
   }
 
   bool _isTouch(PointerEvent event) => event.kind == PointerDeviceKind.touch;
@@ -479,7 +478,8 @@ class InkCanvasState extends State<InkCanvas>
   /// [Listener] wraps the gutter box; ink APIs expect page-local coords.
   Offset _toPageLocal(Offset local) {
     if (widget.canvasMode == CanvasMode.infinite) return local;
-    return local - const Offset(PageViewportFit.gutter / 2, PageViewportFit.gutter / 2);
+    return local -
+        const Offset(PageViewportFit.gutter / 2, PageViewportFit.gutter / 2);
   }
 
   bool _isActiveStylus(PointerEvent event) =>
@@ -556,8 +556,7 @@ class InkCanvasState extends State<InkCanvas>
       return;
     }
 
-    final horizontal =
-        widget.browseMode == PageBrowseMode.swipeHorizontal;
+    final horizontal = widget.browseMode == PageBrowseMode.swipeHorizontal;
     final bounds = _translationBounds();
     final dx = _transform.value.storage[12];
     final dy = _transform.value.storage[13];
@@ -646,12 +645,16 @@ class InkCanvasState extends State<InkCanvas>
     return _isTouch(event) || event.kind == PointerDeviceKind.mouse;
   }
 
-  bool _isPageSwipeSlop(Offset slop) {
+  bool _isPageSwipeAxis(Offset slop) {
     if (widget.canvasMode == CanvasMode.infinite || _isZoomed) return false;
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
-      return slop.distance >= 36 && slop.dx.abs() > slop.dy.abs() * 1.15;
+      return slop.dx.abs() > slop.dy.abs() * 1.15;
     }
-    return slop.distance >= 36 && slop.dy.abs() > slop.dx.abs() * 1.15;
+    return slop.dy.abs() > slop.dx.abs() * 1.15;
+  }
+
+  bool _isPageSwipeSlop(Offset slop) {
+    return slop.distance >= 36 && _isPageSwipeAxis(slop);
   }
 
   void _beginStroke(
@@ -793,12 +796,20 @@ class InkCanvasState extends State<InkCanvas>
     if (_drawPending && event.pointer == _pendingPointer) {
       final slop = event.position - (_pendingGlobal ?? event.position);
       if (_isPageSwipeSlop(slop)) {
-        // Horizontal/vertical page swipe — let the viewport finish it.
+        // Finger/mouse swipe on the page. Lock the viewport so both
+        // listeners do not double-drive the PageView.
         _clearDrawPending();
+        _scrollLockSent = true;
+        widget.onScrollLockChanged?.call(true);
+        _handleNavPan(event.position - (_panLastFocal ?? event.position));
         _panLastFocal = event.position;
         return;
       }
-      if (slop.distance >= 16) {
+      if (_isPageSwipeAxis(slop)) {
+        // Still looks like a page turn; wait for the 36px commit.
+        return;
+      }
+      if (slop.distance >= 10) {
         final local = _pendingLocal ?? event.localPosition;
         setState(() {});
         _beginStroke(
@@ -832,15 +843,28 @@ class InkCanvasState extends State<InkCanvas>
     _pointerGlobal.remove(event.pointer);
 
     if (_drawPending && event.pointer == _pendingPointer) {
-      final local = _pendingLocal ?? event.localPosition;
-      _beginStroke(
-        event.pointer,
-        local,
-        isStylus: false,
-        pressure: _pendingPressure,
-      );
-      _stopDrawing(commit: true);
-      setState(() {});
+      final startGlobal = _pendingGlobal ?? event.position;
+      final slop = event.position - startGlobal;
+      if (_isPageSwipeSlop(slop) ||
+          (slop.distance >= 24 && _isPageSwipeAxis(slop))) {
+        _clearDrawPending();
+      } else {
+        final local = _pendingLocal ?? event.localPosition;
+        _beginStroke(
+          event.pointer,
+          local,
+          isStylus: false,
+          pressure: _pendingPressure,
+        );
+        if (slop.distance > 2) {
+          widget.onPointerMove(
+            _toPageLocal(event.localPosition),
+            pressure: event.pressure == 0 ? 0.5 : event.pressure,
+          );
+        }
+        _stopDrawing(commit: true);
+        setState(() {});
+      }
     }
 
     if (event.pointer == _drawPointer) {
@@ -968,11 +992,6 @@ class InkCanvasState extends State<InkCanvas>
           // Pinch/pan are handled in [Listener] so they never race PageView.
           panEnabled: _keyboardOpen && !_drawing,
           scaleEnabled: false,
-          onInteractionUpdate: infinite
-              ? null
-              : (_) {
-                  _clampView();
-                },
           onInteractionEnd: infinite
               ? null
               : (_) {
@@ -1015,63 +1034,69 @@ class InkCanvasState extends State<InkCanvas>
                                     ),
                                   ],
                           ),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              if (infinite)
-                                CustomPaint(
-                                  size: pageSize,
-                                  isComplex: true,
-                                  willChange: true,
-                                  painter: PageBackgroundPainter(
+                          child: RepaintBoundary(
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                if (infinite)
+                                  CustomPaint(
+                                    size: pageSize,
+                                    isComplex: true,
+                                    willChange: true,
+                                    painter: PageBackgroundPainter(
+                                      template: widget.template,
+                                      pdfImage: widget.backgroundImage,
+                                      paper: widget.paper,
+                                      visibleWorldRect: visible,
+                                      infinite: true,
+                                    ),
+                                  )
+                                else
+                                  CachedPageBackground(
+                                    pageSize: pageSize,
                                     template: widget.template,
-                                    pdfImage: widget.backgroundImage,
                                     paper: widget.paper,
-                                    visibleWorldRect: visible,
-                                    infinite: true,
+                                    pdfImage: widget.backgroundImage,
                                   ),
-                                )
-                              else
-                                CachedPageBackground(
-                                  pageSize: pageSize,
-                                  template: widget.template,
-                                  paper: widget.paper,
-                                  pdfImage: widget.backgroundImage,
-                                ),
-                              if (!widget.hideInk)
-                                AnimatedBuilder(
-                                  animation: Listenable.merge([
-                                    widget.engine,
-                                    InkPainter.settledCacheTick,
-                                  ]),
-                                  builder: (context, _) {
-                                    final erasing =
-                                        widget.engine.tool == InkTool.eraser;
-                                    return CustomPaint(
-                                      size: pageSize,
-                                      isComplex: true,
-                                      willChange: true,
-                                      painter: InkPainter(
-                                        strokes: widget.engine.strokes,
-                                        activeStroke:
-                                            widget.engine.activeStroke,
-                                        lassoPoints: widget.engine.lassoPoints,
-                                        selectedIds: widget.engine.selectedIds,
-                                        visibleWorldRect:
-                                            infinite ? visible : null,
-                                        eraserCursor: erasing
-                                            ? widget.engine.eraserCursor
-                                            : null,
-                                        eraserRadius: erasing
-                                            ? widget.engine.width / 2
-                                            : null,
-                                        paintEpoch: widget.engine.paintEpoch,
-                                        cacheSettled: true,
-                                      ),
-                                    );
-                                  },
-                                ),
-                            ],
+                                if (!widget.hideInk)
+                                  AnimatedBuilder(
+                                    animation: Listenable.merge([
+                                      widget.engine,
+                                      InkPainter.settledCacheTick,
+                                    ]),
+                                    builder: (context, _) {
+                                      final erasing =
+                                          widget.engine.tool == InkTool.eraser;
+                                      return CustomPaint(
+                                        size: pageSize,
+                                        isComplex: true,
+                                        willChange:
+                                            widget.engine.activeStroke != null,
+                                        painter: InkPainter(
+                                          strokes: widget.engine.strokes,
+                                          activeStroke:
+                                              widget.engine.activeStroke,
+                                          lassoPoints:
+                                              widget.engine.lassoPoints,
+                                          selectedIds:
+                                              widget.engine.selectedIds,
+                                          visibleWorldRect: infinite
+                                              ? visible
+                                              : null,
+                                          eraserCursor: erasing
+                                              ? widget.engine.eraserCursor
+                                              : null,
+                                          eraserRadius: erasing
+                                              ? widget.engine.width / 2
+                                              : null,
+                                          paintEpoch: widget.engine.paintEpoch,
+                                          cacheSettled: true,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
