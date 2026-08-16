@@ -9,6 +9,9 @@ import '../entitlements/entitlement_model.dart';
 import 'revenuecat_config.dart';
 import 'revenuecat_paywall.dart';
 
+export 'package:purchases_flutter/purchases_flutter.dart'
+    show CustomerInfo, Offering, Offerings, Package, StoreProduct;
+
 enum PurchaseOutcome { success, cancelled, error, unavailable }
 
 /// Store-billing boundary. Test Store key is the default; production keys
