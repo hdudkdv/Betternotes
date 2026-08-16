@@ -1,4 +1,56 @@
 {
+  "hosting": [
+    {
+      "site": "notis-notizbuecher",
+      "public": "hosting",
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "redirects": [
+        { "source": "/privacy", "destination": "/datenschutz", "type": 301 },
+        { "source": "/terms", "destination": "/agb", "type": 301 },
+        { "source": "/legal-notice", "destination": "/impressum", "type": 301 }
+      ],
+      "headers": [
+        {
+          "source": "**/*.@(js|css|png|svg|ico|webp)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public,max-age=604800"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "site": "notis-2dee0",
+      "public": "hosting",
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "https://notis-notizbuecher.web.app",
+          "type": 301
+        },
+        {
+          "source": "/:path*",
+          "destination": "https://notis-notizbuecher.web.app/:path",
+          "type": 301
+        }
+      ]
+    }
+  ],
   "firestore": {
     "rules": "firestore.rules"
   },

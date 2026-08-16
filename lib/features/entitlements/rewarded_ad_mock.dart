@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import 'ad_config.dart';
 import 'entitlement_model.dart';
 import 'rewarded_ad_service.dart';
 
@@ -11,7 +12,7 @@ Future<bool> showRewardedAdMock(
   BuildContext context, {
   required String title,
   required String body,
-  int coinReward = 15,
+  int coinReward = AdConfig.coinsPerRewardedAd,
   String? unlockFeature,
 }) async {
   final l10n = AppLocalizations.of(context)!;
@@ -81,7 +82,7 @@ Future<void> runRewardedUnlock({
   required BuildContext context,
   required WidgetRef ref,
   String? featureKey,
-  int coinReward = 15,
+  int coinReward = AdConfig.coinsPerRewardedAd,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final messenger = ScaffoldMessenger.of(context);

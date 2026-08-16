@@ -14,44 +14,54 @@
 
 ## AdMob (rewarded ads)
 
-Android is wired up; identifiers live in `lib/features/entitlements/ad_config.dart`.
+Identifiers live in `lib/features/entitlements/ad_config.dart`. The SDK
+initializes on Android and iOS; web/desktop fall back to the demo dialog in
+`rewarded_ad_mock.dart`.
 
-- App ID `ca-app-pub-1753845428125059~9465582582`, also declared as
-  `com.google.android.gms.ads.APPLICATION_ID` in `android/app/src/main/AndroidManifest.xml`
-- Rewarded unit `ca-app-pub-1753845428125059/2237563329`
-- Debug and profile builds request Google's rewarded test unit, so live fill
-  rates and metrics stay clean. Only release builds use the real unit.
+### iOS
+
+- App ID `ca-app-pub-5148114115565319~7652831090` in
+  `ios/Runner/Info.plist` (`GADApplicationIdentifier`)
+- Rewarded unit `ca-app-pub-5148114115565319/8291909166` (`CoinsWerbung`)
+
+### Android
+
+- App ID `ca-app-pub-5148114115565319~5749506300` in
+  `android/app/src/main/AndroidManifest.xml`
+- Rewarded unit `ca-app-pub-5148114115565319/7963133920` (`CoinsWerbung`)
+
+Both units grant **10 coins**. Debug/profile still request Google's test
+units. Release uses the live units.
+
+Still add **Privacy & messaging → GDPR** (required for EEA) and on iOS
+**IDFA / ATT**.
+
+### Shared behaviour
+
+- Debug and profile always request Google's test rewarded units.
+- Release uses live units only after the matching platform ID is configured.
 - Rewards are granted from `onUserEarnedReward` only. Closing the ad early
   grants nothing.
 - GDPR consent runs through Google's User Messaging Platform on first launch.
-  Ads are only requested after `canRequestAds()` returns true, and the consent
-  form stays reachable under Settings → Plan & coins → Ad settings whenever
-  AdMob reports the privacy entry point as required.
+  Ads are only requested after `canRequestAds()` returns true. The consent
+  form stays reachable under Marketplace → Ad settings whenever AdMob reports
+  the privacy entry point as required.
 
-Set up the consent message in the AdMob console under **Privacy & messaging →
-GDPR** before release, otherwise EEA users get no ads at all. For on-device
-testing of the form, add your device hash via `ConsentDebugSettings` in
-`RewardedAdService._gatherConsent`.
+For on-device testing of the consent form, add your device hash via
+`ConsentDebugSettings` in `RewardedAdService._gatherConsent`.
 
-Platforms without AdMob (web, desktop, iOS for now) fall back to the demo
-confirmation dialog in `rewarded_ad_mock.dart`, so feature unlocks keep working.
+## Legal (in-app and public)
 
-### Still to do for iOS
+Public site (Firebase Hosting): [https://notis-notizbuecher.web.app](https://notis-notizbuecher.web.app)
 
-1. Register an iOS app in AdMob and create a rewarded unit
-2. Add `GADApplicationIdentifier` to `ios/Runner/Info.plist` plus the
-   `SKAdNetworkItems` list from Google's docs
-3. Add `NSUserTrackingUsageDescription` for the ATT prompt
-4. Extend `AdConfig` with the iOS IDs and allow `TargetPlatform.iOS`
+- Privacy: [https://notis-notizbuecher.web.app/datenschutz](https://notis-notizbuecher.web.app/datenschutz)
+- Terms: [https://notis-notizbuecher.web.app/agb](https://notis-notizbuecher.web.app/agb)
+- Impressum: [https://notis-notizbuecher.web.app/impressum](https://notis-notizbuecher.web.app/impressum)
 
-The SDK is intentionally not initialized on iOS until step 2 is done: the iOS
-Google Mobile Ads SDK aborts when the app ID is missing from `Info.plist`.
+Use the privacy URL in AdMob (**Privacy & messaging**), Play Console and App Store Connect.
 
-## Legal (in-app)
-
-- Privacy / Terms / Impressum: Settings → About → Legal (`/legal/privacy`, `/legal/terms`, `/legal/impressum`)
-- Impressum still contains placeholders (`[kontakt@example.com]`, address, etc.) — replace with real publisher data before store release
-- Host a public privacy URL (same text as in-app or a hosted copy) for Play/App Store listing fields
+In-app copies stay under Settings → About (`/legal/privacy`, `/legal/terms`, `/legal/impressum`).
+Impressum still contains placeholders — replace with real publisher data before store release.
 
 ## Import / export / backup
 
@@ -62,8 +72,8 @@ Google Mobile Ads SDK aborts when the app ID is missing from `Info.plist`.
 
 ## Before first store submission
 
-1. Replace default launcher icons (`flutter_launcher_icons` recommended)
-2. Publish privacy policy URL + fill Impressum placeholders
+1. Launcher icons are generated from `assets/branding/app_icon.png` via `flutter_launcher_icons`
+2. Privacy URL is `https://notis-notizbuecher.web.app/datenschutz` — fill Impressum placeholders
 3. Screenshots for tablet landscape + portrait
 4. iPad / large Android tablet device testing for stylus latency
 5. App Store / Play Console listings in German + English

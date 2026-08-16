@@ -2705,7 +2705,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get marketplaceHint =>
-      'Optionale Funktionen, die nicht jede:r braucht. Käufe kommen später — hier siehst du, was geplant ist.';
+      'Optionale Funktionen mit Coins oder Werbung freischalten.';
 
   @override
   String get marketplaceComingSoon =>

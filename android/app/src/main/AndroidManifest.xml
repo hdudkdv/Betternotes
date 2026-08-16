@@ -72,10 +72,10 @@
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
             </intent-filter>
         </activity>
-        <!-- AdMob application ID for rewarded ads. -->
+        <!-- AdMob Android application ID for com.notis.app. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-1753845428125059~9465582582" />
+            android:value="ca-app-pub-5148114115565319~5749506300" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

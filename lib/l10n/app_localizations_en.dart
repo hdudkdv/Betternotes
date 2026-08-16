@@ -2691,7 +2691,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get marketplaceHint =>
-      'Optional add-ons that not everyone needs. Purchases come later — this is the catalog.';
+      'Unlock optional features with coins or a short ad.';
 
   @override
   String get marketplaceComingSoon =>

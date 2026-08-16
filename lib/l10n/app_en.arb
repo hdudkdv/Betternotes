@@ -1148,7 +1148,7 @@
   "classroomAutoConnectSettingHint": "Connects only when at least the saved subject or room matches the teacher session.",
   "classroomAutoConnectMismatch": "Automatic connection rejected: neither subject nor room matches.",
   "marketplace": "Marketplace",
-  "marketplaceHint": "Optional add-ons that not everyone needs. Purchases come later — this is the catalog.",
+  "marketplaceHint": "Unlock optional features with coins or a short ad.",
   "marketplaceComingSoon": "Purchase and unlock will arrive in a later update.",
   "marketplaceSoonBadge": "Soon",
   "marketplaceInkOcrHint": "Handwriting and photos are recognized on-device and stored only as a hidden search index.",

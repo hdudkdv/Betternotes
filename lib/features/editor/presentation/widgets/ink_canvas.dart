@@ -570,9 +570,9 @@ class InkCanvasState extends State<InkCanvas>
       }
       if (_isZoomed) {
         _applyPanDelta(delta);
+        return;
       }
-      // Fit-zoom horizontal flips are owned by NotebookPagesViewport so the
-      // live canvas can unmount without killing the gesture.
+      _tryBrowsePan(Offset(delta.dx, 0));
       return;
     }
 

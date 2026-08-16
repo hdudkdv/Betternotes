@@ -5021,7 +5021,7 @@ abstract class AppLocalizations {
   /// No description provided for @marketplaceHint.
   ///
   /// In en, this message translates to:
-  /// **'Optional add-ons that not everyone needs. Purchases come later — this is the catalog.'**
+  /// **'Unlock optional features with coins or a short ad.'**
   String get marketplaceHint;
 
   /// No description provided for @marketplaceComingSoon.

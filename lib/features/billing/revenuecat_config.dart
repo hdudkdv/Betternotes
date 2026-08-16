@@ -6,7 +6,10 @@ abstract final class RevenueCatConfig {
   static const androidKey = String.fromEnvironment(
     'REVENUECAT_ANDROID_API_KEY',
   );
-  static const iosKey = String.fromEnvironment('REVENUECAT_IOS_API_KEY');
+  static const iosKey = String.fromEnvironment(
+    'REVENUECAT_IOS_API_KEY',
+    defaultValue: 'appl_SBgKLVYImUisVHmGZoKQHkXsoTd',
+  );
   static const webKey = String.fromEnvironment('REVENUECAT_WEB_API_KEY');
 
   static const notisPro = 'Notis Pro';

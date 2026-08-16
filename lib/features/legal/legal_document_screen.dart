@@ -102,10 +102,10 @@ Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenü
 Notis richtet sich an Schüler:innen und Studierende. Wenn du unter 16 bist (bzw. unter dem in deinem Land geltenden Alter), nutze die App bitte nur mit Zustimmung einer erziehungsberechtigten Person, soweit erforderlich.
 
 9. Änderungen
-Wir können diese Erklärung anpassen, wenn sich die App oder Rechtslage ändert. Die jeweils aktuelle Version findest du in den Einstellungen.
+Wir können diese Erklärung anpassen, wenn sich die App oder Rechtslage ändert. Die jeweils aktuelle Version findest du unter https://notis-notizbuecher.web.app/datenschutz und in den Einstellungen.
 
 10. Kontakt
-Siehe Impressum in den Einstellungen.
+Siehe Impressum unter https://notis-notizbuecher.web.app/impressum oder in den Einstellungen.
 ''';
 
 const _privacyEn = '''
@@ -157,10 +157,10 @@ You may request access, rectification, erasure, restriction, portability and obj
 Notis is aimed at students. If you are under 16 (or the applicable age in your country), use the app only with guardian consent where required.
 
 9. Changes
-We may update this policy when the app or law changes. The current version is available in Settings.
+We may update this policy when the app or law changes. The current version is available at https://notis-notizbuecher.web.app/datenschutz and in Settings.
 
 10. Contact
-See the Legal notice (Impressum) in Settings.
+See the Legal notice at https://notis-notizbuecher.web.app/impressum or in Settings.
 ''';
 
 const _termsDe = '''

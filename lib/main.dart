@@ -80,7 +80,8 @@ class _BootAppState extends State<_BootApp> {
       final prefs = await SharedPreferences.getInstance();
       await StartupErrorLog.breadcrumb('prefs ok');
 
-      // Non-fatal; ads are Android-only in this app.
+      // Non-fatal; ads stay off on web/desktop and use Google test units
+      // until live AdMob IDs from the current account are configured.
       unawaited(RewardedAdService.instance.initialize());
 
       await StartupErrorLog.clear();

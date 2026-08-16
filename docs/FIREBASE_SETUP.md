@@ -34,6 +34,19 @@ gehören zum jeweiligen Firebase-Projekt und enthalten keine Platzhalterwerte.
 Google Calendar wird nicht angefragt oder synchronisiert. Login dient in dieser
 Ausbaustufe ausschließlich dem persönlichen Cloud-Speicher.
 
+## Hosting (Landingpage)
+
+Die öffentliche Seite liegt in `hosting/` und wird nach `https://notis-notizbuecher.web.app`
+veröffentlicht (Datenschutz, AGB, Impressum).
+
+```bash
+firebase use notis-2dee0
+firebase deploy --only hosting
+```
+
+In Firebase Authentication die Domain `notis-notizbuecher.web.app` unter Authorized domains
+ergänzen. In AdMob die Privacy-URL `https://notis-notizbuecher.web.app/datenschutz` eintragen.
+
 ## Regeln
 
 Die Dateien `firestore.rules` und `storage.rules` im Projektstamm deployen:

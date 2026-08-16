@@ -822,29 +822,30 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                PageView.builder(
-                  controller: _pageController,
-                  physics: _scrollPhysics,
-                  allowImplicitScrolling: true,
-                  itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index >= widget.pages.length) {
-                      return Center(
-                        child: AddPageAffordance(
-                          axis: Axis.horizontal,
-                          onTap: () => _requestAddPage(),
+                Offstage(
+                  offstage: !_flipping,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: _scrollPhysics,
+                    allowImplicitScrolling: true,
+                    itemCount: widget.pages.length + (showAddSlot ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index >= widget.pages.length) {
+                        return Center(
+                          child: AddPageAffordance(
+                            axis: Axis.horizontal,
+                            onTap: () => _requestAddPage(),
+                          ),
+                        );
+                      }
+                      return RepaintBoundary(
+                        child: PageSnapshot(
+                          page: widget.pages[index],
+                          matchLiveFit: true,
                         ),
                       );
-                    }
-                    // Every slot is a cached bitmap so the strip never
-                    // composites InkCanvas / InteractiveViewer while sliding.
-                    return RepaintBoundary(
-                      child: PageSnapshot(
-                        page: widget.pages[index],
-                        matchLiveFit: true,
-                      ),
-                    );
-                  },
+                    },
+                  ),
                 ),
                 if (widget.pageIndex < widget.pages.length)
                   Positioned.fill(

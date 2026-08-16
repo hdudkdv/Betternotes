@@ -1122,7 +1122,7 @@
   "classroomAutoConnectSettingHint": "Verbindet nur, wenn mindestens das gespeicherte Fach oder der gespeicherte Raum mit der Lehrer-Session übereinstimmt.",
   "classroomAutoConnectMismatch": "Automatische Verbindung abgelehnt: Fach und Raum stimmen nicht überein.",
   "marketplace": "Marketplace",
-  "marketplaceHint": "Optionale Funktionen, die nicht jede:r braucht. Käufe kommen später — hier siehst du, was geplant ist.",
+  "marketplaceHint": "Optionale Funktionen mit Coins oder Werbung freischalten.",
   "marketplaceComingSoon": "Kauf und Freischaltung folgen in einem späteren Update.",
   "marketplaceSoonBadge": "Bald",
   "marketplaceInkOcrHint": "Handschrift und Fotos werden lokal erkannt und nur als unsichtbarer Suchindex gespeichert.",

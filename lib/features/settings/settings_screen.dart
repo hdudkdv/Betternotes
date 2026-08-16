@@ -15,8 +15,6 @@ import '../billing/subscription_paywall_sheet.dart';
 import '../editor/domain/editor_gestures.dart';
 import '../editor/domain/ink_models.dart';
 import '../entitlements/entitlement_model.dart';
-import '../entitlements/rewarded_ad_mock.dart';
-import '../entitlements/rewarded_ad_service.dart';
 import '../import_export/import_export_providers.dart';
 import '../lan_sync/classroom_auto_connect.dart';
 import '../library/providers/library_providers.dart';
@@ -67,20 +65,6 @@ class SettingsScreen extends ConsumerWidget {
     AppTier.pro => l10n.tierPro,
     AppTier.proPlus => l10n.tierProPlus,
     AppTier.teacher => l10n.tierTeacher,
-  };
-
-  String _featureLabel(AppLocalizations l10n, String key) => switch (key) {
-    FeatureKeys.premiumPaper => l10n.featurePremiumPaper,
-    FeatureKeys.premiumCover => l10n.featurePremiumCover,
-    FeatureKeys.audioTranscription => l10n.featureAudioTranscription,
-    FeatureKeys.pdfCompress => l10n.featurePdfCompress,
-    FeatureKeys.handwritingOcr => l10n.featureHandwritingOcr,
-    FeatureKeys.noForcedAds => l10n.featureNoForcedAds,
-    FeatureKeys.sessionCollab => l10n.featureSessionCollab,
-    FeatureKeys.asyncCollab => l10n.featureAsyncCollab,
-    FeatureKeys.whiteboard => l10n.featureWhiteboard,
-    FeatureKeys.cloudSync => l10n.featureCloudSync,
-    _ => key,
   };
 
   String _syncLabel(
@@ -690,56 +674,6 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: Text(l10n.marketplaceHint, style: _body),
                 onTap: () => context.push('/marketplace'),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.monetization_on_outlined),
-                title: Text(
-                  l10n.coinsBalance(entitlements.coins),
-                  style: _label,
-                ),
-                trailing: TextButton(
-                  onPressed: () => runRewardedUnlock(
-                    context: context,
-                    ref: ref,
-                    coinReward: 15,
-                  ),
-                  child: Text(l10n.watchAdForCoins),
-                ),
-              ),
-              if (ref.read(rewardedAdServiceProvider).privacyOptionsRequired)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.privacy_tip_outlined),
-                  title: Text(l10n.adPrivacyOptions, style: _label),
-                  subtitle: Text(l10n.adPrivacyOptionsHint, style: _body),
-                  onTap: () =>
-                      ref.read(rewardedAdServiceProvider).showPrivacyOptions(),
-                ),
-              const SizedBox(height: 8),
-              for (final key in FeatureKeys.all)
-                _FeatureRow(
-                  label: _featureLabel(l10n, key),
-                  unlocked: entitlements.hasAccess(key),
-                  coinCost: FeatureKeys.coinCost(key),
-                  onUnlockCoins: () async {
-                    final ok = await ref
-                        .read(entitlementProvider.notifier)
-                        .unlockWithCoins(key);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          ok ? l10n.featureUnlocked : l10n.notEnoughCoins,
-                        ),
-                      ),
-                    );
-                  },
-                  onWatchAd: () => runRewardedUnlock(
-                    context: context,
-                    ref: ref,
-                    featureKey: key,
-                  ),
-                ),
             ],
           ),
           _SettingsSection(
@@ -1266,62 +1200,6 @@ class _GestureActionTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _FeatureRow extends StatelessWidget {
-  const _FeatureRow({
-    required this.label,
-    required this.unlocked,
-    required this.coinCost,
-    required this.onUnlockCoins,
-    required this.onWatchAd,
-  });
-
-  final String label;
-  final bool unlocked;
-  final int coinCost;
-  final VoidCallback onUnlockCoins;
-  final VoidCallback onWatchAd;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      leading: Icon(
-        unlocked ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
-        color: unlocked ? AppTheme.accent : AppTheme.inkMuted,
-      ),
-      title: Text(
-        label,
-        style: AppTheme.body(fontWeight: FontWeight.w700, color: AppTheme.ink),
-      ),
-      subtitle: Text(
-        unlocked ? l10n.featureAvailable : l10n.unlockWithCoins(coinCost),
-        style: AppTheme.body(
-          fontWeight: FontWeight.w600,
-          color: AppTheme.inkMuted,
-          fontSize: 13,
-        ),
-      ),
-      trailing: unlocked
-          ? null
-          : PopupMenuButton<String>(
-              onSelected: (v) {
-                if (v == 'coins') onUnlockCoins();
-                if (v == 'ad') onWatchAd();
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'coins',
-                  child: Text(l10n.unlockWithCoins(coinCost)),
-                ),
-                PopupMenuItem(value: 'ad', child: Text(l10n.watchRewardedAd)),
-              ],
-            ),
     );
   }
 }
