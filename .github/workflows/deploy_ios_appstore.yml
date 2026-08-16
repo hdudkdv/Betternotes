@@ -7,7 +7,8 @@
 #   APP_STORE_CONNECT_API_KEY     (Inhalt der AuthKey_XXXX.p8)
 #
 # In App Store Connect vorher die App mit Bundle-ID de.notis.app anlegen.
-# API-Key: Users and Access → Integrations → App Store Connect API (Admin oder App Manager).
+# API-Key: Users and Access → Integrations → App Store Connect API
+# (Rolle Admin oder App Manager — sonst kann Xcode kein Profil anlegen).
 
 name: Deploy iOS App Store
 
@@ -70,9 +71,20 @@ jobs:
           set -euo pipefail
           mkdir -p "$HOME/.appstoreconnect/private_keys"
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
-          printf '%s\n' "$APP_STORE_CONNECT_API_KEY" > "$KEY_PATH"
+          KEY_BODY=$(printf '%s\n' "$APP_STORE_CONNECT_API_KEY" | tr -d '\r')
+          if printf '%s\n' "$KEY_BODY" | grep -q "BEGIN PRIVATE KEY"; then
+            printf '%s\n' "$KEY_BODY" > "$KEY_PATH"
+          else
+            {
+              echo "-----BEGIN PRIVATE KEY-----"
+              printf '%s\n' "$KEY_BODY" | tr -d '\n' | fold -w 64
+              echo
+              echo "-----END PRIVATE KEY-----"
+            } > "$KEY_PATH"
+          fi
           chmod 600 "$KEY_PATH"
           echo "Wrote $KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Set Xcode team for automatic signing
         run: |
@@ -81,11 +93,34 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" ios/ExportOptions-appstore.plist \
             || /usr/libexec/PlistBuddy -c "Set :teamID $APPLE_TEAM_ID" ios/ExportOptions-appstore.plist
 
-      - name: Build signed IPA
+      - name: Prepare iOS project
+        run: flutter build ios --release --config-only
+
+      - name: Archive and export signed IPA
         run: |
           set -euo pipefail
-          flutter build ipa --release \
-            --export-options-plist=ios/ExportOptions-appstore.plist
+          AUTH=(
+            -allowProvisioningUpdates
+            -authenticationKeyPath "$ASC_KEY_PATH"
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID"
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+          )
+          mkdir -p build/ios/archive build/ios/ipa
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/ios/archive/Runner.xcarchive" \
+            "${AUTH[@]}" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            archive
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/build/ios/archive/Runner.xcarchive" \
+            -exportOptionsPlist ios/ExportOptions-appstore.plist \
+            -exportPath "$PWD/build/ios/ipa" \
+            "${AUTH[@]}"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
