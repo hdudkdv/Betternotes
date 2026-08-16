@@ -1,8 +1,7 @@
 # Deploy the Flutter web app to Firebase Hosting (notis-notizbuecher).
 #
-# Optional repository secret:
-#   FIREBASE_TOKEN  — from `firebase login:ci`
-# Without the secret the job still builds, but skips the live deploy.
+# Required repository secret:
+#   FIREBASE_TOKEN  from `firebase login:ci`
 
 name: Deploy Web
 
@@ -21,8 +20,17 @@ jobs:
     name: Build Flutter web and deploy hosting
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
     steps:
+      - name: Check Firebase token
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "Missing secret FIREBASE_TOKEN. Add it under GitHub → Settings → Secrets."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -45,7 +53,6 @@ jobs:
           cp -R build/web/. hosting/app/
 
       - name: Deploy Firebase Hosting
-        if: ${{ secrets.FIREBASE_TOKEN != '' }}
         run: npx firebase-tools@13 deploy --only hosting:notis-notizbuecher --project notis-2dee0 --non-interactive
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_TOKEN: ${{ env.FIREBASE_TOKEN }}
