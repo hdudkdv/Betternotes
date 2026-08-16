@@ -1520,6 +1520,69 @@ class AppLocalizationsEn extends AppLocalizations {
       'The paywall is not available on this device.';
 
   @override
+  String get choosePlan => 'Choose a plan';
+
+  @override
+  String get choosePlanHint =>
+      'Teacher and student plans. Purchases go through the store.';
+
+  @override
+  String get revenueCatTestStoreHint =>
+      'The app is still using the RevenueCat Test Store. Use the Apple API key (appl_) for App Store screenshots.';
+
+  @override
+  String get planLehrerLite => 'Teacher Lite';
+
+  @override
+  String get planLehrerPro => 'Teacher Pro';
+
+  @override
+  String get planSchuelerLite => 'Student Lite';
+
+  @override
+  String get planSchuelerPro => 'Student Pro';
+
+  @override
+  String get planLehrerLitePrice => '€1.99 / month';
+
+  @override
+  String get planLehrerProPrice => '€9.99 / month';
+
+  @override
+  String get planSchuelerLitePrice => '€4.99 / year or €20 lifetime';
+
+  @override
+  String get planSchuelerProPrice => '€9.99 / year or €30 lifetime';
+
+  @override
+  String get planPointWeeklyBackup => 'Weekly backup';
+
+  @override
+  String get planPointDailyBackup => 'Daily backup';
+
+  @override
+  String get planPointTeacherExchange =>
+      'Access to the teaching-material exchange';
+
+  @override
+  String get planPointPartialMarketplace => 'Partially free marketplace';
+
+  @override
+  String get planPointFullMarketplace => 'Fully free marketplace';
+
+  @override
+  String get planPointClassLoans => '5 marketplace loans per class';
+
+  @override
+  String get planPointSyncFive => 'Online sync on 5 devices';
+
+  @override
+  String get planPointSyncUnlimited => 'Unlimited online sync';
+
+  @override
+  String get planPointMarketplaceThree => '3 marketplace items free';
+
+  @override
   String get sectionSupport => 'Support';
 
   @override

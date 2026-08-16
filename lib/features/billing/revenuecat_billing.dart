@@ -21,6 +21,7 @@ class RevenueCatBilling extends ChangeNotifier {
   CustomerInfo? customerInfo;
 
   bool get hasNotisPro => _hasNotisPro(customerInfo);
+  bool get usesTestStore => _apiKey.startsWith('test_');
   bool get paywallSupported =>
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.iOS ||
@@ -47,20 +48,18 @@ class RevenueCatBilling extends ChangeNotifier {
   );
 
   String get _apiKey {
-    final platformKey = switch (defaultTargetPlatform) {
+    return switch (defaultTargetPlatform) {
       TargetPlatform.android => RevenueCatConfig.androidKey,
       TargetPlatform.iOS => RevenueCatConfig.iosKey,
       _ => RevenueCatConfig.webKey,
     };
-    if (platformKey.isNotEmpty) return platformKey;
-    return RevenueCatConfig.testApiKey;
   }
 
   Future<void> initialize({String? appUserId}) async {
     final key = _apiKey;
-    if (key.isEmpty) {
+    if (key.isEmpty || key.startsWith('test_')) {
       configured = false;
-      error = 'RevenueCat ist noch nicht konfiguriert.';
+      error = null;
       notifyListeners();
       return;
     }
@@ -120,9 +119,15 @@ class RevenueCatBilling extends ChangeNotifier {
     try {
       _applyCustomerInfo(await Purchases.getCustomerInfo());
       offerings = await Purchases.getOfferings();
-      error = null;
+      if (offerings?.current == null) {
+        error = usesTestStore
+            ? 'Test-Store hat kein Current Offering. In RevenueCat unter Test Store ein Offering als Current markieren und eine Paywall anhängen — oder den Apple-Key (appl_) nutzen.'
+            : 'Kein Current Offering. In RevenueCat ein Offering als Current markieren und eine Paywall anhängen.';
+      } else {
+        error = null;
+      }
     } catch (exception) {
-      error = '$exception';
+      error = _friendlyError('$exception');
     }
     notifyListeners();
   }
@@ -146,9 +151,7 @@ class RevenueCatBilling extends ChangeNotifier {
   Future<PurchaseOutcome> purchase(Package package) async {
     if (!configured) return PurchaseOutcome.unavailable;
     try {
-      final result = await Purchases.purchase(
-        PurchaseParams.package(package),
-      );
+      final result = await Purchases.purchase(PurchaseParams.package(package));
       _applyCustomerInfo(result.customerInfo);
       error = null;
       notifyListeners();
@@ -185,12 +188,10 @@ class RevenueCatBilling extends ChangeNotifier {
       return PurchaseOutcome.unavailable;
     }
     try {
-      final result = await presentRevenueCatPaywall(
-        offering: currentOffering,
-      );
+      final result = await presentRevenueCatPaywall(offering: currentOffering);
       return _outcomeFromPaywall(result);
     } catch (exception) {
-      error = '$exception';
+      error = _friendlyError('$exception');
       notifyListeners();
       return PurchaseOutcome.error;
     }
@@ -268,12 +269,20 @@ class RevenueCatBilling extends ChangeNotifier {
 
   void _applyCustomerInfo(CustomerInfo info) {
     customerInfo = info;
-    final active = info.entitlements.active;
-    tier = active.containsKey(RevenueCatConfig.teacher)
+    final active = info.entitlements.active.keys.toSet();
+    tier = active.intersection(RevenueCatConfig.teacherEntitlements).isNotEmpty
         ? AppTier.teacher
-        : active.containsKey(RevenueCatConfig.proPlus)
+        : active
+              .intersection(RevenueCatConfig.teacherLiteEntitlements)
+              .isNotEmpty
         ? AppTier.proPlus
-        : _hasNotisPro(info)
+        : active
+              .intersection(RevenueCatConfig.studentProEntitlements)
+              .isNotEmpty
+        ? AppTier.proPlus
+        : active
+              .intersection(RevenueCatConfig.studentLiteEntitlements)
+              .isNotEmpty
         ? AppTier.pro
         : AppTier.free;
     notifyListeners();
@@ -282,10 +291,24 @@ class RevenueCatBilling extends ChangeNotifier {
   bool _hasNotisPro(CustomerInfo? info) {
     final active = info?.entitlements.active;
     if (active == null) return false;
-    return active.containsKey(RevenueCatConfig.notisPro) ||
-        active.containsKey(RevenueCatConfig.pro) ||
-        active.containsKey(RevenueCatConfig.proPlus) ||
-        active.containsKey(RevenueCatConfig.teacher);
+    return active.keys.any(
+      (id) =>
+          RevenueCatConfig.teacherEntitlements.contains(id) ||
+          RevenueCatConfig.teacherLiteEntitlements.contains(id) ||
+          RevenueCatConfig.studentProEntitlements.contains(id) ||
+          RevenueCatConfig.studentLiteEntitlements.contains(id),
+    );
+  }
+
+  String _friendlyError(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('test store') || lower.contains('test_')) {
+      return 'RevenueCat Test-Store passt nicht zu den App-Store-Abos. Apple-Key (appl_) in RevenueCat kopieren und per --dart-define=REVENUECAT_IOS_API_KEY setzen.';
+    }
+    if (lower.contains('offering') || lower.contains('product')) {
+      return 'RevenueCat findet keine Produkte. Current Offering inkl. Paywall prüfen und Produkte an die Entitlements hängen.';
+    }
+    return raw;
   }
 }
 

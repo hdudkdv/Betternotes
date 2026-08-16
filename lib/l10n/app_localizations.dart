@@ -2906,6 +2906,126 @@ abstract class AppLocalizations {
   /// **'The paywall is not available on this device.'**
   String get paywallUnavailable;
 
+  /// No description provided for @choosePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a plan'**
+  String get choosePlan;
+
+  /// No description provided for @choosePlanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher and student plans. Purchases go through the store.'**
+  String get choosePlanHint;
+
+  /// No description provided for @revenueCatTestStoreHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The app is still using the RevenueCat Test Store. Use the Apple API key (appl_) for App Store screenshots.'**
+  String get revenueCatTestStoreHint;
+
+  /// No description provided for @planLehrerLite.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher Lite'**
+  String get planLehrerLite;
+
+  /// No description provided for @planLehrerPro.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher Pro'**
+  String get planLehrerPro;
+
+  /// No description provided for @planSchuelerLite.
+  ///
+  /// In en, this message translates to:
+  /// **'Student Lite'**
+  String get planSchuelerLite;
+
+  /// No description provided for @planSchuelerPro.
+  ///
+  /// In en, this message translates to:
+  /// **'Student Pro'**
+  String get planSchuelerPro;
+
+  /// No description provided for @planLehrerLitePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'€1.99 / month'**
+  String get planLehrerLitePrice;
+
+  /// No description provided for @planLehrerProPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'€9.99 / month'**
+  String get planLehrerProPrice;
+
+  /// No description provided for @planSchuelerLitePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'€4.99 / year or €20 lifetime'**
+  String get planSchuelerLitePrice;
+
+  /// No description provided for @planSchuelerProPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'€9.99 / year or €30 lifetime'**
+  String get planSchuelerProPrice;
+
+  /// No description provided for @planPointWeeklyBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly backup'**
+  String get planPointWeeklyBackup;
+
+  /// No description provided for @planPointDailyBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily backup'**
+  String get planPointDailyBackup;
+
+  /// No description provided for @planPointTeacherExchange.
+  ///
+  /// In en, this message translates to:
+  /// **'Access to the teaching-material exchange'**
+  String get planPointTeacherExchange;
+
+  /// No description provided for @planPointPartialMarketplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Partially free marketplace'**
+  String get planPointPartialMarketplace;
+
+  /// No description provided for @planPointFullMarketplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Fully free marketplace'**
+  String get planPointFullMarketplace;
+
+  /// No description provided for @planPointClassLoans.
+  ///
+  /// In en, this message translates to:
+  /// **'5 marketplace loans per class'**
+  String get planPointClassLoans;
+
+  /// No description provided for @planPointSyncFive.
+  ///
+  /// In en, this message translates to:
+  /// **'Online sync on 5 devices'**
+  String get planPointSyncFive;
+
+  /// No description provided for @planPointSyncUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited online sync'**
+  String get planPointSyncUnlimited;
+
+  /// No description provided for @planPointMarketplaceThree.
+  ///
+  /// In en, this message translates to:
+  /// **'3 marketplace items free'**
+  String get planPointMarketplaceThree;
+
   /// No description provided for @sectionSupport.
   ///
   /// In en, this message translates to:

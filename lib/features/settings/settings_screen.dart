@@ -11,6 +11,7 @@ import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_repository.dart';
 import '../billing/revenuecat_billing.dart';
+import '../billing/subscription_paywall_sheet.dart';
 import '../editor/domain/editor_gestures.dart';
 import '../editor/domain/ink_models.dart';
 import '../entitlements/entitlement_model.dart';
@@ -186,15 +187,18 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final billing = ref.read(revenueCatBillingProvider);
     final message = switch (outcome) {
-      PurchaseOutcome.success => billing.hasNotisPro
-          ? l10n.restorePurchasesSuccess
-          : l10n.restorePurchasesEmpty,
+      PurchaseOutcome.success =>
+        billing.hasNotisPro
+            ? l10n.restorePurchasesSuccess
+            : l10n.restorePurchasesEmpty,
       PurchaseOutcome.cancelled => l10n.purchaseCancelled,
       PurchaseOutcome.unavailable => l10n.paywallUnavailable,
       PurchaseOutcome.error => l10n.purchaseFailed(billing.error ?? ''),
     };
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -272,21 +276,22 @@ class SettingsScreen extends ConsumerWidget {
                       label: Text(l10n.teacherTrackQualified),
                     ),
                   ],
-                  selected: {
-                    settings.teacherTrack ?? TeacherTrack.qualified,
-                  },
+                  selected: {settings.teacherTrack ?? TeacherTrack.qualified},
                   onSelectionChanged: (selection) async {
                     final track = selection.first;
                     await ref
                         .read(settingsProvider.notifier)
                         .setTeacherTrack(track);
-                    await ref.read(settingsProvider.notifier).setEducationLevel(
-                      track == TeacherTrack.studying
-                          ? EducationLevel.university
-                          : settings.educationLevel == EducationLevel.university
-                          ? EducationLevel.sek2
-                          : settings.educationLevel,
-                    );
+                    await ref
+                        .read(settingsProvider.notifier)
+                        .setEducationLevel(
+                          track == TeacherTrack.studying
+                              ? EducationLevel.university
+                              : settings.educationLevel ==
+                                    EducationLevel.university
+                              ? EducationLevel.sek2
+                              : settings.educationLevel,
+                        );
                   },
                 ),
                 ListTile(
@@ -309,9 +314,9 @@ class SettingsScreen extends ConsumerWidget {
                 },
               ),
               if (settings.userRole == AppUserRole.student &&
-                  ref.watch(sharedPreferencesProvider).getBool(
-                        ClassroomAutoConnect.askedKey,
-                      ) ==
+                  ref
+                          .watch(sharedPreferencesProvider)
+                          .getBool(ClassroomAutoConnect.askedKey) ==
                       true)
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -321,8 +326,9 @@ class SettingsScreen extends ConsumerWidget {
                         .read(sharedPreferencesProvider)
                         .setBool(ClassroomAutoConnect.enabledKey, value);
                     ref
-                        .read(classroomAutoConnectEnabledProvider.notifier)
-                        .state = value;
+                            .read(classroomAutoConnectEnabledProvider.notifier)
+                            .state =
+                        value;
                   },
                   title: Text(l10n.classroomAutoConnectSetting, style: _label),
                   subtitle: Text(
@@ -624,6 +630,13 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 14),
               ],
+              if (billing.error != null) ...[
+                Text(
+                  billing.error!,
+                  style: AppTheme.body(color: AppTheme.danger, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+              ],
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
@@ -632,28 +645,24 @@ class SettingsScreen extends ConsumerWidget {
                       : Icons.workspace_premium_outlined,
                 ),
                 title: Text(
-                  billing.hasNotisPro
-                      ? l10n.notisProActive
-                      : l10n.upgradeToNotisPro,
+                  billing.hasNotisPro ? l10n.notisProActive : l10n.choosePlan,
                   style: _label,
                 ),
                 subtitle: Text(
                   billing.hasNotisPro
                       ? l10n.manageSubscriptionHint
-                      : l10n.upgradeToNotisProHint,
+                      : l10n.choosePlanHint,
                   style: _body,
                 ),
-                onTap: billing.configured
-                    ? () async {
-                        if (billing.hasNotisPro) {
-                          await billing.presentCustomerCenter();
-                          return;
-                        }
-                        final outcome = await billing.presentPaywall();
-                        if (!context.mounted) return;
-                        await _handlePurchaseOutcome(context, ref, outcome);
-                      }
-                    : null,
+                onTap: () async {
+                  if (billing.hasNotisPro) {
+                    await billing.presentCustomerCenter();
+                    return;
+                  }
+                  final outcome = await showSubscriptionPaywall(context, ref);
+                  if (!context.mounted) return;
+                  await _handlePurchaseOutcome(context, ref, outcome);
+                },
               ),
               if (billing.configured && billing.hasNotisPro)
                 ListTile(
@@ -891,9 +900,9 @@ class SettingsScreen extends ConsumerWidget {
                         .shareBackup(prefs: prefs);
                   } catch (e) {
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$e')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('$e')));
                   }
                 },
               ),
@@ -933,15 +942,13 @@ class SettingsScreen extends ConsumerWidget {
                     if (!context.mounted) return;
                     ref.invalidate(notebooksProvider);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.backupRestored(count)),
-                      ),
+                      SnackBar(content: Text(l10n.backupRestored(count))),
                     );
                   } catch (e) {
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$e')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('$e')));
                   }
                 },
               ),
@@ -1241,7 +1248,10 @@ class _GestureActionTile extends StatelessWidget {
             decoration: const InputDecoration(
               isDense: true,
               border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
             ),
             items: [
               for (final action in EditorGestureAction.values)

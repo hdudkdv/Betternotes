@@ -228,13 +228,19 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ref.read(revenueCatBillingProvider).initialize(
-        appUserId: ref.read(authProvider).user?.uid,
-      );
-      final billing = ref.read(revenueCatBillingProvider);
-      if (billing.configured) {
-        await ref.read(entitlementProvider.notifier).setTier(billing.tier);
-      }
+      unawaited(() async {
+        try {
+          await ref.read(revenueCatBillingProvider).initialize(
+            appUserId: ref.read(authProvider).user?.uid,
+          );
+          final billing = ref.read(revenueCatBillingProvider);
+          if (billing.configured) {
+            await ref.read(entitlementProvider.notifier).setTier(billing.tier);
+          }
+        } catch (error, stack) {
+          debugPrint('RevenueCat init skipped: $error\n$stack');
+        }
+      }());
       final intake = ref.read(shareIntakeProvider);
       await intake.start();
       _shareSub = intake.pending.listen((files) {
