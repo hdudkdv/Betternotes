@@ -123,8 +123,15 @@ jobs:
       - name: Prepare iOS project
         run: |
           set -euo pipefail
-          printf '\nDEVELOPMENT_TEAM=%s\nCODE_SIGN_STYLE=Manual\n' "$APPLE_TEAM_ID" >> ios/Flutter/Release.xcconfig
           flutter build ios --release --config-only
+          # Runner-only. Do not pass PROVISIONING_PROFILE_SPECIFIER to
+          # xcodebuild — that leaks the app profile onto Pods and SPM packages.
+          {
+            echo "DEVELOPMENT_TEAM=$APPLE_TEAM_ID"
+            echo "CODE_SIGN_STYLE=Manual"
+            echo "CODE_SIGN_IDENTITY=Apple Distribution"
+            echo "PROVISIONING_PROFILE_SPECIFIER=$SIGH_NAME"
+          } >> ios/Flutter/Release.xcconfig
 
       - name: Write manual export options
         run: |
@@ -157,9 +164,6 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$PWD/build/ios/archive/Runner.xcarchive" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$SIGH_NAME" \
             archive
           xcodebuild -exportArchive \
             -archivePath "$PWD/build/ios/archive/Runner.xcarchive" \
