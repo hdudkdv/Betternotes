@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -76,8 +77,8 @@ Future<bool> showRewardedAdMock(
 
 /// Grants [featureKey] or [coinReward] after a rewarded ad has been watched.
 ///
-/// Uses AdMob where available and falls back to [showRewardedAdMock] on
-/// platforms without ads or when no ad fills.
+/// Uses AdMob where available. Debug/desktop may fall back to
+/// [showRewardedAdMock]; store builds never grant a reward without a real ad.
 Future<void> runRewardedUnlock({
   required BuildContext context,
   required WidgetRef ref,
@@ -112,6 +113,13 @@ Future<void> runRewardedUnlock({
   }
 
   if (!rewarded) {
+    // Store builds must never grant coins via the stand-in dialog.
+    if (kReleaseMode && ads.isSupported) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.rewardedAdUnavailable)),
+      );
+      return;
+    }
     if (!context.mounted) return;
     final ok = await showRewardedAdMock(
       context,

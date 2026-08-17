@@ -330,6 +330,10 @@
 	<string>Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN oder Hotspot.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Notis nutzt den Standort nur, um Geräte in der Nähe im lokalen Netz zu finden. Es wird keine Karte angezeigt.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Notis nutzt den Standort nur, um Geräte in der Nähe im lokalen Netz zu finden. Der Standort wird nicht im Hintergrund erfasst und es wird keine Karte angezeigt.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Notis nutzt den Standort nur, um Geräte in der Nähe im lokalen Netz zu finden. Der Standort wird nicht im Hintergrund erfasst und es wird keine Karte angezeigt.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_betternotes-nearby._tcp</string>

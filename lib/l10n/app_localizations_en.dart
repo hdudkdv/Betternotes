@@ -962,6 +962,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFolderLink => 'No folder';
 
   @override
+  String get createSubjectFolder => 'Create a folder for this subject';
+
+  @override
+  String get createSubjectFolderHint =>
+      'Adds a library folder named after the subject.';
+
+  @override
   String blockDuration(int minutes) {
     return '$minutes minutes';
   }
@@ -1655,6 +1662,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rewardedAdLoading => 'Loading ad …';
+
+  @override
+  String get rewardedAdUnavailable =>
+      'Ads are unavailable right now. Please try again in a moment.';
 
   @override
   String get rewardedAdNotFinished =>

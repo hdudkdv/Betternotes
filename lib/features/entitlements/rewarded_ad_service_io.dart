@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -13,7 +14,7 @@ enum RewardedAdOutcome {
   /// The ad was shown but closed before the reward was granted.
   dismissed,
 
-  /// No ad could be shown; the caller should fall back to the demo dialog.
+  /// No ad could be shown. Release builds must not fake a reward.
   unavailable,
 }
 
@@ -55,6 +56,7 @@ class RewardedAdService {
     if (_initialized || !AdConfig.isSupported) return;
     try {
       await _gatherConsent();
+      await _requestTrackingAuthorization();
       await MobileAds.instance.initialize();
       _initialized = true;
       if (_canRequestAds) unawaited(_load());
@@ -90,6 +92,20 @@ class RewardedAdService {
 
     _canRequestAds = await consent.canRequestAds();
     _privacyOptions = await consent.getPrivacyOptionsRequirementStatus();
+  }
+
+  /// ATT after UMP so iOS 14.5+ can serve personalized (and more) ads.
+  Future<void> _requestTrackingAuthorization() async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    try {
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (status != TrackingStatus.notDetermined) return;
+      // Presenting ATT in the same frame as the consent form is rejected.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await AppTrackingTransparency.requestTrackingAuthorization();
+    } catch (error) {
+      debugPrint('ATT request failed: $error');
+    }
   }
 
   /// Reopens the consent form so users can change their ad preferences.
@@ -140,6 +156,11 @@ class RewardedAdService {
   Future<RewardedAdOutcome> show() async {
     if (!AdConfig.isSupported) return RewardedAdOutcome.unavailable;
     if (!_initialized) await initialize();
+    try {
+      _canRequestAds = await ConsentInformation.instance.canRequestAds();
+    } catch (error) {
+      debugPrint('canRequestAds failed: $error');
+    }
     if (_ad == null) {
       // Reset the backoff so an explicit user request always gets one attempt.
       _failedAttempts = 0;
@@ -159,9 +180,7 @@ class RewardedAdService {
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
         unawaited(_load());
-        finish(
-          earned ? RewardedAdOutcome.earned : RewardedAdOutcome.dismissed,
-        );
+        finish(earned ? RewardedAdOutcome.earned : RewardedAdOutcome.dismissed);
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();

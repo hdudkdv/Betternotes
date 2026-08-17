@@ -965,6 +965,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noFolderLink => 'Kein Ordner';
 
   @override
+  String get createSubjectFolder => 'Ordner für dieses Fach anlegen';
+
+  @override
+  String get createSubjectFolderHint =>
+      'Erstellt in der Bibliothek einen Ordner mit dem Fachnamen.';
+
+  @override
   String blockDuration(int minutes) {
     return '$minutes Minuten';
   }
@@ -1660,6 +1667,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get rewardedAdLoading => 'Werbung wird geladen …';
+
+  @override
+  String get rewardedAdUnavailable =>
+      'Werbung ist gerade nicht verfügbar. Versuch es gleich nochmal.';
 
   @override
   String get rewardedAdNotFinished =>

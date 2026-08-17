@@ -386,6 +386,8 @@
   "secondHalf": "2nd half",
   "linkFolder": "Link to folder",
   "noFolderLink": "No folder",
+  "createSubjectFolder": "Create a folder for this subject",
+  "createSubjectFolderHint": "Adds a library folder named after the subject.",
   "blockDuration": "{minutes} minutes",
   "@blockDuration": {
     "placeholders": {
@@ -725,6 +727,7 @@
   "adPrivacyOptions": "Ad settings",
   "adPrivacyOptionsHint": "Change your consent for personalised ads",
   "rewardedAdLoading": "Loading ad …",
+  "rewardedAdUnavailable": "Ads are unavailable right now. Please try again in a moment.",
   "rewardedAdNotFinished": "Video was not watched to the end — no reward.",
   "featureUnlocked": "Feature unlocked",
   "collaborationSignInRequired": "Sign in for cloud collaboration.",

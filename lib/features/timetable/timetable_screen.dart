@@ -43,7 +43,7 @@ class TimetableScreen extends ConsumerWidget {
     if (!context.mounted) return;
     final existing =
         table.slotAt(day, period) ?? TimetableSlot(day: day, period: period);
-    final result = await showDialog<TimetableSlot?>(
+    final result = await showDialog<_SlotEditResult?>(
       context: context,
       builder: (context) => _SlotEditorDialog(
         dayLabel: _dayLabel(AppLocalizations.of(context)!, day),
@@ -53,11 +53,58 @@ class TimetableScreen extends ConsumerWidget {
       ),
     );
     if (result == null) return;
-    if (result.isEmpty) {
+    if (result.slot.isEmpty) {
       await ref.read(timetableProvider.notifier).clearSlot(day, period);
-    } else {
-      await ref.read(timetableProvider.notifier).setSlot(result);
+      return;
     }
+    final slot = await _attachCreatedFolders(
+      ref,
+      result.slot,
+      createFirst: result.createFirstFolder,
+      createSecond: result.createSecondFolder,
+    );
+    await ref.read(timetableProvider.notifier).setSlot(slot);
+  }
+
+  Future<TimetableSlot> _attachCreatedFolders(
+    WidgetRef ref,
+    TimetableSlot slot, {
+    required bool createFirst,
+    required bool createSecond,
+  }) async {
+    var first = slot.first;
+    var second = slot.second;
+    if (createFirst) {
+      first = await _createOrReuseSubjectFolder(ref, first);
+    }
+    if (slot.split && createSecond) {
+      second = await _createOrReuseSubjectFolder(ref, second);
+    }
+    return TimetableSlot(
+      day: slot.day,
+      period: slot.period,
+      split: slot.split,
+      first: first,
+      second: second,
+    );
+  }
+
+  Future<TimetableLesson> _createOrReuseSubjectFolder(
+    WidgetRef ref,
+    TimetableLesson lesson,
+  ) async {
+    final name = lesson.subject.trim();
+    if (name.isEmpty || lesson.folderId != null) return lesson;
+    final folders = await ref.read(allFoldersProvider.future);
+    final existing = folderMatchingSubject(folders, name);
+    if (existing != null) {
+      return lessonFromFolder(existing).copyWith(room: lesson.room);
+    }
+    final created = await ref
+        .read(notebookRepositoryProvider)
+        .createFolder(name: name, colorValue: colorForSubject(name));
+    refreshLibraryLists(ref);
+    return lessonFromFolder(created).copyWith(room: lesson.room);
   }
 
   Future<void> _editPeriod(
@@ -275,7 +322,10 @@ class _NowBanner extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Color(displayLessonColor(now.lesson)).withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Color(displayLessonColor(now.lesson)), width: 1.5),
+        border: Border.all(
+          color: Color(displayLessonColor(now.lesson)),
+          width: 1.5,
+        ),
       ),
       child: Row(
         children: [
@@ -389,10 +439,7 @@ class _TimeWheelPickerState extends State<TimeWheelPicker> {
           ),
           Text(
             ':',
-            style: AppTheme.body(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-            ),
+            style: AppTheme.body(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           Expanded(
             child: CupertinoPicker(
@@ -531,6 +578,18 @@ class _PeriodTimeDialogState extends State<_PeriodTimeDialog> {
 
 // ─── Slot editor (block / split + folder link) ──────────────────────────────
 
+class _SlotEditResult {
+  const _SlotEditResult({
+    required this.slot,
+    this.createFirstFolder = false,
+    this.createSecondFolder = false,
+  });
+
+  final TimetableSlot slot;
+  final bool createFirstFolder;
+  final bool createSecondFolder;
+}
+
 class _SlotEditorDialog extends StatefulWidget {
   const _SlotEditorDialog({
     required this.dayLabel,
@@ -556,6 +615,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
   late TextEditingController _room2;
   late TextEditingController _subject1;
   late TextEditingController _subject2;
+  late bool _createFolder1;
+  late bool _createFolder2;
 
   @override
   void initState() {
@@ -567,6 +628,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     _room2 = TextEditingController(text: _second.room);
     _subject1 = TextEditingController(text: _first.subject);
     _subject2 = TextEditingController(text: _second.subject);
+    _createFolder1 = _first.folderId == null;
+    _createFolder2 = _second.folderId == null;
   }
 
   @override
@@ -583,8 +646,10 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       if (folder == null) {
         if (firstHalf) {
           _first = _first.copyWith(clearFolder: true);
+          _createFolder1 = true;
         } else {
           _second = _second.copyWith(clearFolder: true);
+          _createFolder2 = true;
         }
         return;
       }
@@ -594,9 +659,11 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       if (firstHalf) {
         _first = lesson;
         _subject1.text = folder.name;
+        _createFolder1 = false;
       } else {
         _second = lesson;
         _subject2.text = folder.name;
+        _createFolder2 = false;
       }
     });
   }
@@ -684,9 +751,12 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                 subjectCtrl: _subject1,
                 roomCtrl: _room1,
                 lesson: _first,
+                createFolder: _createFolder1,
+                onCreateFolder: (v) => setState(() => _createFolder1 = v),
                 onFolder: (f) => _applyFolder(true, f),
                 onSubject: (v) => setState(() {
                   _first = _first.copyWith(subject: v, clearFolder: true);
+                  if (_first.folderId == null) _createFolder1 = true;
                 }),
               ),
               if (_split) ...[
@@ -699,9 +769,12 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                   subjectCtrl: _subject2,
                   roomCtrl: _room2,
                   lesson: _second,
+                  createFolder: _createFolder2,
+                  onCreateFolder: (v) => setState(() => _createFolder2 = v),
                   onFolder: (f) => _applyFolder(false, f),
                   onSubject: (v) => setState(() {
                     _second = _second.copyWith(subject: v, clearFolder: true);
+                    if (_second.folderId == null) _createFolder2 = true;
                   }),
                 ),
               ],
@@ -714,9 +787,11 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
           TextButton(
             onPressed: () => Navigator.pop(
               context,
-              TimetableSlot(
-                day: widget.initial.day,
-                period: widget.initial.period,
+              _SlotEditResult(
+                slot: TimetableSlot(
+                  day: widget.initial.day,
+                  period: widget.initial.period,
+                ),
               ),
             ),
             child: Text(l10n.clear),
@@ -726,7 +801,19 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
           child: Text(l10n.cancel),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(context, _buildResult()),
+          onPressed: () {
+            final slot = _buildResult();
+            Navigator.pop(
+              context,
+              _SlotEditResult(
+                slot: slot,
+                createFirstFolder:
+                    _createFolder1 && slot.first.folderId == null,
+                createSecondFolder:
+                    _split && _createFolder2 && slot.second.folderId == null,
+              ),
+            );
+          },
           child: Text(l10n.save),
         ),
       ],
@@ -739,6 +826,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     required TextEditingController subjectCtrl,
     required TextEditingController roomCtrl,
     required TimetableLesson lesson,
+    required bool createFolder,
+    required ValueChanged<bool> onCreateFolder,
     required ValueChanged<LibraryFolder?> onFolder,
     required ValueChanged<String> onSubject,
   }) {
@@ -758,10 +847,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
             const SizedBox(width: 8),
             Text(
               title,
-              style: AppTheme.body(
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-              ),
+              style: AppTheme.body(fontWeight: FontWeight.w800, fontSize: 15),
             ),
           ],
         ),
@@ -824,6 +910,28 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
           ),
           onChanged: onSubject,
         ),
+        if (lesson.folderId == null) ...[
+          const SizedBox(height: 4),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            value: createFolder,
+            onChanged: (v) => onCreateFolder(v ?? false),
+            title: Text(
+              l10n.createSubjectFolder,
+              style: AppTheme.body(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+            subtitle: Text(
+              l10n.createSubjectFolderHint,
+              style: AppTheme.body(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.inkMuted,
+              ),
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+        ],
         const SizedBox(height: 10),
         TextField(
           controller: roomCtrl,
@@ -1075,7 +1183,9 @@ class TimetableHomeCard extends ConsumerWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: now != null
-                      ? Color(displayLessonColor(now.lesson)).withValues(alpha: 0.25)
+                      ? Color(
+                          displayLessonColor(now.lesson),
+                        ).withValues(alpha: 0.25)
                       : AppTheme.accentSoft,
                   borderRadius: BorderRadius.circular(12),
                 ),

@@ -360,6 +360,8 @@
   "secondHalf": "2. Hälfte",
   "linkFolder": "Mit Ordner verknüpfen",
   "noFolderLink": "Kein Ordner",
+  "createSubjectFolder": "Ordner für dieses Fach anlegen",
+  "createSubjectFolderHint": "Erstellt in der Bibliothek einen Ordner mit dem Fachnamen.",
   "blockDuration": "{minutes} Minuten",
   "@blockDuration": {
     "placeholders": {
@@ -699,6 +701,7 @@
   "adPrivacyOptions": "Werbe-Einstellungen",
   "adPrivacyOptionsHint": "Einwilligung für personalisierte Werbung ändern",
   "rewardedAdLoading": "Werbung wird geladen …",
+  "rewardedAdUnavailable": "Werbung ist gerade nicht verfügbar. Versuch es gleich nochmal.",
   "rewardedAdNotFinished": "Video nicht vollständig angesehen — keine Belohnung.",
   "featureUnlocked": "Feature freigeschaltet",
   "collaborationSignInRequired": "Melde dich an für Cloud-Zusammenarbeit.",

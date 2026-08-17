@@ -172,13 +172,16 @@ class InkCanvasState extends State<InkCanvas>
 
   /// Resets the view so the whole page is visible again.
   void fitToViewport() {
-    final size = _viewportSize;
-    if (size == Size.zero) return;
+    Size size = _viewportSize;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize && _isUsableViewport(box.size)) {
+      size = box.size;
+    }
+    if (!_isUsableViewport(size)) return;
     setState(() {
-      _transform.value = _fitMatrix(size);
-      _fitReady = true;
+      _applyFit(size);
+      _forceNextFit = true;
     });
-    _forceScrollUnlock();
   }
 
   Size get _childSize {
@@ -225,7 +228,9 @@ class InkCanvasState extends State<InkCanvas>
       viewport.width >= 64 && viewport.height >= 64;
 
   bool _isBogusIdentityScale(double scale) =>
-      (scale - 1.0).abs() < 0.02 && _fitScale > 0 && (_fitScale - 1.0).abs() > 0.08;
+      (scale - 1.0).abs() < 0.02 &&
+      _fitScale > 0 &&
+      (_fitScale - 1.0).abs() > 0.08;
 
   void _retainViewOnViewportChange(Size oldViewport, Size newViewport) {
     if (!_isUsableViewport(oldViewport) || !_isUsableViewport(newViewport)) {
@@ -244,6 +249,10 @@ class InkCanvasState extends State<InkCanvas>
       Offset(oldViewport.width / 2, oldViewport.height / 2),
     );
     _fitScale = _computeFitScale(newViewport);
+    if (scale <= _fitScale * 1.12) {
+      _applyFit(newViewport);
+      return;
+    }
     final clamped = scale.clamp(_minScale, _maxScale);
     final newCenter = Offset(newViewport.width / 2, newViewport.height / 2);
     _transform.value = Matrix4.identity()
@@ -1018,117 +1027,113 @@ class InkCanvasState extends State<InkCanvas>
         final maxScale = _maxScale;
 
         final scene = SizedBox(
-            width: pageSize.width + (infinite ? 0 : 64),
-            height: pageSize.height + (infinite ? 0 : 64),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Drawing / browse listener sits under overlays so a stylus
-                // on a wheel, handle or button never starts an ink stroke.
-                Positioned.fill(
-                  child: Listener(
-                    behavior: HitTestBehavior.opaque,
-                    onPointerDown: _handlePointerDown,
-                    onPointerMove: _handlePointerMove,
-                    onPointerUp: _handlePointerUp,
-                    onPointerCancel: _handlePointerCancel,
-                    child: Center(
-                      child: GestureDetector(
-                        onDoubleTap: widget.onDoubleTap,
-                        child: Container(
-                          width: pageSize.width,
-                          height: pageSize.height,
-                          decoration: BoxDecoration(
-                            boxShadow: infinite
-                                ? null
-                                : [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.45,
-                                      ),
-                                      blurRadius: 32,
-                                      offset: const Offset(0, 18),
-                                    ),
-                                  ],
-                          ),
-                          child: RepaintBoundary(
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                if (infinite)
-                                  CustomPaint(
-                                    size: pageSize,
-                                    isComplex: true,
-                                    willChange: true,
-                                    painter: PageBackgroundPainter(
-                                      template: widget.template,
-                                      pdfImage: widget.backgroundImage,
-                                      paper: widget.paper,
-                                      visibleWorldRect: visible,
-                                      infinite: true,
-                                    ),
-                                  )
-                                else
-                                  CachedPageBackground(
-                                    pageSize: pageSize,
+          width: pageSize.width + (infinite ? 0 : 64),
+          height: pageSize.height + (infinite ? 0 : 64),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Drawing / browse listener sits under overlays so a stylus
+              // on a wheel, handle or button never starts an ink stroke.
+              Positioned.fill(
+                child: Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: _handlePointerDown,
+                  onPointerMove: _handlePointerMove,
+                  onPointerUp: _handlePointerUp,
+                  onPointerCancel: _handlePointerCancel,
+                  child: Center(
+                    child: GestureDetector(
+                      onDoubleTap: widget.onDoubleTap,
+                      child: Container(
+                        width: pageSize.width,
+                        height: pageSize.height,
+                        decoration: BoxDecoration(
+                          boxShadow: infinite
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.45),
+                                    blurRadius: 32,
+                                    offset: const Offset(0, 18),
+                                  ),
+                                ],
+                        ),
+                        child: RepaintBoundary(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              if (infinite)
+                                CustomPaint(
+                                  size: pageSize,
+                                  isComplex: true,
+                                  willChange: true,
+                                  painter: PageBackgroundPainter(
                                     template: widget.template,
-                                    paper: widget.paper,
                                     pdfImage: widget.backgroundImage,
+                                    paper: widget.paper,
+                                    visibleWorldRect: visible,
+                                    infinite: true,
                                   ),
-                                if (!widget.hideInk)
-                                  AnimatedBuilder(
-                                    animation: Listenable.merge([
-                                      widget.engine,
-                                      InkPainter.settledCacheTick,
-                                    ]),
-                                    builder: (context, _) {
-                                      final erasing =
-                                          widget.engine.tool == InkTool.eraser;
-                                      return CustomPaint(
-                                        size: pageSize,
-                                        isComplex: true,
-                                        willChange:
-                                            widget.engine.activeStroke != null,
-                                        painter: InkPainter(
-                                          strokes: widget.engine.strokes,
-                                          activeStroke:
-                                              widget.engine.activeStroke,
-                                          lassoPoints:
-                                              widget.engine.lassoPoints,
-                                          selectedIds:
-                                              widget.engine.selectedIds,
-                                          visibleWorldRect: infinite
-                                              ? visible
-                                              : null,
-                                          eraserCursor: erasing
-                                              ? widget.engine.eraserCursor
-                                              : null,
-                                          eraserRadius: erasing
-                                              ? widget.engine.eraseRadius
-                                              : null,
-                                          paintEpoch: widget.engine.paintEpoch,
-                                          cacheSettled: true,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                              ],
-                            ),
+                                )
+                              else
+                                CachedPageBackground(
+                                  pageSize: pageSize,
+                                  template: widget.template,
+                                  paper: widget.paper,
+                                  pdfImage: widget.backgroundImage,
+                                ),
+                              if (!widget.hideInk)
+                                AnimatedBuilder(
+                                  animation: Listenable.merge([
+                                    widget.engine,
+                                    InkPainter.settledCacheTick,
+                                  ]),
+                                  builder: (context, _) {
+                                    final erasing =
+                                        widget.engine.tool == InkTool.eraser;
+                                    return CustomPaint(
+                                      size: pageSize,
+                                      isComplex: true,
+                                      willChange:
+                                          widget.engine.activeStroke != null,
+                                      painter: InkPainter(
+                                        strokes: widget.engine.strokes,
+                                        activeStroke:
+                                            widget.engine.activeStroke,
+                                        lassoPoints: widget.engine.lassoPoints,
+                                        selectedIds: widget.engine.selectedIds,
+                                        visibleWorldRect: infinite
+                                            ? visible
+                                            : null,
+                                        eraserCursor: erasing
+                                            ? widget.engine.eraserCursor
+                                            : null,
+                                        eraserRadius: erasing
+                                            ? widget.engine.eraseRadius
+                                            : null,
+                                        paintEpoch: widget.engine.paintEpoch,
+                                        cacheSettled: true,
+                                      ),
+                                    );
+                                  },
+                                ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                if (widget.overlay != null)
-                  SizedBox(
-                    width: pageSize.width,
-                    height: pageSize.height,
-                    child: widget.overlay,
-                  ),
-              ],
-            ),
-          );
+              ),
+              if (widget.overlay != null)
+                SizedBox(
+                  width: pageSize.width,
+                  height: pageSize.height,
+                  child: widget.overlay,
+                ),
+            ],
+          ),
+        );
 
         if (infinite) {
           return InteractiveViewer(
@@ -1147,10 +1152,9 @@ class InkCanvasState extends State<InkCanvas>
           child: ListenableBuilder(
             listenable: _transform,
             builder: (context, _) {
-              return Transform(
+              return PageViewportFit.transformedChild(
                 transform: pageDisplay ?? _transform.value,
-                alignment: Alignment.topLeft,
-                filterQuality: FilterQuality.low,
+                childSize: _childSize,
                 child: scene,
               );
             },

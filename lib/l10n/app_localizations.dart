@@ -1910,6 +1910,18 @@ abstract class AppLocalizations {
   /// **'No folder'**
   String get noFolderLink;
 
+  /// No description provided for @createSubjectFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a folder for this subject'**
+  String get createSubjectFolder;
+
+  /// No description provided for @createSubjectFolderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds a library folder named after the subject.'**
+  String get createSubjectFolderHint;
+
   /// No description provided for @blockDuration.
   ///
   /// In en, this message translates to:
@@ -3163,6 +3175,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Loading ad …'**
   String get rewardedAdLoading;
+
+  /// No description provided for @rewardedAdUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Ads are unavailable right now. Please try again in a moment.'**
+  String get rewardedAdUnavailable;
 
   /// No description provided for @rewardedAdNotFinished.
   ///

@@ -595,3 +595,16 @@ TimetableLesson lessonFromFolder(LibraryFolder folder) {
     colorValue: folder.colorValue,
   );
 }
+
+/// Reuse a library folder that already has this subject name.
+LibraryFolder? folderMatchingSubject(
+  List<LibraryFolder> folders,
+  String subject,
+) {
+  final key = subject.trim().toLowerCase();
+  if (key.isEmpty) return null;
+  for (final folder in folders) {
+    if (folder.name.trim().toLowerCase() == key) return folder;
+  }
+  return null;
+}

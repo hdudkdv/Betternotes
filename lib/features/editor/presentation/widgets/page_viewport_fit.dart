@@ -25,10 +25,11 @@ class PageViewportFit {
   /// Scale so the **paper** (not the gutter) fits inside the padded viewport.
   static double fitScale(Size viewport, Size pageSize) {
     final pad = paddingFor(viewport);
-    final availW =
-        (viewport.width - pad.horizontal).clamp(1.0, double.infinity);
-    final availH =
-        (viewport.height - pad.vertical).clamp(1.0, double.infinity);
+    final availW = (viewport.width - pad.horizontal).clamp(
+      1.0,
+      double.infinity,
+    );
+    final availH = (viewport.height - pad.vertical).clamp(1.0, double.infinity);
     return math.min(availW / pageSize.width, availH / pageSize.height);
   }
 
@@ -54,8 +55,9 @@ class PageViewportFit {
   }) {
     final child = childSize(pageSize);
     return ClipRect(
-      child: Transform(
+      child: transformedChild(
         transform: fitMatrix(viewport, pageSize),
+        childSize: child,
         child: SizedBox(
           width: child.width,
           height: child.height,
@@ -67,6 +69,33 @@ class PageViewportFit {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Keeps a page-sized child at its intrinsic size under tight parent
+  /// constraints, then paints [transform] from the top-left.
+  ///
+  /// Same idea as [InteractiveViewer] with `constrained: false`. Without this,
+  /// a tight landscape viewport stretches the paper to the screen size *and*
+  /// then scales it — the page ends up in a corner and Fit cannot recover.
+  static Widget transformedChild({
+    required Matrix4 transform,
+    required Size childSize,
+    required Widget child,
+    FilterQuality filterQuality = FilterQuality.low,
+  }) {
+    return OverflowBox(
+      alignment: Alignment.topLeft,
+      minWidth: childSize.width,
+      minHeight: childSize.height,
+      maxWidth: childSize.width,
+      maxHeight: childSize.height,
+      child: Transform(
+        transform: transform,
+        alignment: Alignment.topLeft,
+        filterQuality: filterQuality,
+        child: child,
       ),
     );
   }
