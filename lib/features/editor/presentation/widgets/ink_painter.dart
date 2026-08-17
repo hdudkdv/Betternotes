@@ -68,12 +68,7 @@ class InkPainter extends CustomPainter {
 
   void _cacheSettledPreviewThenUpgrade(Rect? cull) {
     _settledPicture?.dispose();
-    _settledPicture = _recordSettled(
-      strokes,
-      cull,
-      selectedIds,
-      rich: false,
-    );
+    _settledPicture = _recordSettled(strokes, cull, selectedIds, rich: false);
     _settledFor = strokes;
     _settledCull = cull;
     _settledSelected = Set<String>.of(selectedIds);
@@ -91,12 +86,7 @@ class InkPainter extends CustomPainter {
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (token != _richUpgradeToken) return;
       if (!identical(_settledFor, strokesRef)) return;
-      final rich = _recordSettled(
-        strokesRef,
-        cullRef,
-        selectedRef,
-        rich: true,
-      );
+      final rich = _recordSettled(strokesRef, cullRef, selectedRef, rich: true);
       _settledPicture?.dispose();
       _settledPicture = rich;
       settledCacheTick.value++;
@@ -234,7 +224,9 @@ class InkPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = stroke.width
-      ..blendMode = stroke.isMarker ? BlendMode.multiply : BlendMode.srcOver;
+      ..blendMode = stroke.isMarker ? BlendMode.multiply : BlendMode.srcOver
+      ..isAntiAlias = true
+      ..filterQuality = FilterQuality.none;
 
     if (stroke.points.length == 1) {
       canvas.drawCircle(
@@ -246,7 +238,7 @@ class InkPainter extends CustomPainter {
     }
 
     final path = _smoothPath(stroke.points);
-    final pattern = _dashPattern(stroke);
+    final pattern = stroke.style.dashPattern(stroke.width);
     if (pattern == null) {
       canvas.drawPath(path, paint);
     } else {
@@ -254,20 +246,6 @@ class InkPainter extends CustomPainter {
         paint.strokeCap = StrokeCap.butt;
       }
       _drawDashedPath(canvas, path, paint, pattern);
-    }
-  }
-
-  List<double>? _dashPattern(InkStroke stroke) {
-    final w = stroke.width;
-    switch (stroke.style) {
-      case StrokeStyle.solid:
-        return null;
-      case StrokeStyle.dashed:
-        return [w * 3.2, w * 2.2];
-      case StrokeStyle.dotted:
-        return [0.05, w * 2.4];
-      case StrokeStyle.dashDot:
-        return [w * 3.2, w * 1.5, 0.05, w * 1.5];
     }
   }
 
@@ -354,7 +332,7 @@ class InkPainter extends CustomPainter {
   void _paintPressureStroke(Canvas canvas, InkStroke stroke) {
     final points = stroke.points;
     if (points.isEmpty) return;
-    final pattern = _dashPattern(stroke);
+    final pattern = stroke.style.dashPattern(stroke.width);
     if (pattern != null && points.length > 1) {
       for (final run in _dashedPointRuns(points, pattern)) {
         _paintPressureRun(canvas, stroke, run);
@@ -426,7 +404,7 @@ class InkPainter extends CustomPainter {
   }) {
     final points = stroke.points;
     if (points.isEmpty) return;
-    final pattern = _dashPattern(stroke);
+    final pattern = stroke.style.dashPattern(stroke.width);
     if (pattern != null && points.length > 1) {
       for (final run in _dashedPointRuns(points, pattern)) {
         _paintPencilSolid(canvas, stroke, run, live: live);
@@ -463,40 +441,31 @@ class InkPainter extends CustomPainter {
       pressureSum += p.pressure;
     }
     final avgP = (pressureSum / points.length).clamp(0.05, 1.0);
-    final path = _smoothPath(points);
-
-    if (!live) {
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = stroke.color.withValues(alpha: 0.11 + avgP * 0.08)
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round
-          ..strokeWidth = stroke.width * 1.62
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke.width * 0.38),
-      );
-    }
 
     _paintPencilRibbon(canvas, points, stroke, live: live);
 
+    // Hard graphite core — no blur, so zoomed pages stay crisp.
     canvas.drawPath(
-      path,
+      _smoothPath(points),
       Paint()
-        ..color = stroke.color.withValues(alpha: live ? 0.22 : 0.28 + avgP * 0.12)
+        ..color = stroke.color.withValues(
+          alpha: live ? 0.38 : 0.52 + avgP * 0.18,
+        )
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = stroke.width * (0.42 + avgP * 0.18),
+        ..strokeWidth = stroke.width * (0.22 + avgP * 0.14)
+        ..isAntiAlias = true
+        ..filterQuality = FilterQuality.none,
     );
 
     _paintPencilEdge(canvas, points, stroke, side: -1, live: live);
     _paintPencilEdge(canvas, points, stroke, side: 1, live: live);
 
     final step = live
-        ? math.max(1.85, stroke.width * 0.62)
-        : math.max(0.62, stroke.width * 0.28);
-    final flake = Paint();
+        ? math.max(1.15, stroke.width * 0.42)
+        : math.max(0.38, stroke.width * 0.16);
+    final flake = Paint()..filterQuality = FilterQuality.none;
     var distance = 0.0;
     for (var i = 1; i < points.length; i++) {
       final a = points[i - 1];
@@ -509,11 +478,12 @@ class InkPainter extends CustomPainter {
       while (d < len) {
         final t = d / len;
         final pos = Offset(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
-        final pressure =
-            (a.pressure + (b.pressure - a.pressure) * t).clamp(0.05, 1.0);
-        final seed = stroke.id.hashCode ^
-            ((distance + d) * 97).round() ^
-            (i * 19349663);
+        final pressure = (a.pressure + (b.pressure - a.pressure) * t).clamp(
+          0.05,
+          1.0,
+        );
+        final seed =
+            stroke.id.hashCode ^ ((distance + d) * 97).round() ^ (i * 19349663);
         _paintPencilFlake(
           canvas,
           pos,
@@ -552,8 +522,8 @@ class InkPainter extends CustomPainter {
       final len = dir.distance;
       if (len < 1e-4) continue;
       final n = Offset(-dir.dy / len, dir.dx / len);
-      final half = stroke.width *
-          (0.28 + curr.pressure.clamp(0.05, 1.0) * 0.28);
+      final half =
+          stroke.width * (0.18 + curr.pressure.clamp(0.05, 1.0) * 0.22);
       left.add(curr.offset + n * half);
       right.add(curr.offset - n * half);
     }
@@ -569,7 +539,7 @@ class InkPainter extends CustomPainter {
     canvas.drawPath(
       fill,
       Paint()
-        ..color = stroke.color.withValues(alpha: live ? 0.34 : 0.42)
+        ..color = stroke.color.withValues(alpha: live ? 0.22 : 0.30)
         ..style = PaintingStyle.fill,
     );
   }
@@ -605,9 +575,7 @@ class InkPainter extends CustomPainter {
       path,
       Paint()
         ..color = stroke.color.withValues(
-          alpha: live
-              ? (side < 0 ? 0.10 : 0.06)
-              : (side < 0 ? 0.20 : 0.12),
+          alpha: live ? (side < 0 ? 0.10 : 0.06) : (side < 0 ? 0.20 : 0.12),
         )
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
@@ -631,39 +599,61 @@ class InkPainter extends CustomPainter {
     final jitter = _hash01(seed);
     final jitter2 = _hash01(seed ^ 0x9E3779B9);
     final jitter3 = _hash01(seed ^ 0x85EBCA6B);
-    final alpha = (0.20 + pressure * 0.48).clamp(0.14, 0.74);
+    final jitter4 = _hash01(seed ^ 0xC2B2AE35);
+    final alpha = (0.28 + pressure * 0.58).clamp(0.22, 0.88);
     canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(angle + (jitter - 0.5) * 0.28);
-    paint.color = color.withValues(alpha: alpha * (rich ? 0.68 : 0.50));
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset.zero,
-        width: width * (0.92 + pressure * 0.28),
-        height: width * (0.16 + pressure * 0.08),
+    canvas.translate(
+      center.dx + (jitter2 - 0.5) * width * 0.22,
+      center.dy + (jitter3 - 0.5) * width * 0.22,
+    );
+    // Graphite lays down as a slightly skewed, hard-edged stick — not a blob.
+    canvas.rotate(angle + (jitter - 0.5) * 0.18);
+    paint
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true
+      ..filterQuality = FilterQuality.none
+      ..color = color.withValues(alpha: alpha * (rich ? 0.82 : 0.62));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset.zero,
+          width: width * (1.15 + pressure * 0.38),
+          height: width * (0.11 + pressure * 0.06),
+        ),
+        const Radius.circular(0.4),
       ),
       paint,
     );
-    paint.color = color.withValues(alpha: alpha * (rich ? 0.42 : 0.26));
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset((jitter2 - 0.5) * width * 0.34, (jitter3 - 0.5) * width * 0.10),
-        width: width * (0.42 + pressure * 0.12),
-        height: width * 0.09,
+    paint.color = color.withValues(alpha: alpha * (rich ? 0.55 : 0.34));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(
+            (jitter2 - 0.5) * width * 0.28,
+            (jitter3 - 0.5) * width * 0.08,
+          ),
+          width: width * (0.55 + pressure * 0.18),
+          height: width * 0.07,
+        ),
+        const Radius.circular(0.3),
       ),
       paint,
     );
     if (rich) {
-      paint.color = color.withValues(alpha: alpha * 0.34);
-      canvas.drawCircle(
-        Offset((jitter3 - 0.5) * width * 0.46, (jitter - 0.5) * width * 0.18),
-        width * (0.045 + pressure * 0.03),
-        paint,
-      );
-      paint.color = color.withValues(alpha: alpha * 0.22);
-      canvas.drawCircle(
-        Offset((jitter2 - 0.5) * width * 0.38, (jitter3 - 0.5) * width * 0.22),
-        width * 0.035,
+      canvas.rotate((jitter4 - 0.5) * 0.55);
+      paint.color = color.withValues(alpha: alpha * 0.40);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: Offset(
+              (jitter3 - 0.5) * width * 0.32,
+              (jitter - 0.5) * width * 0.12,
+            ),
+            width: width * (0.38 + pressure * 0.10),
+            height: width * 0.055,
+          ),
+          const Radius.circular(0.25),
+        ),
         paint,
       );
     }

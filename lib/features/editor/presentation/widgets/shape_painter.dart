@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../data/models/content_models.dart';
+import '../../domain/ink_models.dart';
 
 export '../../domain/geometry_guides.dart' show snapRulerEndpoint;
 
@@ -22,28 +25,66 @@ class ShapePainter extends CustomPainter {
   }
 
   void _paintShape(Canvas canvas, ShapeElement shape, {bool preview = false}) {
+    final style = StrokeStyleX.fromName(shape.style);
     final paint = Paint()
-      ..color = Color(shape.colorValue).withValues(alpha: preview ? 0.7 : 1)
+      ..color = Color(shape.colorValue).withValues(alpha: preview ? 0.92 : 1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = shape.strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+      ..strokeCap = style == StrokeStyle.dashed
+          ? StrokeCap.butt
+          : StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true
+      ..filterQuality = FilterQuality.none;
 
     final a = Offset(shape.x1, shape.y1);
     final b = Offset(shape.x2, shape.y2);
-    switch (shape.kind) {
-      case ShapeKind.line:
-        canvas.drawLine(a, b, paint);
-      case ShapeKind.arrow:
-        canvas.drawLine(a, b, paint);
-        _drawArrowHead(canvas, a, b, paint);
-      case ShapeKind.rect:
-        canvas.drawRect(Rect.fromPoints(a, b), paint);
-      case ShapeKind.ellipse:
-        canvas.drawOval(Rect.fromPoints(a, b), paint);
-      case ShapeKind.circle:
-        final radius = (b - a).distance;
-        canvas.drawCircle(a, radius, paint);
+    final path = switch (shape.kind) {
+      ShapeKind.line =>
+        (Path()
+          ..moveTo(a.dx, a.dy)
+          ..lineTo(b.dx, b.dy)),
+      ShapeKind.arrow =>
+        (Path()
+          ..moveTo(a.dx, a.dy)
+          ..lineTo(b.dx, b.dy)),
+      ShapeKind.rect => Path()..addRect(Rect.fromPoints(a, b)),
+      ShapeKind.ellipse => Path()..addOval(Rect.fromPoints(a, b)),
+      ShapeKind.circle =>
+        Path()..addOval(Rect.fromCircle(center: a, radius: (b - a).distance)),
+    };
+
+    final pattern = style.dashPattern(shape.strokeWidth);
+    if (pattern == null) {
+      canvas.drawPath(path, paint);
+    } else {
+      _drawDashedPath(canvas, path, paint, pattern);
+    }
+    if (shape.kind == ShapeKind.arrow) {
+      _drawArrowHead(canvas, a, b, paint);
+    }
+  }
+
+  static void _drawDashedPath(
+    Canvas canvas,
+    Path path,
+    Paint paint,
+    List<double> pattern,
+  ) {
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      var draw = true;
+      var index = 0;
+      while (distance < metric.length) {
+        final seg = pattern[index % pattern.length];
+        final next = math.min(distance + seg, metric.length);
+        if (draw && next > distance) {
+          canvas.drawPath(metric.extractPath(distance, next), paint);
+        }
+        distance = next;
+        draw = !draw;
+        index++;
+      }
     }
   }
 
@@ -65,11 +106,7 @@ class ShapePainter extends CustomPainter {
       final unit = dir / len;
       final start = a - unit * 24;
       final end = b + unit * 24;
-      canvas.drawLine(
-        start,
-        end,
-        guide..strokeWidth = 1,
-      );
+      canvas.drawLine(start, end, guide..strokeWidth = 1);
       // Tick marks every ~40px along the segment.
       final ticks = (len / 40).floor().clamp(0, 40);
       for (var i = 1; i <= ticks; i++) {

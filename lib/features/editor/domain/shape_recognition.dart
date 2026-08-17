@@ -14,6 +14,7 @@ class ShapeRecognition {
     required String pageId,
     required int colorValue,
     required double strokeWidth,
+    StrokeStyle style = StrokeStyle.solid,
     bool allowImperfectLine = false,
   }) {
     if (points.length < 5) return null;
@@ -38,6 +39,7 @@ class ShapeRecognition {
         y2: circle.center.dy,
         colorValue: colorValue,
         strokeWidth: strokeWidth,
+        style: style.name,
       );
     }
 
@@ -52,6 +54,7 @@ class ShapeRecognition {
         y2: rect.bottom,
         colorValue: colorValue,
         strokeWidth: strokeWidth,
+        style: style.name,
       );
     }
 
@@ -66,6 +69,7 @@ class ShapeRecognition {
         y2: ellipse.bottom,
         colorValue: colorValue,
         strokeWidth: strokeWidth,
+        style: style.name,
       );
     }
 
@@ -80,6 +84,7 @@ class ShapeRecognition {
         y2: line.$2.dy,
         colorValue: colorValue,
         strokeWidth: strokeWidth,
+        style: style.name,
       );
     }
     return null;

@@ -83,7 +83,6 @@ class PageViewportFit {
     required Matrix4 transform,
     required Size childSize,
     required Widget child,
-    FilterQuality filterQuality = FilterQuality.low,
   }) {
     return OverflowBox(
       alignment: Alignment.topLeft,
@@ -94,7 +93,6 @@ class PageViewportFit {
       child: Transform(
         transform: transform,
         alignment: Alignment.topLeft,
-        filterQuality: filterQuality,
         child: child,
       ),
     );

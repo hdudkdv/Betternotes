@@ -593,6 +593,7 @@ class ShapeElement extends Equatable {
     required this.y2,
     this.colorValue = 0xFF1A1A1A,
     this.strokeWidth = 2.5,
+    this.style = 'solid',
   });
 
   final String id;
@@ -604,6 +605,9 @@ class ShapeElement extends Equatable {
   final double y2;
   final int colorValue;
   final double strokeWidth;
+
+  /// Stroke pattern name (`solid`, `dashed`, `dotted`, `dashDot`).
+  final String style;
 
   Rect get bounds {
     if (kind == ShapeKind.circle) {
@@ -621,6 +625,7 @@ class ShapeElement extends Equatable {
     double? y2,
     int? colorValue,
     double? strokeWidth,
+    String? style,
   }) {
     return ShapeElement(
       id: id,
@@ -632,6 +637,7 @@ class ShapeElement extends Equatable {
       y2: y2 ?? this.y2,
       colorValue: colorValue ?? this.colorValue,
       strokeWidth: strokeWidth ?? this.strokeWidth,
+      style: style ?? this.style,
     );
   }
 
@@ -645,6 +651,7 @@ class ShapeElement extends Equatable {
     'y2': y2,
     'color': colorValue,
     'strokeWidth': strokeWidth,
+    'style': style,
   };
 
   factory ShapeElement.fromJson(Map<String, dynamic> json) {
@@ -661,6 +668,7 @@ class ShapeElement extends Equatable {
       y2: (json['y2'] as num).toDouble(),
       colorValue: json['color'] as int? ?? 0xFF1A1A1A,
       strokeWidth: (json['strokeWidth'] as num?)?.toDouble() ?? 2.5,
+      style: json['style'] as String? ?? 'solid',
     );
   }
 
@@ -673,6 +681,7 @@ class ShapeElement extends Equatable {
     required double y2,
     int colorValue = 0xFF1A1A1A,
     double strokeWidth = 2.5,
+    String style = 'solid',
   }) {
     return ShapeElement(
       id: const Uuid().v4(),
@@ -684,6 +693,7 @@ class ShapeElement extends Equatable {
       y2: y2,
       colorValue: colorValue,
       strokeWidth: strokeWidth,
+      style: style,
     );
   }
 
@@ -698,6 +708,7 @@ class ShapeElement extends Equatable {
     y2,
     colorValue,
     strokeWidth,
+    style,
   ];
 }
 
@@ -1359,5 +1370,12 @@ class PageLocalSnapshot extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, pageId, notebookId, label, createdAt, pageJson];
+  List<Object?> get props => [
+    id,
+    pageId,
+    notebookId,
+    label,
+    createdAt,
+    pageJson,
+  ];
 }

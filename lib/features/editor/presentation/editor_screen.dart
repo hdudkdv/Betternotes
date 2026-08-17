@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -105,11 +106,7 @@ final editorControllerDeepLinkProvider = ChangeNotifierProvider.autoDispose
       },
     );
 
-void _bindCloudLive(
-  Ref ref,
-  EditorController controller,
-  String notebookId,
-) {
+void _bindCloudLive(Ref ref, EditorController controller, String notebookId) {
   final engine = ref.read(syncEngineProvider);
   controller.onLocalEdit = (previous, next) {
     unawaited(engine.publishLocalEdit(previous: previous, next: next));
@@ -398,7 +395,8 @@ class EditorController extends ChangeNotifier {
         for (final i in images)
           if (!selectedImageIds.contains(i.id)) i,
       ];
-      if (selectedImageId != null && selectedImageIds.contains(selectedImageId)) {
+      if (selectedImageId != null &&
+          selectedImageIds.contains(selectedImageId)) {
         selectedImageId = null;
       }
       selectedImageIds = {};
@@ -442,9 +440,10 @@ class EditorController extends ChangeNotifier {
       final metrics = _metricsForPage(page);
       for (final block in textBlocks) {
         if (!selectedTextIds.contains(block.id)) continue;
-        if (textBlockBounds(block: block, metrics: metrics)
-            .inflate(8)
-            .contains(pagePoint)) {
+        if (textBlockBounds(
+          block: block,
+          metrics: metrics,
+        ).inflate(8).contains(pagePoint)) {
           return true;
         }
       }
@@ -569,9 +568,10 @@ class EditorController extends ChangeNotifier {
         final metrics = _metricsForPage(page);
         final next = [
           for (final b in textBlocks)
-            if (!textBlockBounds(block: b, metrics: metrics)
-                .inflate(radius)
-                .contains(point))
+            if (!textBlockBounds(
+              block: b,
+              metrics: metrics,
+            ).inflate(radius).contains(point))
               b,
         ];
         if (next.length != textBlocks.length) {
@@ -702,7 +702,8 @@ class EditorController extends ChangeNotifier {
   void syncActivePageMemory() {
     final page = currentPage;
     if (page == null) return;
-    final dirty = page.strokes.length != ink.strokes.length ||
+    final dirty =
+        page.strokes.length != ink.strokes.length ||
         page.shapes.length != shapes.length ||
         page.images.length != images.length ||
         page.textBlocks.length != textBlocks.length;
@@ -1139,7 +1140,10 @@ class EditorController extends ChangeNotifier {
   }
 
   void deleteImage(String id) {
-    images = [for (final i in images) if (i.id != id) i];
+    images = [
+      for (final i in images)
+        if (i.id != id) i,
+    ];
     if (selectedImageId == id) selectedImageId = null;
     notifyListeners();
     _scheduleSave();
@@ -1447,6 +1451,7 @@ class EditorController extends ChangeNotifier {
         y2: pagePoint.dy,
         colorValue: ink.colorValue,
         strokeWidth: ink.width,
+        style: ink.strokeStyle.name,
       );
       notifyListeners();
       return;
@@ -1504,33 +1509,87 @@ class EditorController extends ChangeNotifier {
     _shapeHoldTimer?.cancel();
     if (!ink.tool.isFreehand) return;
     if (ink.activeStroke == null) return;
-    _shapeHoldTimer = Timer(const Duration(milliseconds: 380), _tryHoldRecognize);
+    _shapeHoldTimer = Timer(kLongPressTimeout, _tryHoldRecognize);
   }
 
   void _tryHoldRecognize() {
     if (_disposed) return;
-    if (_commitRecognizedShape(loose: true)) {
+    if (_beginRecognizedShapePreview()) {
       _convertedByHold = true;
     }
   }
 
-  bool _commitRecognizedShape({required bool loose}) {
+  /// Snap the in-progress stroke to a draft shape. Pointer-up commits it;
+  /// further movement resizes from the anchor (same as the shape tool).
+  bool _beginRecognizedShapePreview() {
     final page = currentPage;
     final stroke = ink.activeStroke;
     if (page == null || stroke == null || !ink.tool.isFreehand) return false;
+    if (stroke.points.length < 5) return false;
+    final pointer = stroke.points.last.offset;
     final shape = ShapeRecognition.recognize(
       stroke.points,
       pageId: page.id,
       colorValue: stroke.colorValue,
       strokeWidth: stroke.width,
-      allowImperfectLine: loose,
+      style: stroke.style,
+      allowImperfectLine: true,
     );
     if (shape == null) return false;
     ink.cancelStroke();
-    shapes = [...shapes, shape];
+    final preview = _resizeAnchorForPointer(shape, pointer);
+    _shapeStart = preview.$1;
+    draftShape = preview.$2;
     notifyListeners();
-    _scheduleSave();
     return true;
+  }
+
+  /// Anchor stays put; the live pointer becomes the opposite corner / end / radius.
+  (Offset, ShapeElement) _resizeAnchorForPointer(
+    ShapeElement shape,
+    Offset pointer,
+  ) {
+    switch (shape.kind) {
+      case ShapeKind.circle:
+        return (
+          Offset(shape.x1, shape.y1),
+          shape.copyWith(x2: pointer.dx, y2: pointer.dy),
+        );
+      case ShapeKind.line:
+      case ShapeKind.arrow:
+        return (
+          Offset(shape.x1, shape.y1),
+          shape.copyWith(x2: pointer.dx, y2: pointer.dy),
+        );
+      case ShapeKind.rect:
+      case ShapeKind.ellipse:
+        final a = Offset(shape.x1, shape.y1);
+        final b = Offset(shape.x2, shape.y2);
+        final corners = <Offset>[
+          a,
+          Offset(b.dx, a.dy),
+          b,
+          Offset(a.dx, b.dy),
+        ];
+        var farthest = corners.first;
+        var best = -1.0;
+        for (final corner in corners) {
+          final d = (corner - pointer).distance;
+          if (d > best) {
+            best = d;
+            farthest = corner;
+          }
+        }
+        return (
+          farthest,
+          shape.copyWith(
+            x1: farthest.dx,
+            y1: farthest.dy,
+            x2: pointer.dx,
+            y2: pointer.dy,
+          ),
+        );
+    }
   }
 
   void onPointerUp() {
@@ -1538,14 +1597,14 @@ class EditorController extends ChangeNotifier {
     _shapeHoldTimer?.cancel();
     if (_convertedByHold) {
       _convertedByHold = false;
-      return;
     }
 
     if (_shapeStart != null && draftShape != null) {
       final shape = draftShape!;
       final commit = shape.kind == ShapeKind.circle
           ? (Offset(shape.x2 - shape.x1, shape.y2 - shape.y1).distance > 4)
-          : ((shape.x2 - shape.x1).abs() > 4 || (shape.y2 - shape.y1).abs() > 4);
+          : ((shape.x2 - shape.x1).abs() > 4 ||
+                (shape.y2 - shape.y1).abs() > 4);
       if (commit) {
         shapes = [...shapes, shape];
         _scheduleSave();
@@ -1565,7 +1624,7 @@ class EditorController extends ChangeNotifier {
       _lassoBeforeMove = null;
       return;
     }
-    if (_commitRecognizedShape(loose: false)) return;
+    // Shape snap is hold-only (same duration as a toolbar long-press).
     ink.endStroke();
     if (ink.tool == InkTool.lasso) {
       _selectObjectsInLasso(ink.lastClosedLasso);
@@ -1799,8 +1858,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     final bytes = await showChartBuilderSheet(
       context,
       chartPack: ref.read(entitlementProvider).hasAccess(FeatureKeys.chartPack),
-      helperPack:
-          ref.read(entitlementProvider).hasAccess(FeatureKeys.helperPack),
+      helperPack: ref
+          .read(entitlementProvider)
+          .hasAccess(FeatureKeys.helperPack),
     );
     if (bytes == null || !mounted) return;
     await controller.insertPngBytes(bytes, width: 360, height: 240);
@@ -1878,9 +1938,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     unawaited(lan.sendClassroomSignal('focus', focused));
   }
 
-  Future<void> _offerClassroomAutoConnect(
-    LanSyncController lan,
-  ) async {
+  Future<void> _offerClassroomAutoConnect(LanSyncController lan) async {
     final prefs = ref.read(sharedPreferencesProvider);
     if (prefs.getBool(ClassroomAutoConnect.askedKey) == true || !mounted) {
       return;
@@ -1965,7 +2023,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       case ShareExportAction.sharePageAsImage:
         final nb = controller.notebook;
         if (nb == null) return;
-        await ref.read(exportServiceProvider).sharePageAsImage(
+        await ref
+            .read(exportServiceProvider)
+            .sharePageAsImage(
               notebook: nb,
               pages: controller.pages,
               pageIndex: controller.pageIndex,
@@ -1976,9 +2036,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         await controller.persistForSearchIndex();
         if (!context.mounted) return;
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.marketplaceInkOcrHint)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.marketplaceInkOcrHint)));
       case ShareExportAction.savePageAsTemplate:
         final page = controller.currentPage;
         if (page == null) return;
@@ -2016,7 +2076,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     };
     controller.onPageDeleted = (pageId) {
       unawaited(
-        ref.read(lanSyncProvider).noteLocalPageDeleted(
+        ref
+            .read(lanSyncProvider)
+            .noteLocalPageDeleted(
               pageId: pageId,
               notebookId: widget.notebookId,
             ),
@@ -2084,7 +2146,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     }
     if (classroomGuest && controller.pages.isNotEmpty) {
       final progress =
-          (((controller.pageIndex + 1) / controller.pages.length) * 100).round();
+          (((controller.pageIndex + 1) / controller.pages.length) * 100)
+              .round();
       if (progress != _lastClassroomProgress) {
         _lastClassroomProgress = progress;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2191,12 +2254,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                           false,
                       onBrowsePanEnd: () =>
                           _pagesViewportKey.currentState?.handleBrowsePanEnd(),
-                      onScrollLockChanged: (locked) => _pagesViewportKey
-                          .currentState
-                          ?.setScrollLock(locked),
-                      onZoomedChanged: (zoomed) => _pagesViewportKey
-                          .currentState
-                          ?.setZoomed(zoomed),
+                      onScrollLockChanged: (locked) =>
+                          _pagesViewportKey.currentState?.setScrollLock(locked),
+                      onZoomedChanged: (zoomed) =>
+                          _pagesViewportKey.currentState?.setZoomed(zoomed),
                       onTwoFingerTap: () => unawaited(
                         _runGestureAction(
                           ref.read(settingsProvider).twoFingerTapAction,
@@ -2213,14 +2274,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                     .threeFingerSwipeRightAction,
                         ),
                       ),
-                      onPointerDown: (point, {required isStylus, pressure = 0.5}) {
-                        _dismissUnpinnedTools();
-                        controller.onPointerDown(
-                          point,
-                          isStylus: isStylus,
-                          pressure: pressure,
-                        );
-                      },
+                      onPointerDown:
+                          (point, {required isStylus, pressure = 0.5}) {
+                            _dismissUnpinnedTools();
+                            controller.onPointerDown(
+                              point,
+                              isStylus: isStylus,
+                              pressure: pressure,
+                            );
+                          },
                       onPointerMove: controller.onPointerMove,
                       onPointerUp: controller.onPointerUp,
                       overlay: Stack(
@@ -2255,8 +2317,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                     ],
                                     texts: [
                                       for (final b in controller.textBlocks)
-                                        if (controller.selectedTextIds
-                                            .contains(b.id))
+                                        if (controller.selectedTextIds.contains(
+                                          b.id,
+                                        ))
                                           textBlockBounds(
                                             block: b,
                                             metrics: metrics,
@@ -2271,8 +2334,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               aid: controller.drawingAids.ruler!,
                               readOnly: readOnly || presenting,
                               onChanged: controller.drawingAids.updateRuler,
-                              onToggleFixed: () => controller.drawingAids
-                                  .setRulerFixed(
+                              onToggleFixed: () =>
+                                  controller.drawingAids.setRulerFixed(
                                     !controller.drawingAids.ruler!.fixed,
                                   ),
                             ),
@@ -2285,8 +2348,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               ),
                               readOnly: readOnly || presenting,
                               onChanged: controller.drawingAids.updateCompass,
-                              onToggleFixed: () => controller.drawingAids
-                                  .setCompassFixed(
+                              onToggleFixed: () =>
+                                  controller.drawingAids.setCompassFixed(
                                     !controller.drawingAids.compass!.fixed,
                                   ),
                             ),
@@ -2327,8 +2390,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               onChanged: controller.updateTextBlock,
                               onDelete: controller.deleteTextBlock,
                               onCaretPagePoint: (point) {
-                                _canvasKey.currentState
-                                    ?.ensurePagePointVisible(point);
+                                _canvasKey.currentState?.ensurePagePointVisible(
+                                  point,
+                                );
                               },
                             ),
                           ),
@@ -2371,7 +2435,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   hasSelectedImage: controller.selectedImageId != null,
                   onDeleteImage: controller.selectedImageId == null
                       ? null
-                      : () => controller.deleteImage(controller.selectedImageId!),
+                      : () =>
+                            controller.deleteImage(controller.selectedImageId!),
                   onToggleRuler: controller.toggleRulerAid,
                   onToggleCompass: controller.toggleCompassAid,
                   rulerActive: controller.drawingAids.hasRuler,
@@ -2529,12 +2594,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                           tooltip: l10n.teacherSaveLessonMaterials,
                           visualDensity: VisualDensity.compact,
                           onPressed: () async {
-                            final snapshot =
-                                await controller.saveCurrentSnapshot(
-                              label: l10n.teacherSavedMaterialsLabel(
-                                TimeOfDay.now().format(context),
-                              ),
-                            );
+                            final snapshot = await controller
+                                .saveCurrentSnapshot(
+                                  label: l10n.teacherSavedMaterialsLabel(
+                                    TimeOfDay.now().format(context),
+                                  ),
+                                );
                             if (snapshot == null || !context.mounted) return;
                             final session = ref.read(teacherProvider).session;
                             await ref
@@ -2583,9 +2648,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
               child: Center(
                 child: Material(
                   color: EditorChrome.floating,
-                  borderRadius: BorderRadius.circular(
-                    EditorChrome.pillRadius,
-                  ),
+                  borderRadius: BorderRadius.circular(EditorChrome.pillRadius),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -2616,8 +2679,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                         if (lan.classroomFocusCheckEnabled &&
                             !lan.classroomFocusConsent)
                           TextButton(
-                            onPressed: () =>
-                                lan.setClassroomFocusConsent(true),
+                            onPressed: () => lan.setClassroomFocusConsent(true),
                             child: Text(
                               l10n.teacherAllowFocusCheck,
                               style: TextStyle(
@@ -2714,8 +2776,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
               title: l10n.assistant,
               width: 360,
               pinned: _assistantPinned,
-              onPin: () =>
-                  setState(() => _assistantPinned = !_assistantPinned),
+              onPin: () => setState(() => _assistantPinned = !_assistantPinned),
               onClose: () => setState(() {
                 _assistantOpen = false;
                 _assistantPinned = false;
@@ -2757,8 +2818,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     .watch(entitlementProvider)
                     .hasAccess(FeatureKeys.formulaPack),
                 initialChapterId: _bookChapterId,
-                onUseFormula: (expr) =>
-                    _useFormulaInGraph(controller, expr),
+                onUseFormula: (expr) => _useFormulaInGraph(controller, expr),
               ),
             ),
           ),
@@ -2800,7 +2860,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 onSelectTab: (id) {
                   if (examLock) {
                     unawaited(
-                      ref.read(studentAssignmentProvider.notifier).leave('notebook'),
+                      ref
+                          .read(studentAssignmentProvider.notifier)
+                          .leave('notebook'),
                     );
                   }
                   ref.read(openNotebookTabsProvider.notifier).select(id);
@@ -2820,7 +2882,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 onHome: () {
                   if (examLock) {
                     unawaited(
-                      ref.read(studentAssignmentProvider.notifier).leave('home'),
+                      ref
+                          .read(studentAssignmentProvider.notifier)
+                          .leave('home'),
                     );
                   }
                   refreshLibraryLists(ref);
@@ -2846,11 +2910,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 onPresent: controller.togglePresentationMode,
                 onMenuAction: (action) =>
                     _handleMenuAction(context, controller, action),
-                onConfigureEraser: () => _configureContentTargets(
-                  context,
-                  controller,
-                  eraser: true,
-                ),
+                onConfigureEraser: () =>
+                    _configureContentTargets(context, controller, eraser: true),
                 onConfigureLasso: () => _configureContentTargets(
                   context,
                   controller,
@@ -2960,9 +3021,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
           if (paths.isEmpty) return;
           final added = await controller.importScannedImages(paths);
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.scanAddedPages(added))),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.scanAddedPages(added))));
         } catch (_) {
           if (!context.mounted) return;
           ScaffoldMessenger.of(

@@ -12,8 +12,10 @@ enum InkTool {
   lasso,
   text,
   shape,
+
   /// Kept for older sessions; prefer [DrawingGuide.ruler].
   ruler,
+
   /// Kept for older sessions; prefer [DrawingGuide.compass].
   compass,
   image,
@@ -24,6 +26,30 @@ enum DrawingGuide { none, ruler, compass }
 
 /// Stroke pattern for pens / markers (pencil stays textured).
 enum StrokeStyle { solid, dashed, dotted, dashDot }
+
+extension StrokeStyleX on StrokeStyle {
+  static StrokeStyle fromName(String? name) {
+    for (final value in StrokeStyle.values) {
+      if (value.name == name) return value;
+    }
+    return StrokeStyle.solid;
+  }
+
+  /// Dash / gap lengths in page units, or null for a continuous stroke.
+  List<double>? dashPattern(double width) {
+    final w = width.clamp(0.8, 40.0);
+    switch (this) {
+      case StrokeStyle.solid:
+        return null;
+      case StrokeStyle.dashed:
+        return [w * 3.2, w * 2.2];
+      case StrokeStyle.dotted:
+        return [0.05, w * 2.4];
+      case StrokeStyle.dashDot:
+        return [w * 3.2, w * 1.5, 0.05, w * 1.5];
+    }
+  }
+}
 
 extension InkToolX on InkTool {
   /// Freehand ink tools that go through begin/append/end stroke.
@@ -345,20 +371,12 @@ class InkStroke extends Equatable {
     bool inBand(int i) {
       if ((points[i].offset - center).distance <= hitR) return true;
       if (i > 0 &&
-          _distanceToSegment(
-                center,
-                points[i - 1].offset,
-                points[i].offset,
-              ) <=
+          _distanceToSegment(center, points[i - 1].offset, points[i].offset) <=
               hitR) {
         return true;
       }
       if (i < points.length - 1 &&
-          _distanceToSegment(
-                center,
-                points[i].offset,
-                points[i + 1].offset,
-              ) <=
+          _distanceToSegment(center, points[i].offset, points[i + 1].offset) <=
               hitR) {
         return true;
       }

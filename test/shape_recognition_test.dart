@@ -78,4 +78,16 @@ void main() {
     );
     expect(shape?.kind, ShapeKind.rect);
   });
+
+  test('keeps the current stroke style on a recognized line', () {
+    final shape = ShapeRecognition.recognize(
+      _line(const Offset(20, 40), const Offset(180, 42)),
+      pageId: 'p',
+      colorValue: 0xFF000000,
+      strokeWidth: 2,
+      style: StrokeStyle.dashed,
+    );
+    expect(shape?.kind, ShapeKind.line);
+    expect(shape?.style, StrokeStyle.dashed.name);
+  });
 }
