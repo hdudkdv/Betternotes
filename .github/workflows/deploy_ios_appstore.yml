@@ -18,6 +18,12 @@ name: Deploy iOS App Store
 
 on:
   workflow_dispatch:
+    inputs:
+      ipa_run_id:
+        description: Reuse the IPA artifact from this Actions run id (skip rebuild)
+        required: false
+        type: string
+        default: ""
 
 concurrency:
   group: deploy-ios-appstore
@@ -26,6 +32,7 @@ concurrency:
 jobs:
   build-and-upload:
     name: Signed IPA and upload
+    if: ${{ github.event.inputs.ipa_run_id == '' || github.event.inputs.ipa_run_id == null }}
     runs-on: macos-latest
     timeout-minutes: 75
     env:
@@ -183,9 +190,33 @@ jobs:
       - name: Upload to App Store Connect
         run: |
           set -euo pipefail
-          IPA=$(ls build/ios/ipa/*.ipa | head -n 1)
-          echo "Uploading $IPA"
-          xcrun altool --upload-app --type ios \
-            --file "$IPA" \
-            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+          sed -i '' 's/\r$//' scripts/asc_upload.sh
+          bash scripts/asc_upload.sh "$(ls build/ios/ipa/*.ipa | head -n 1)"
+
+  upload-only:
+    name: Upload existing IPA
+    if: ${{ github.event.inputs.ipa_run_id != '' && github.event.inputs.ipa_run_id != null }}
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: notis-appstore-ipa
+          path: build/ios/ipa
+          run-id: ${{ github.event.inputs.ipa_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Upload to App Store Connect
+        run: |
+          set -euo pipefail
+          sed -i '' 's/\r$//' scripts/asc_upload.sh
+          bash scripts/asc_upload.sh "$(ls build/ios/ipa/*.ipa | head -n 1)"
