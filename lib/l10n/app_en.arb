@@ -97,6 +97,7 @@
   "writing": "Writing",
   "fingerPanZoom": "Stylus only (finger pans)",
   "fingerPanZoomHint": "On: stylus draws, finger pans.",
+  "mouseAsPenHint": "With a mouse: left-click writes like the stylus, right-click pans like a finger.",
   "defaultTemplate": "Default template",
   "language": "Language",
   "german": "German",
@@ -267,7 +268,7 @@
   "appearance": "Appearance",
   "appearanceHint": "Look and light/dark mode of the app",
   "lookStudio": "Studio",
-  "lookStudioHint": "Graphite with an indigo accent",
+  "lookStudioHint": "Default: graphite with an indigo accent",
   "lookPaper": "Paper",
   "lookPaperHint": "Cream, deep green, serif",
   "lookFresh": "Fresh",
@@ -681,7 +682,7 @@
   },
   "paywallUnavailable": "The paywall is not available on this device.",
   "choosePlan": "Choose a plan",
-  "choosePlanHint": "Teacher and student plans. Purchases go through the store.",
+  "choosePlanHint": "Student and teacher plans: Free, Lite and Pro. Purchases go through the store.",
   "revenueCatTestStoreHint": "The app is still using the RevenueCat Test Store. Use the Apple API key (appl_) for App Store screenshots.",
   "planLehrerLite": "Teacher Lite",
   "planLehrerPro": "Teacher Pro",
@@ -704,6 +705,7 @@
   "sectionSyncPreview": "Sync (preview)",
   "localTierHint": "Local testing only — no real purchases.",
   "tierFree": "Free",
+  "tierLite": "Lite",
   "tierPro": "Pro",
   "tierProPlus": "Pro+",
   "tierTeacher": "Teacher",
@@ -1153,7 +1155,7 @@
   "classroomAutoConnectSettingHint": "Connects only when at least the saved subject or room matches the teacher session.",
   "classroomAutoConnectMismatch": "Automatic connection rejected: neither subject nor room matches.",
   "marketplace": "Marketplace",
-  "marketplaceHint": "Unlock optional features with coins.",
+  "marketplaceHint": "Free: unlock items with coins only. Lite: buy 3 permanently, then coins from ads. Pro: borrow 5 at a time.",
   "marketplaceComingSoon": "Purchase and unlock will arrive in a later update.",
   "marketplaceSoonBadge": "Soon",
   "marketplaceInkOcrHint": "Handwriting and photos are recognized on-device and stored only as a hidden search index.",
@@ -1168,7 +1170,33 @@
   "gemmaSubtitle": "A teacher-style study coach",
   "gemmaBody": "Guides you through the method and explains connections — in maths, history, or a caricature. You still write the finished answer and the exam sentence.",
   "gemmaOnDevice": "On-device · open Assistant in the editor",
-  "gemmaReady": "Unlocked · open Assistant in the editor",
+  "gemmaReady": "Model ready · open Assistant in the editor",
+  "gemmaNeedsSetup": "Run system check and load the model",
+  "gemmaSetupTitle": "Set up Gemma",
+  "gemmaSetupBody": "A short system check: RAM, cores, and a speed probe. Then the matching Gemma model is downloaded onto this device — lighter or heavier.",
+  "gemmaRam": "Memory",
+  "gemmaCores": "CPU cores",
+  "gemmaBench": "Speed probe",
+  "gemmaDevice": "Device",
+  "gemmaTierLite": "Gemma 3 270M",
+  "gemmaTierBalanced": "Gemma 3 1B",
+  "gemmaTierFull": "Gemma 3n E2B",
+  "gemmaPicked": "Recommended: {tier} · about {size} MB download",
+  "@gemmaPicked": {
+    "placeholders": {
+      "tier": { "type": "String" },
+      "size": { "type": "int" }
+    }
+  },
+  "gemmaDownload": "Download model",
+  "gemmaDownloading": "Downloading {percent}%",
+  "@gemmaDownloading": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "gemmaModelReady": "Gemma is ready on this device.",
+  "gemmaDownloadFailed": "Download failed. Check Wi-Fi and try again. The model comes from Google/Hugging Face and needs free storage.",
   "featureStudyMode": "Study mode",
   "featureChartPack": "Chart pack",
   "featureCalcPlus": "Calculator plus",
@@ -1208,13 +1236,13 @@
   "featureInfoAudioTranscription": "Spoken notes are turned into text on the device.",
   "featureInfoPdfCompress": "Make PDFs smaller before you share or export them.",
   "featureInfoHandwritingOcr": "Handwriting and photos are recognized on-device and stored only as a hidden search index.",
-  "featureInfoNoForcedAds": "Fewer ad interruptions in the app.",
+  "featureInfoNoForcedAds": "Premium and this coin unlock turn ads off. Coins then arrive once a day without a video.",
   "featureInfoSessionCollab": "Work together on the same notebook in a live session.",
   "featureInfoAsyncCollab": "Collaborate and comment over the cloud when you are not in the same room.",
   "featureInfoWhiteboard": "Teacher whiteboard for class, saveable with the lesson materials.",
   "featureInfoCloudSync": "Cloud sync when no nearby device is available for a direct link.",
   "featureInfoStudyMode": "A calmer view for studying, with less distraction around the page.",
-  "featureInfoAiAssistant": "Gemma guides you like a teacher: explains connections, does not compute maths for you. The exam sentence and calculator stay with you.",
+  "featureInfoAiAssistant": "A real on-device Gemma model. After unlock, a system check measures RAM and speed and downloads a lighter or heavier model. She explains connections and will not compute maths for you.",
   "scanPages": "Scan pages",
   "scanPagesHint": "System document scanner — sheets become notebook pages.",
   "scanExam": "Scan the exam?",
@@ -1257,6 +1285,11 @@
   "chartLabel": "Name",
   "chartValue": "Value",
   "chartAddRow": "Add value",
+  "chartMindmapBranch": "Branch",
+  "chartMindmapParent": "Attached to",
+  "chartMindmapSubpoints": "Sub-points (comma)",
+  "chartMindmapAddBranch": "Add branch",
+  "chartMindmapAddChild": "Sub-branch",
   "chartInsert": "Insert",
   "assistant": "Gemma",
   "assistantHint": "Like a teacher: show the path, explain connections. Calculations and the exam sentence stay with you.",
@@ -1431,5 +1464,76 @@
   "webCloudUpdated": "Latest cloud notebooks loaded.",
   "webAudioUnavailable": "Audio recordings are not available in the browser. Please use the tablet app.",
   "webLoginHeadline": "Sign in with your account",
-  "webLoginBody": "Google or Apple — the same account as in the app. Notis then loads your current cloud notebooks."
+  "webLoginBody": "Google or Apple — the same account as in the app. Notis then loads your current cloud notebooks.",
+  "stickers": "Stickers",
+  "stickersHint": "Tap a sticker to place it on the page.",
+  "stickerPackSchool": "School",
+  "stickerPackMarks": "Marks",
+  "stickerPackMood": "Mood",
+  "stickyNote": "Sticky note",
+  "renamePage": "Name page",
+  "pageNameHint": "Name for this page",
+  "pageNumberLabel": "Page {number}",
+  "@pageNumberLabel": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "pageCreatedOn": "Created {date}",
+  "@pageCreatedOn": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "pageEditedOn": "Edited {date}",
+  "@pageEditedOn": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "adsForCoinsTitle": "Ads for coins",
+  "adsForCoinsHint": "Short videos give coins for marketplace items.",
+  "premiumNoAdsTitle": "No ads for coins",
+  "premiumNoAdsHint": "Ads for coins are not active on this plan.",
+  "marketplaceLiteCoinsHint": "Buy the first 3 items with coins. After that you earn coins from ads.",
+  "marketplaceLiteAfterHint": "The 3 permanent purchases are used. Further items with coins from ads.",
+  "claimDailyCoins": "Claim daily coins",
+  "dailyCoinsAlreadyClaimed": "Today’s coins already claimed",
+  "planPointNoAds": "No ads, daily coins without a video",
+  "marketplaceBuySlots": "{used} of {limit} permanent purchases",
+  "@marketplaceBuySlots": {
+    "placeholders": {
+      "used": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "marketplaceLoanSlots": "{used} of {limit} loans",
+  "@marketplaceLoanSlots": {
+    "placeholders": {
+      "used": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "marketplaceBorrow": "Borrow",
+  "marketplaceReturnLoan": "Return",
+  "marketplaceNeedLite": "Lite lets you buy 3 items. Choose a plan to use the marketplace.",
+  "marketplaceNeedPro": "Pro borrows 5 items at a time. Choose a plan or free a slot.",
+  "marketplaceBuyCap": "Lite limit reached (3 purchases). Switch to Pro to borrow 5.",
+  "marketplaceLoanCap": "All 5 loans are in use. Return one first.",
+  "accountHandoverTitle": "Notebooks on this device",
+  "accountHandoverBody": "There are {count} notebooks locally. They do not follow a new account automatically.",
+  "@accountHandoverBody": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "accountHandoverDelete": "Delete locally",
+  "accountHandoverDeleteHint": "The notebooks leave this device. Cloud copies stay if they were already uploaded.",
+  "accountHandoverCloud": "Save to the cloud",
+  "accountHandoverCloudHint": "Upload now, then remove them locally. They come back when you sign in with this account.",
+  "accountHandoverCloudUnavailable": "Cloud save is only available while signed in with the original account.",
+  "accountHandoverLock": "Keep locally and encrypt",
+  "accountHandoverLockHint": "The notebooks stay on this device, but only the original account can open them.",
+  "accountHandoverLockUnavailable": "Encryption is only available while signing out of the original account.",
+  "accountNotebookLocked": "This notebook belongs to another account and is locked."
 }

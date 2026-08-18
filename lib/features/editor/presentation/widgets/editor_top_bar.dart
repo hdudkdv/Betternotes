@@ -42,10 +42,14 @@ enum EditorMenuAction {
   orientationLandscape,
 }
 
-/// Two-row editor header: document tabs on top, tools below.
+/// Thin editor rail plus a tool dock around [body].
+///
+/// Tools sit in a left dock on wide screens and a bottom dock on phones —
+/// not in a second dark bar and not in a GoodNotes-style floating pill.
 class EditorTopBar extends StatelessWidget {
   const EditorTopBar({
     super.key,
+    required this.body,
     required this.notebookId,
     required this.tabIds,
     required this.engine,
@@ -63,6 +67,7 @@ class EditorTopBar extends StatelessWidget {
     required this.onSearch,
     required this.onOutline,
     required this.onPickImage,
+    this.onPickSticker,
     required this.onCalculator,
     required this.onFormulaBook,
     this.calculatorOpen = false,
@@ -85,6 +90,7 @@ class EditorTopBar extends StatelessWidget {
     this.onOpenPacks,
   });
 
+  final Widget body;
   final String notebookId;
   final List<String> tabIds;
   final InkEngine engine;
@@ -102,6 +108,7 @@ class EditorTopBar extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onOutline;
   final VoidCallback onPickImage;
+  final VoidCallback? onPickSticker;
   final VoidCallback onCalculator;
   final VoidCallback onFormulaBook;
   final bool calculatorOpen;
@@ -125,97 +132,160 @@ class EditorTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: EditorChrome.topBar,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            height: EditorChrome.tabRowHeight,
-            child: Row(
-              children: [
-                _BarIcon(
-                  icon: Icons.home_outlined,
-                  tooltip: AppLocalizations.of(context)!.libraryHome,
-                  onTap: onHome,
-                ),
-                Expanded(
-                  child: _DocumentTabs(
-                    tabIds: tabIds,
-                    activeId: notebookId,
-                    onSelect: onSelectTab,
-                    onClose: onCloseTab,
+    return Column(
+      children: [
+        Material(
+          color: EditorChrome.topBar,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: EditorChrome.divider)),
+            ),
+            child: SizedBox(
+              height: EditorChrome.tabRowHeight,
+              child: Row(
+                children: [
+                  _BarIcon(
+                    icon: Icons.home_outlined,
+                    tooltip: AppLocalizations.of(context)!.libraryHome,
+                    onTap: onHome,
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: _DocumentTabs(
+                      tabIds: tabIds,
+                      activeId: notebookId,
+                      onSelect: onSelectTab,
+                      onClose: onCloseTab,
+                    ),
+                  ),
+                  _BarIcon(
+                    icon: Icons.view_sidebar_outlined,
+                    tooltip: AppLocalizations.of(context)!.pageSidebar,
+                    onTap: onToggleSidebar,
+                  ),
+                  _BarIcon(
+                    icon: Icons.search_rounded,
+                    tooltip: AppLocalizations.of(context)!.globalSearch,
+                    onTap: onSearch,
+                  ),
+                  _BarIcon(
+                    icon: Icons.list_alt_rounded,
+                    tooltip: AppLocalizations.of(context)!.outline,
+                    onTap: onOutline,
+                  ),
+                  _BarIcon(
+                    icon: Icons.post_add_rounded,
+                    tooltip: AppLocalizations.of(context)!.addPage,
+                    enabled: !locked && !studyMode,
+                    onTap: onAddPage,
+                  ),
+                  _BarIcon(
+                    icon: locked ? Icons.lock_rounded : Icons.lock_open_rounded,
+                    tooltip: locked
+                        ? AppLocalizations.of(context)!.unlockPage
+                        : AppLocalizations.of(context)!.lockPage,
+                    active: locked,
+                    onTap: onToggleLock,
+                  ),
+                  if (studyModeUnlocked || studyMode)
+                    _BarIcon(
+                      icon: Icons.school_outlined,
+                      tooltip: AppLocalizations.of(context)!.studyMode,
+                      active: studyMode,
+                      onTap: onToggleStudy,
+                    ),
+                  _BarIcon(
+                    icon: Icons.visibility_outlined,
+                    tooltip: AppLocalizations.of(context)!.presentView,
+                    onTap: onPresent,
+                  ),
+                  _BarIcon(
+                    icon: Icons.ios_share_rounded,
+                    tooltip: AppLocalizations.of(context)!.shareExport,
+                    onTap: () => onMenuAction(EditorMenuAction.share),
+                  ),
+                  _BarIcon(
+                    icon: Icons.more_horiz_rounded,
+                    tooltip: AppLocalizations.of(context)!.moreOptions,
+                    onTap: () => showEditorMoreSheet(
+                      context,
+                      template: pageTemplate,
+                      browseMode: browseMode,
+                      canvasMode: canvasMode,
+                      defaultPaperFormat: defaultPaperFormat,
+                      defaultOrientation: defaultOrientation,
+                      studyModeUnlocked: studyModeUnlocked,
+                      onAction: onMenuAction,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          _ToolRow(
-            engine: engine,
-            locked: locked,
-            studyMode: studyMode,
-            browseMode: browseMode,
-            canvasMode: canvasMode,
-            pageTemplate: pageTemplate,
-            defaultPaperFormat: defaultPaperFormat,
-            defaultOrientation: defaultOrientation,
-            onToggleSidebar: onToggleSidebar,
-            onSearch: onSearch,
-            onOutline: onOutline,
-            onPickImage: onPickImage,
-            onCalculator: onCalculator,
-            onFormulaBook: onFormulaBook,
-            calculatorOpen: calculatorOpen,
-            formulaBookOpen: formulaBookOpen,
-            assistantOpen: assistantOpen,
-            onAssistant: onAssistant,
-            onAddPage: onAddPage,
-            onToggleLock: onToggleLock,
-            onToggleStudy: onToggleStudy,
-            studyModeUnlocked: studyModeUnlocked,
-            onPresent: onPresent,
-            onMenuAction: onMenuAction,
-            onConfigureEraser: onConfigureEraser,
-            onConfigureLasso: onConfigureLasso,
-            rulerActive: rulerActive,
-            compassActive: compassActive,
-            onToggleRuler: onToggleRuler,
-            onToggleCompass: onToggleCompass,
-            onCreateDiagram: onCreateDiagram,
-            onOpenPacks: onOpenPacks,
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final vertical =
+                  constraints.maxWidth >= EditorChrome.dockBreakpoint;
+              final dock = _ToolDock(
+                axis: vertical ? Axis.vertical : Axis.horizontal,
+                engine: engine,
+                locked: locked,
+                studyMode: studyMode,
+                onPickImage: onPickImage,
+                onPickSticker: onPickSticker,
+                onCalculator: onCalculator,
+                onFormulaBook: onFormulaBook,
+                calculatorOpen: calculatorOpen,
+                formulaBookOpen: formulaBookOpen,
+                assistantOpen: assistantOpen,
+                onAssistant: onAssistant,
+                onConfigureEraser: onConfigureEraser,
+                onConfigureLasso: onConfigureLasso,
+                rulerActive: rulerActive,
+                compassActive: compassActive,
+                onToggleRuler: onToggleRuler,
+                onToggleCompass: onToggleCompass,
+                onCreateDiagram: onCreateDiagram,
+                onOpenPacks: onOpenPacks,
+              );
+              if (vertical) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    dock,
+                    Expanded(child: body),
+                  ],
+                );
+              }
+              return Column(
+                children: [
+                  Expanded(child: body),
+                  dock,
+                ],
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _ToolRow extends StatelessWidget {
-  const _ToolRow({
+class _ToolDock extends StatelessWidget {
+  const _ToolDock({
+    required this.axis,
     required this.engine,
     required this.locked,
     required this.studyMode,
-    required this.browseMode,
-    required this.canvasMode,
-    required this.pageTemplate,
-    required this.defaultPaperFormat,
-    required this.defaultOrientation,
-    required this.onToggleSidebar,
-    required this.onSearch,
-    required this.onOutline,
     required this.onPickImage,
+    this.onPickSticker,
     required this.onCalculator,
     required this.onFormulaBook,
     required this.calculatorOpen,
     required this.formulaBookOpen,
     required this.assistantOpen,
     this.onAssistant,
-    required this.onAddPage,
-    required this.onToggleLock,
-    required this.onToggleStudy,
-    this.studyModeUnlocked = false,
-    required this.onPresent,
-    required this.onMenuAction,
     this.onConfigureEraser,
     this.onConfigureLasso,
     this.rulerActive = false,
@@ -226,30 +296,18 @@ class _ToolRow extends StatelessWidget {
     this.onOpenPacks,
   });
 
+  final Axis axis;
   final InkEngine engine;
   final bool locked;
   final bool studyMode;
-  final PageBrowseMode browseMode;
-  final CanvasMode canvasMode;
-  final PageTemplate pageTemplate;
-  final PaperFormat defaultPaperFormat;
-  final PageOrientation defaultOrientation;
-  final VoidCallback onToggleSidebar;
-  final VoidCallback onSearch;
-  final VoidCallback onOutline;
   final VoidCallback onPickImage;
+  final VoidCallback? onPickSticker;
   final VoidCallback onCalculator;
   final VoidCallback onFormulaBook;
   final bool calculatorOpen;
   final bool formulaBookOpen;
   final bool assistantOpen;
   final VoidCallback? onAssistant;
-  final VoidCallback onAddPage;
-  final VoidCallback onToggleLock;
-  final VoidCallback onToggleStudy;
-  final bool studyModeUnlocked;
-  final VoidCallback onPresent;
-  final ValueChanged<EditorMenuAction> onMenuAction;
   final VoidCallback? onConfigureEraser;
   final VoidCallback? onConfigureLasso;
   final bool rulerActive;
@@ -262,219 +320,189 @@ class _ToolRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final vertical = axis == Axis.vertical;
+    final enabled = !locked && !studyMode;
 
     return AnimatedBuilder(
       animation: engine,
       builder: (context, _) {
-        return Container(
-          height: EditorChrome.toolRowHeight,
-          color: EditorChrome.toolBar,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: [
-              _BarIcon(
-                icon: Icons.view_sidebar_outlined,
-                tooltip: l10n.pageSidebar,
-                onTap: onToggleSidebar,
-              ),
-              _BarIcon(
-                icon: Icons.search_rounded,
-                tooltip: l10n.globalSearch,
-                onTap: onSearch,
-              ),
-              _BarIcon(
-                icon: Icons.list_alt_rounded,
-                tooltip: l10n.outline,
-                onTap: onOutline,
-              ),
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _ToolIcon(
-                          engine: engine,
-                          tool: InkTool.lasso,
-                          icon: Icons.gesture_rounded,
-                          label: l10n.lasso,
-                          enabled: !locked && !studyMode,
-                          onLongPress: onConfigureLasso,
-                        ),
-                        _ToolIcon(
-                          engine: engine,
-                          tool: InkTool.pen,
-                          icon: Icons.edit_rounded,
-                          label: l10n.pen,
-                          enabled: !locked && !studyMode,
-                          activeOverride: engine.tool == InkTool.pen ||
-                              engine.tool == InkTool.fountain,
-                          onTapOverride: () {
-                            if (engine.tool == InkTool.pen ||
-                                engine.tool == InkTool.fountain) {
-                              engine.setTool(InkTool.none);
-                            } else {
-                              engine.setPenSubtype(fountain: false);
-                            }
-                          },
-                        ),
-                        _ToolIcon(
-                          engine: engine,
-                          tool: InkTool.pencil,
-                          icon: Icons.create_rounded,
-                          label: l10n.pencil,
-                          enabled: !locked && !studyMode,
-                        ),
-                        _ToolIcon(
-                          engine: engine,
-                          tool: InkTool.marker,
-                          icon: Icons.highlight_rounded,
-                          label: l10n.marker,
-                          enabled: !locked && !studyMode,
-                        ),
-                        _ToolIcon(
-                          engine: engine,
-                          tool: InkTool.eraser,
-                          icon: Icons.format_color_reset_rounded,
-                          label: l10n.eraser,
-                          enabled: !locked && !studyMode,
-                          onLongPress: onConfigureEraser,
-                        ),
-                        _ToolIcon(
-                          engine: engine,
-                          tool: InkTool.text,
-                          icon: Icons.title_rounded,
-                          label: l10n.textTool,
-                          enabled: !locked && !studyMode,
-                        ),
-                        _ToolIcon(
-                          engine: engine,
-                          tool: InkTool.shape,
-                          icon: Icons.change_history_rounded,
-                          label: l10n.shapes,
-                          enabled: !locked && !studyMode,
-                        ),
-                        if (rulerActive)
-                          _BarIcon(
-                            icon: Icons.straighten_rounded,
-                            tooltip: l10n.ruler,
-                            label: l10n.ruler,
-                            active: true,
-                            enabled: !locked && !studyMode,
-                            onTap: onToggleRuler,
-                          ),
-                        if (compassActive)
-                          _BarIcon(
-                            icon: Icons.architecture_rounded,
-                            tooltip: l10n.compass,
-                            label: l10n.compass,
-                            active: true,
-                            enabled: !locked && !studyMode,
-                            onTap: onToggleCompass,
-                          ),
-                        _BarIcon(
-                          icon: Icons.calculate_outlined,
-                          tooltip: l10n.calculator,
-                          label: l10n.calculator,
-                          active: calculatorOpen,
-                          enabled: !locked && !studyMode,
-                          onTap: onCalculator,
-                        ),
-                        _BarIcon(
-                          icon: Icons.menu_book_outlined,
-                          tooltip: l10n.formulaBook,
-                          label: l10n.formulaBook,
-                          active: formulaBookOpen,
-                          enabled: !locked && !studyMode,
-                          onTap: onFormulaBook,
-                        ),
-                        if (onAssistant != null)
-                          _BarIcon(
-                            icon: Icons.auto_awesome_outlined,
-                            tooltip: l10n.assistant,
-                            label: l10n.assistant,
-                            active: assistantOpen,
-                            enabled: !locked && !studyMode,
-                            onTap: onAssistant,
-                          ),
-                        if (onCreateDiagram != null)
-                          _BarIcon(
-                            icon: Icons.bar_chart_rounded,
-                            tooltip: l10n.diagrams,
-                            label: l10n.diagrams,
-                            enabled: !locked && !studyMode,
-                            onTap: onCreateDiagram,
-                          ),
-                        if (onOpenPacks != null)
-                          _BarIcon(
-                            icon: Icons.inventory_2_outlined,
-                            tooltip: l10n.packsTitle,
-                            label: l10n.packsTitle,
-                            enabled: !locked && !studyMode,
-                            onTap: onOpenPacks,
-                          ),
-                        _BarIcon(
-                          icon: Icons.add_photo_alternate_outlined,
-                          tooltip: l10n.insertImage,
-                          label: l10n.insertImage,
-                          active: engine.tool == InkTool.image,
-                          enabled: !locked && !studyMode,
-                          onTap: () {
-                            engine.setTool(InkTool.image);
-                            onPickImage();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              _BarIcon(
-                icon: Icons.post_add_rounded,
-                tooltip: l10n.addPage,
-                enabled: !locked && !studyMode,
-                onTap: onAddPage,
-              ),
-              _BarIcon(
-                icon: locked ? Icons.lock_rounded : Icons.lock_open_rounded,
-                tooltip: locked ? l10n.unlockPage : l10n.lockPage,
-                active: locked,
-                onTap: onToggleLock,
-              ),
-              if (studyModeUnlocked || studyMode)
-                _BarIcon(
-                  icon: Icons.school_outlined,
-                  tooltip: l10n.studyMode,
-                  label: studyMode ? l10n.studyMode : null,
-                  active: studyMode,
-                  onTap: onToggleStudy,
-                ),
-              _BarIcon(
-                icon: Icons.visibility_outlined,
-                tooltip: l10n.presentView,
-                onTap: onPresent,
-              ),
-              _BarIcon(
-                icon: Icons.ios_share_rounded,
-                tooltip: l10n.shareExport,
-                onTap: () => onMenuAction(EditorMenuAction.share),
-              ),
-              _BarIcon(
-                icon: Icons.more_horiz_rounded,
-                tooltip: l10n.moreOptions,
-                onTap: () => showEditorMoreSheet(
-                  context,
-                  template: pageTemplate,
-                  browseMode: browseMode,
-                  canvasMode: canvasMode,
-                  defaultPaperFormat: defaultPaperFormat,
-                  defaultOrientation: defaultOrientation,
-                  studyModeUnlocked: studyModeUnlocked,
-                  onAction: onMenuAction,
-                ),
-              ),
-            ],
+        final tools = <Widget>[
+          _ToolIcon(
+            engine: engine,
+            tool: InkTool.lasso,
+            icon: Icons.gesture_rounded,
+            label: l10n.lasso,
+            enabled: enabled,
+            compact: vertical,
+            onLongPress: onConfigureLasso,
+          ),
+          _ToolIcon(
+            engine: engine,
+            tool: InkTool.pen,
+            icon: Icons.edit_rounded,
+            label: l10n.pen,
+            enabled: enabled,
+            compact: vertical,
+            activeOverride:
+                engine.tool == InkTool.pen || engine.tool == InkTool.fountain,
+            onTapOverride: () {
+              if (engine.tool == InkTool.pen ||
+                  engine.tool == InkTool.fountain) {
+                engine.setTool(InkTool.none);
+              } else {
+                engine.setPenSubtype(fountain: false);
+              }
+            },
+          ),
+          _ToolIcon(
+            engine: engine,
+            tool: InkTool.pencil,
+            icon: Icons.create_rounded,
+            label: l10n.pencil,
+            enabled: enabled,
+            compact: vertical,
+          ),
+          _ToolIcon(
+            engine: engine,
+            tool: InkTool.marker,
+            icon: Icons.highlight_rounded,
+            label: l10n.marker,
+            enabled: enabled,
+            compact: vertical,
+          ),
+          _ToolIcon(
+            engine: engine,
+            tool: InkTool.eraser,
+            icon: Icons.format_color_reset_rounded,
+            label: l10n.eraser,
+            enabled: enabled,
+            compact: vertical,
+            onLongPress: onConfigureEraser,
+          ),
+          _ToolIcon(
+            engine: engine,
+            tool: InkTool.text,
+            icon: Icons.title_rounded,
+            label: l10n.textTool,
+            enabled: enabled,
+            compact: vertical,
+          ),
+          _ToolIcon(
+            engine: engine,
+            tool: InkTool.shape,
+            icon: Icons.change_history_rounded,
+            label: l10n.shapes,
+            enabled: enabled,
+            compact: vertical,
+          ),
+          if (rulerActive)
+            _BarIcon(
+              icon: Icons.straighten_rounded,
+              tooltip: l10n.ruler,
+              active: true,
+              enabled: enabled,
+              compact: vertical,
+              onTap: onToggleRuler,
+            ),
+          if (compassActive)
+            _BarIcon(
+              icon: Icons.architecture_rounded,
+              tooltip: l10n.compass,
+              active: true,
+              enabled: enabled,
+              compact: vertical,
+              onTap: onToggleCompass,
+            ),
+          _BarIcon(
+            icon: Icons.calculate_outlined,
+            tooltip: l10n.calculator,
+            active: calculatorOpen,
+            enabled: enabled,
+            compact: vertical,
+            onTap: onCalculator,
+          ),
+          _BarIcon(
+            icon: Icons.menu_book_outlined,
+            tooltip: l10n.formulaBook,
+            active: formulaBookOpen,
+            enabled: enabled,
+            compact: vertical,
+            onTap: onFormulaBook,
+          ),
+          if (onAssistant != null)
+            _BarIcon(
+              icon: Icons.auto_awesome_outlined,
+              tooltip: l10n.assistant,
+              active: assistantOpen,
+              enabled: enabled,
+              compact: vertical,
+              onTap: onAssistant,
+            ),
+          if (onCreateDiagram != null)
+            _BarIcon(
+              icon: Icons.bar_chart_rounded,
+              tooltip: l10n.diagrams,
+              enabled: enabled,
+              compact: vertical,
+              onTap: onCreateDiagram,
+            ),
+          if (onOpenPacks != null)
+            _BarIcon(
+              icon: Icons.inventory_2_outlined,
+              tooltip: l10n.packsTitle,
+              enabled: enabled,
+              compact: vertical,
+              onTap: onOpenPacks,
+            ),
+          _BarIcon(
+            icon: Icons.add_photo_alternate_outlined,
+            tooltip: l10n.insertImage,
+            active: engine.tool == InkTool.image,
+            enabled: enabled,
+            compact: vertical,
+            onTap: () {
+              engine.setTool(InkTool.image);
+              onPickImage();
+            },
+          ),
+          if (onPickSticker != null)
+            _BarIcon(
+              icon: Icons.emoji_emotions_outlined,
+              tooltip: l10n.stickers,
+              active: engine.tool == InkTool.sticker,
+              enabled: enabled,
+              compact: vertical,
+              onTap: onPickSticker,
+            ),
+        ];
+
+        final scroll = SingleChildScrollView(
+          scrollDirection: axis,
+          padding: EdgeInsets.symmetric(
+            horizontal: vertical ? 4 : 8,
+            vertical: vertical ? 8 : 4,
+          ),
+          child: vertical
+              ? Column(children: tools)
+              : Row(mainAxisSize: MainAxisSize.min, children: tools),
+        );
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: EditorChrome.toolBar,
+            border: Border(
+              right: vertical
+                  ? BorderSide(color: EditorChrome.divider)
+                  : BorderSide.none,
+              top: vertical
+                  ? BorderSide.none
+                  : BorderSide(color: EditorChrome.divider),
+            ),
+          ),
+          child: SizedBox(
+            width: vertical ? EditorChrome.dockWidth : null,
+            height: vertical ? null : EditorChrome.toolRowHeight,
+            child: vertical ? scroll : Center(child: scroll),
           ),
         );
       },
@@ -490,6 +518,7 @@ class _ToolIcon extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.enabled,
+    this.compact = false,
     this.activeOverride,
     this.onTapOverride,
     this.onLongPress,
@@ -500,6 +529,7 @@ class _ToolIcon extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool enabled;
+  final bool compact;
   final bool? activeOverride;
   final VoidCallback? onTapOverride;
   final VoidCallback? onLongPress;
@@ -510,9 +540,9 @@ class _ToolIcon extends StatelessWidget {
     return _BarIcon(
       icon: icon,
       tooltip: selected ? AppLocalizations.of(context)!.deselectTool : label,
-      label: label,
       active: selected,
       enabled: enabled,
+      compact: compact,
       onTap: onTapOverride ??
           () => engine.setTool(selected ? InkTool.none : tool),
       onLongPress: onLongPress == null
@@ -529,72 +559,52 @@ class _BarIcon extends StatelessWidget {
   const _BarIcon({
     required this.icon,
     required this.tooltip,
-    this.label,
     this.onTap,
     this.onLongPress,
     this.active = false,
     this.enabled = true,
+    this.compact = false,
   });
 
   final IconData icon;
   final String tooltip;
-  final String? label;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final bool active;
   final bool enabled;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final showLabel = active && label != null;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1.5),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 0 : 1.5,
+        vertical: compact ? 2 : 0,
+      ),
       child: Tooltip(
         message: tooltip,
         child: InkWell(
           onTap: enabled ? onTap : null,
           onLongPress: enabled ? onLongPress : null,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(10),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
+            width: compact ? 44 : null,
+            height: compact ? 44 : 34,
             constraints: BoxConstraints(
-              minWidth: showLabel ? 46 : 38,
-              minHeight: 34,
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: showLabel ? 4 : 0,
-              vertical: showLabel ? 2 : 0,
+              minWidth: compact ? 44 : 38,
+              minHeight: compact ? 44 : 34,
             ),
             decoration: BoxDecoration(
-              color: active ? const Color(0x2EFFFFFF) : Colors.transparent,
-              borderRadius: BorderRadius.circular(9),
+              color: active ? EditorChrome.selectedSoft : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: showLabel ? 18 : 21,
-                  color: enabled
-                      ? (active ? EditorChrome.onDark : const Color(0xFFDCE4EE))
-                      : EditorChrome.onDarkMuted.withValues(alpha: 0.45),
-                ),
-                if (showLabel) ...[
-                  const SizedBox(height: 1),
-                  Text(
-                    label!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: EditorChrome.onDark,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      height: 1,
-                    ),
-                  ),
-                ],
-              ],
+            child: Icon(
+              icon,
+              size: 21,
+              color: enabled
+                  ? (active ? EditorChrome.selected : EditorChrome.onDarkMuted)
+                  : EditorChrome.onDarkMuted.withValues(alpha: 0.35),
             ),
           ),
         ),
@@ -603,7 +613,7 @@ class _BarIcon extends StatelessWidget {
   }
 }
 
-/// Document tabs that visually merge into the tool row below.
+/// Open notebooks as chips on the rail — a shelf, not browser tabs.
 class _DocumentTabs extends ConsumerWidget {
   const _DocumentTabs({
     required this.tabIds,
@@ -639,10 +649,13 @@ class _DocumentTabs extends ConsumerWidget {
           onTap: () => onSelect(id),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 190),
-            padding: const EdgeInsets.only(left: 12, right: 4),
+            padding: const EdgeInsets.only(left: 10, right: 2),
             decoration: BoxDecoration(
               color: active ? EditorChrome.chip : Colors.transparent,
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: active ? EditorChrome.selected.withValues(alpha: 0.35) : EditorChrome.divider,
+              ),
             ),
             child: Row(
               children: [

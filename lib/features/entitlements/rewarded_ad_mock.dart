@@ -87,6 +87,11 @@ Future<void> runRewardedUnlock({
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final messenger = ScaffoldMessenger.of(context);
+  final entitlements = ref.read(entitlementProvider);
+  if (!entitlements.adsEnabled) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.premiumNoAdsHint)));
+    return;
+  }
   final ads = ref.read(rewardedAdServiceProvider);
 
   var rewarded = false;
@@ -95,9 +100,10 @@ Future<void> runRewardedUnlock({
       messenger.showSnackBar(
         SnackBar(
           content: Text(l10n.rewardedAdLoading),
-          duration: const Duration(seconds: 1),
+          duration: const Duration(seconds: 3),
         ),
       );
+      await ads.preload();
     }
     switch (await ads.show()) {
       case RewardedAdOutcome.earned:

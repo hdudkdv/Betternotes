@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../data/models/notebook.dart';
 import '../../../shared/utils/page_size.dart';
+import '../domain/sticker_catalog.dart';
 import 'widgets/ink_painter.dart';
 import 'widgets/page_background_painter.dart';
 import 'widgets/shape_painter.dart';
@@ -24,7 +25,7 @@ class PagePreviewCache {
   static final PagePreviewCache instance = PagePreviewCache._();
 
   static const Duration ttl = Duration(hours: 1);
-  static const int maxEntries = 24;
+  static const int maxEntries = 64;
   static const double _maxEdge = 1280;
 
   final Map<String, _Entry> _byPageId = {};
@@ -75,6 +76,7 @@ class PagePreviewCache {
     final updated = page.updatedAt?.microsecondsSinceEpoch ?? 0;
     return '$updated:${page.strokes.length}:${page.shapes.length}:'
         '${page.textBlocks.length}:${page.images.length}:'
+        '${page.stickers.length}:${page.title ?? ''}:'
         '${page.template.name}:${page.paperFormat.name}:'
         '${page.orientation.name}:${page.backgroundPdfPath ?? ''}';
   }
@@ -180,6 +182,17 @@ class PagePreviewCache {
       ShapePainter(shapes: page.shapes).paint(canvas, pageSize);
 
       for (final block in page.textBlocks) {
+        if (block.isSticky) {
+          final fill = Paint()
+            ..color = Color(block.fillColor ?? 0xFFFFF59D);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(block.x, block.y, block.width, block.height),
+              const Radius.circular(4),
+            ),
+            fill,
+          );
+        }
         if (block.plainText.trim().isEmpty) continue;
         final style = block.spans.isNotEmpty ? block.spans.first : null;
         final fontSize = style?.fontSize ?? 16;
@@ -191,6 +204,23 @@ class PagePreviewCache {
         final paragraph = builder.build()
           ..layout(ui.ParagraphConstraints(width: block.width));
         canvas.drawParagraph(paragraph, Offset(block.x, block.y));
+      }
+
+      for (final sticker in page.stickers) {
+        final def = StickerCatalog.byId(sticker.catalogId);
+        if (def == null) continue;
+        StickerCatalog.paint(canvas, def, sticker.bounds);
+      }
+
+      final title = page.title?.trim();
+      if (title != null && title.isNotEmpty) {
+        final titleBuilder = ui.ParagraphBuilder(
+          ui.ParagraphStyle(fontSize: 13, maxLines: 1, ellipsis: '…'),
+        )..pushStyle(ui.TextStyle(color: const Color(0xFF5C564E), fontSize: 13));
+        titleBuilder.addText(title);
+        final titleParagraph = titleBuilder.build()
+          ..layout(ui.ParagraphConstraints(width: pageSize.width - 56));
+        canvas.drawParagraph(titleParagraph, const Offset(28, 18));
       }
 
       final picture = recorder.endRecording();

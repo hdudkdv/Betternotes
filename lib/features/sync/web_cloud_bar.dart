@@ -89,6 +89,7 @@ class _WebCloudBarState extends ConsumerState<WebCloudBar> {
                             () => signInAndLoadCloud(
                               ref,
                               ref.read(authProvider.notifier).signInWithGoogle,
+                              context: context,
                             ),
                           ),
                     icon: const Icon(Icons.g_mobiledata_rounded, size: 18),
@@ -101,6 +102,7 @@ class _WebCloudBarState extends ConsumerState<WebCloudBar> {
                             () => signInAndLoadCloud(
                               ref,
                               ref.read(authProvider.notifier).signInWithApple,
+                              context: context,
                             ),
                           ),
                     icon: const Icon(Icons.apple, size: 18),

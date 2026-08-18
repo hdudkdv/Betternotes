@@ -476,6 +476,12 @@ abstract class AppLocalizations {
   /// **'On: stylus draws, finger pans.'**
   String get fingerPanZoomHint;
 
+  /// No description provided for @mouseAsPenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'With a mouse: left-click writes like the stylus, right-click pans like a finger.'**
+  String get mouseAsPenHint;
+
   /// No description provided for @defaultTemplate.
   ///
   /// In en, this message translates to:
@@ -1361,7 +1367,7 @@ abstract class AppLocalizations {
   /// No description provided for @lookStudioHint.
   ///
   /// In en, this message translates to:
-  /// **'Graphite with an indigo accent'**
+  /// **'Default: graphite with an indigo accent'**
   String get lookStudioHint;
 
   /// No description provided for @lookPaper.
@@ -2963,7 +2969,7 @@ abstract class AppLocalizations {
   /// No description provided for @choosePlanHint.
   ///
   /// In en, this message translates to:
-  /// **'Teacher and student plans. Purchases go through the store.'**
+  /// **'Student and teacher plans: Free, Lite and Pro. Purchases go through the store.'**
   String get choosePlanHint;
 
   /// No description provided for @revenueCatTestStoreHint.
@@ -3097,6 +3103,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Free'**
   String get tierFree;
+
+  /// No description provided for @tierLite.
+  ///
+  /// In en, this message translates to:
+  /// **'Lite'**
+  String get tierLite;
 
   /// No description provided for @tierPro.
   ///
@@ -5081,7 +5093,7 @@ abstract class AppLocalizations {
   /// No description provided for @marketplaceHint.
   ///
   /// In en, this message translates to:
-  /// **'Unlock optional features with coins.'**
+  /// **'Free: unlock items with coins only. Lite: buy 3 permanently, then coins from ads. Pro: borrow 5 at a time.'**
   String get marketplaceHint;
 
   /// No description provided for @marketplaceComingSoon.
@@ -5171,8 +5183,98 @@ abstract class AppLocalizations {
   /// No description provided for @gemmaReady.
   ///
   /// In en, this message translates to:
-  /// **'Unlocked · open Assistant in the editor'**
+  /// **'Model ready · open Assistant in the editor'**
   String get gemmaReady;
+
+  /// No description provided for @gemmaNeedsSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Run system check and load the model'**
+  String get gemmaNeedsSetup;
+
+  /// No description provided for @gemmaSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up Gemma'**
+  String get gemmaSetupTitle;
+
+  /// No description provided for @gemmaSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A short system check: RAM, cores, and a speed probe. Then the matching Gemma model is downloaded onto this device — lighter or heavier.'**
+  String get gemmaSetupBody;
+
+  /// No description provided for @gemmaRam.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory'**
+  String get gemmaRam;
+
+  /// No description provided for @gemmaCores.
+  ///
+  /// In en, this message translates to:
+  /// **'CPU cores'**
+  String get gemmaCores;
+
+  /// No description provided for @gemmaBench.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed probe'**
+  String get gemmaBench;
+
+  /// No description provided for @gemmaDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get gemmaDevice;
+
+  /// No description provided for @gemmaTierLite.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma 3 270M'**
+  String get gemmaTierLite;
+
+  /// No description provided for @gemmaTierBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma 3 1B'**
+  String get gemmaTierBalanced;
+
+  /// No description provided for @gemmaTierFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma 3n E2B'**
+  String get gemmaTierFull;
+
+  /// No description provided for @gemmaPicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended: {tier} · about {size} MB download'**
+  String gemmaPicked(String tier, int size);
+
+  /// No description provided for @gemmaDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download model'**
+  String get gemmaDownload;
+
+  /// No description provided for @gemmaDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {percent}%'**
+  String gemmaDownloading(int percent);
+
+  /// No description provided for @gemmaModelReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma is ready on this device.'**
+  String get gemmaModelReady;
+
+  /// No description provided for @gemmaDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed. Check Wi-Fi and try again. The model comes from Google/Hugging Face and needs free storage.'**
+  String get gemmaDownloadFailed;
 
   /// No description provided for @featureStudyMode.
   ///
@@ -5411,7 +5513,7 @@ abstract class AppLocalizations {
   /// No description provided for @featureInfoNoForcedAds.
   ///
   /// In en, this message translates to:
-  /// **'Fewer ad interruptions in the app.'**
+  /// **'Premium and this coin unlock turn ads off. Coins then arrive once a day without a video.'**
   String get featureInfoNoForcedAds;
 
   /// No description provided for @featureInfoSessionCollab.
@@ -5447,7 +5549,7 @@ abstract class AppLocalizations {
   /// No description provided for @featureInfoAiAssistant.
   ///
   /// In en, this message translates to:
-  /// **'Gemma guides you like a teacher: explains connections, does not compute maths for you. The exam sentence and calculator stay with you.'**
+  /// **'A real on-device Gemma model. After unlock, a system check measures RAM and speed and downloads a lighter or heavier model. She explains connections and will not compute maths for you.'**
   String get featureInfoAiAssistant;
 
   /// No description provided for @scanPages.
@@ -5671,6 +5773,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add value'**
   String get chartAddRow;
+
+  /// No description provided for @chartMindmapBranch.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch'**
+  String get chartMindmapBranch;
+
+  /// No description provided for @chartMindmapParent.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached to'**
+  String get chartMindmapParent;
+
+  /// No description provided for @chartMindmapSubpoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Sub-points (comma)'**
+  String get chartMindmapSubpoints;
+
+  /// No description provided for @chartMindmapAddBranch.
+  ///
+  /// In en, this message translates to:
+  /// **'Add branch'**
+  String get chartMindmapAddBranch;
+
+  /// No description provided for @chartMindmapAddChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Sub-branch'**
+  String get chartMindmapAddChild;
 
   /// No description provided for @chartInsert.
   ///
@@ -6523,6 +6655,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Google or Apple — the same account as in the app. Notis then loads your current cloud notebooks.'**
   String get webLoginBody;
+
+  /// No description provided for @stickers.
+  ///
+  /// In en, this message translates to:
+  /// **'Stickers'**
+  String get stickers;
+
+  /// No description provided for @stickersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a sticker to place it on the page.'**
+  String get stickersHint;
+
+  /// No description provided for @stickerPackSchool.
+  ///
+  /// In en, this message translates to:
+  /// **'School'**
+  String get stickerPackSchool;
+
+  /// No description provided for @stickerPackMarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Marks'**
+  String get stickerPackMarks;
+
+  /// No description provided for @stickerPackMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood'**
+  String get stickerPackMood;
+
+  /// No description provided for @stickyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticky note'**
+  String get stickyNote;
+
+  /// No description provided for @renamePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Name page'**
+  String get renamePage;
+
+  /// No description provided for @pageNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name for this page'**
+  String get pageNameHint;
+
+  /// No description provided for @pageNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {number}'**
+  String pageNumberLabel(int number);
+
+  /// No description provided for @pageCreatedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Created {date}'**
+  String pageCreatedOn(String date);
+
+  /// No description provided for @pageEditedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Edited {date}'**
+  String pageEditedOn(String date);
+
+  /// No description provided for @adsForCoinsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ads for coins'**
+  String get adsForCoinsTitle;
+
+  /// No description provided for @adsForCoinsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Short videos give coins for marketplace items.'**
+  String get adsForCoinsHint;
+
+  /// No description provided for @premiumNoAdsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No ads for coins'**
+  String get premiumNoAdsTitle;
+
+  /// No description provided for @premiumNoAdsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ads for coins are not active on this plan.'**
+  String get premiumNoAdsHint;
+
+  /// No description provided for @marketplaceLiteCoinsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy the first 3 items with coins. After that you earn coins from ads.'**
+  String get marketplaceLiteCoinsHint;
+
+  /// No description provided for @marketplaceLiteAfterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The 3 permanent purchases are used. Further items with coins from ads.'**
+  String get marketplaceLiteAfterHint;
+
+  /// No description provided for @claimDailyCoins.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim daily coins'**
+  String get claimDailyCoins;
+
+  /// No description provided for @dailyCoinsAlreadyClaimed.
+  ///
+  /// In en, this message translates to:
+  /// **'Today’s coins already claimed'**
+  String get dailyCoinsAlreadyClaimed;
+
+  /// No description provided for @planPointNoAds.
+  ///
+  /// In en, this message translates to:
+  /// **'No ads, daily coins without a video'**
+  String get planPointNoAds;
+
+  /// No description provided for @marketplaceBuySlots.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {limit} permanent purchases'**
+  String marketplaceBuySlots(int used, int limit);
+
+  /// No description provided for @marketplaceLoanSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {limit} loans'**
+  String marketplaceLoanSlots(int used, int limit);
+
+  /// No description provided for @marketplaceBorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Borrow'**
+  String get marketplaceBorrow;
+
+  /// No description provided for @marketplaceReturnLoan.
+  ///
+  /// In en, this message translates to:
+  /// **'Return'**
+  String get marketplaceReturnLoan;
+
+  /// No description provided for @marketplaceNeedLite.
+  ///
+  /// In en, this message translates to:
+  /// **'Lite lets you buy 3 items. Choose a plan to use the marketplace.'**
+  String get marketplaceNeedLite;
+
+  /// No description provided for @marketplaceNeedPro.
+  ///
+  /// In en, this message translates to:
+  /// **'Pro borrows 5 items at a time. Choose a plan or free a slot.'**
+  String get marketplaceNeedPro;
+
+  /// No description provided for @marketplaceBuyCap.
+  ///
+  /// In en, this message translates to:
+  /// **'Lite limit reached (3 purchases). Switch to Pro to borrow 5.'**
+  String get marketplaceBuyCap;
+
+  /// No description provided for @marketplaceLoanCap.
+  ///
+  /// In en, this message translates to:
+  /// **'All 5 loans are in use. Return one first.'**
+  String get marketplaceLoanCap;
+
+  /// No description provided for @accountHandoverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notebooks on this device'**
+  String get accountHandoverTitle;
+
+  /// No description provided for @accountHandoverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'There are {count} notebooks locally. They do not follow a new account automatically.'**
+  String accountHandoverBody(int count);
+
+  /// No description provided for @accountHandoverDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete locally'**
+  String get accountHandoverDelete;
+
+  /// No description provided for @accountHandoverDeleteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The notebooks leave this device. Cloud copies stay if they were already uploaded.'**
+  String get accountHandoverDeleteHint;
+
+  /// No description provided for @accountHandoverCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to the cloud'**
+  String get accountHandoverCloud;
+
+  /// No description provided for @accountHandoverCloudHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload now, then remove them locally. They come back when you sign in with this account.'**
+  String get accountHandoverCloudHint;
+
+  /// No description provided for @accountHandoverCloudUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud save is only available while signed in with the original account.'**
+  String get accountHandoverCloudUnavailable;
+
+  /// No description provided for @accountHandoverLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep locally and encrypt'**
+  String get accountHandoverLock;
+
+  /// No description provided for @accountHandoverLockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The notebooks stay on this device, but only the original account can open them.'**
+  String get accountHandoverLockHint;
+
+  /// No description provided for @accountHandoverLockUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Encryption is only available while signing out of the original account.'**
+  String get accountHandoverLockUnavailable;
+
+  /// No description provided for @accountNotebookLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This notebook belongs to another account and is locked.'**
+  String get accountNotebookLocked;
 }
 
 class _AppLocalizationsDelegate

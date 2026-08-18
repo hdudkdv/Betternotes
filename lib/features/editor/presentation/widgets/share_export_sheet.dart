@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../entitlements/entitlement_model.dart';
-import '../../../entitlements/rewarded_ad_mock.dart';
 import '../editor_chrome.dart';
 import 'editor_sheet.dart';
 
@@ -68,25 +68,17 @@ Future<ShareExportAction?> showShareExportSheet(BuildContext context) {
                 icon: Icons.compress_outlined,
                 title: l10n.featurePdfCompress,
                 unlocked: entitlements.hasAccess(FeatureKeys.pdfCompress),
-                onUnlock: () => runRewardedUnlock(
-                  context: context,
-                  ref: ref,
-                  featureKey: FeatureKeys.pdfCompress,
-                ),
+                coinCost: FeatureKeys.coinCost(FeatureKeys.pdfCompress),
               ),
               _GatedExtraTile(
                 icon: Icons.document_scanner_outlined,
                 title: l10n.featureHandwritingOcr,
                 unlocked: entitlements.hasAccess(FeatureKeys.handwritingOcr),
                 unlockedHint: l10n.marketplaceInkOcrHint,
+                coinCost: FeatureKeys.coinCost(FeatureKeys.handwritingOcr),
                 onUnlocked: () => Navigator.pop(
                   context,
                   ShareExportAction.indexHandwriting,
-                ),
-                onUnlock: () => runRewardedUnlock(
-                  context: context,
-                  ref: ref,
-                  featureKey: FeatureKeys.handwritingOcr,
                 ),
               ),
               _GatedExtraTile(
@@ -95,11 +87,7 @@ Future<ShareExportAction?> showShareExportSheet(BuildContext context) {
                 unlocked: entitlements.hasAccess(
                   FeatureKeys.audioTranscription,
                 ),
-                onUnlock: () => runRewardedUnlock(
-                  context: context,
-                  ref: ref,
-                  featureKey: FeatureKeys.audioTranscription,
-                ),
+                coinCost: FeatureKeys.coinCost(FeatureKeys.audioTranscription),
               ),
             ],
           );
@@ -114,7 +102,7 @@ class _GatedExtraTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.unlocked,
-    required this.onUnlock,
+    required this.coinCost,
     this.onUnlocked,
     this.unlockedHint,
   });
@@ -122,32 +110,36 @@ class _GatedExtraTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final bool unlocked;
-  final VoidCallback onUnlock;
+  final int coinCost;
   final VoidCallback? onUnlocked;
   final String? unlockedHint;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return EditorSheetTile(
-      icon: icon,
-      label: title,
-      subtitle: unlocked
-          ? (unlockedHint ?? l10n.comingSoonGate)
-          : l10n.rewardedAdDemoBadge,
-      trailing: Icon(
-        unlocked ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
-        size: 20,
-        color: EditorChrome.onDarkMuted,
+    final muted = !unlocked;
+    return Opacity(
+      opacity: muted ? 0.45 : 1,
+      child: EditorSheetTile(
+        icon: icon,
+        label: title,
+        subtitle: unlocked
+            ? (unlockedHint ?? l10n.comingSoonGate)
+            : l10n.unlockWithCoins(coinCost),
+        trailing: Icon(
+          unlocked ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
+          size: 20,
+          color: EditorChrome.onDarkMuted,
+        ),
+        onTap: unlocked
+            ? (onUnlocked ??
+                  () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.comingSoonGate)),
+                    );
+                  })
+            : () => context.push('/marketplace'),
       ),
-      onTap: unlocked
-          ? (onUnlocked ??
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.comingSoonGate)),
-                  );
-                })
-          : onUnlock,
     );
   }
 }

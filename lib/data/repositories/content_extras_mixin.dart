@@ -654,6 +654,50 @@ mixin ContentExtrasMixin {
     return map[notebookId];
   }
 
+  static const _accessKey = 'notebook_access_v1';
+
+  Future<Map<String, Map<String, dynamic>>> readNotebookAccessRaw() async {
+    final raw = await readKv(_accessKey);
+    if (raw == null || raw.isEmpty) return {};
+    final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    return {
+      for (final e in map.entries)
+        if (e.value is Map)
+          e.key: Map<String, dynamic>.from(e.value as Map),
+    };
+  }
+
+  Future<void> setNotebookAccess(
+    String notebookId, {
+    String? ownerUid,
+    bool? locked,
+  }) async {
+    final map = await readNotebookAccessRaw();
+    final current = Map<String, dynamic>.from(map[notebookId] ?? const {});
+    if (ownerUid != null) current['ownerUid'] = ownerUid;
+    if (locked != null) current['locked'] = locked;
+    map[notebookId] = current;
+    await writeKv(_accessKey, jsonEncode(map));
+  }
+
+  Future<void> removeNotebookAccess(String notebookId) async {
+    final map = await readNotebookAccessRaw();
+    map.remove(notebookId);
+    await writeKv(_accessKey, jsonEncode(map));
+  }
+
+  Notebook applyNotebookAccess(
+    Notebook notebook,
+    Map<String, Map<String, dynamic>> access,
+  ) {
+    final row = access[notebook.id];
+    if (row == null) return notebook;
+    return notebook.copyWith(
+      ownerUid: row['ownerUid'] as String? ?? notebook.ownerUid,
+      locked: row['locked'] as bool? ?? notebook.locked,
+    );
+  }
+
   Future<List<SyncOp>> getPendingSyncOps() async {
     final raw = await readKv('sync_ops');
     if (raw == null || raw.isEmpty) return [];

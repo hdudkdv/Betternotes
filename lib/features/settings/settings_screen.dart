@@ -10,6 +10,7 @@ import '../../app/theme.dart';
 import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_repository.dart';
+import '../billing/plan_catalog.dart';
 import '../billing/revenuecat_billing.dart';
 import '../billing/subscription_paywall_sheet.dart';
 import '../editor/domain/editor_gestures.dart';
@@ -63,8 +64,9 @@ class SettingsScreen extends ConsumerWidget {
 
   String _tierLabel(AppLocalizations l10n, AppTier tier) => switch (tier) {
     AppTier.free => l10n.tierFree,
+    AppTier.lite => l10n.tierLite,
     AppTier.pro => l10n.tierPro,
-    AppTier.proPlus => l10n.tierProPlus,
+    AppTier.proPlus => l10n.tierPro,
     AppTier.teacher => l10n.tierTeacher,
   };
 
@@ -89,7 +91,7 @@ class SettingsScreen extends ConsumerWidget {
     Future<void> Function() signIn,
   ) async {
     try {
-      await signInAndLoadCloud(ref, signIn);
+      await signInAndLoadCloud(ref, signIn, context: context);
     } catch (error) {
       if (!context.mounted) return;
       final failure = error is AuthFailure ? error : AuthFailure.map(error);
@@ -374,6 +376,8 @@ class SettingsScreen extends ConsumerWidget {
                 onChanged: (v) =>
                     ref.read(settingsProvider.notifier).setFingerPanZoom(v),
               ),
+              const SizedBox(height: 6),
+              Text(l10n.mouseAsPenHint, style: _body),
               const SizedBox(height: 8),
               Text(l10n.pageBrowseMode, style: _label),
               const SizedBox(height: 6),
@@ -592,7 +596,11 @@ class SettingsScreen extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final tier in AppTier.values)
+                    for (final tier in const [
+                      AppTier.free,
+                      AppTier.lite,
+                      AppTier.pro,
+                    ])
                       ChoiceChip(
                         label: Text(
                           _tierLabel(l10n, tier),
@@ -635,7 +643,10 @@ class SettingsScreen extends ConsumerWidget {
                       : Icons.workspace_premium_outlined,
                 ),
                 title: Text(
-                  billing.hasNotisPro ? l10n.notisProActive : l10n.choosePlan,
+                  PlanCatalog.resolve(
+                    role: settings.userRole ?? AppUserRole.student,
+                    paid: entitlements.paidTier,
+                  ).title(Localizations.localeOf(context).languageCode == 'de'),
                   style: _label,
                 ),
                 subtitle: Text(
@@ -672,6 +683,14 @@ class SettingsScreen extends ConsumerWidget {
                     if (!context.mounted) return;
                     await _handlePurchaseOutcome(context, ref, outcome);
                   },
+                ),
+              if (entitlements.adsEnabled)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.smart_display_outlined),
+                  title: Text(l10n.adsForCoinsTitle, style: _label),
+                  subtitle: Text(l10n.adsForCoinsHint, style: _body),
+                  onTap: () => context.push('/marketplace'),
                 ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -759,7 +778,7 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: auth.signedIn
                       ? TextButton(
                           onPressed: () =>
-                              ref.read(authProvider.notifier).signOut(),
+                              signOutWithHandover(context, ref),
                           child: Text(l10n.signOut),
                         )
                       : null,
@@ -1087,37 +1106,33 @@ class _LookPreview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            height: 12,
-            color: palette.chrome,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                Container(
-                  width: 5,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: palette.chromeActive,
-                    shape: BoxShape.circle,
-                  ),
+            height: 10,
+            color: palette.workspace,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: 18,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: palette.chrome,
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(color: palette.outline, width: 0.5),
                 ),
-                const SizedBox(width: 3),
-                Expanded(
-                  child: Container(height: 3, color: palette.onChromeMuted),
-                ),
-              ],
+              ),
             ),
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 3,
-                children: [
-                  Container(width: 30, height: 4, color: palette.ink),
-                  Container(width: 40, height: 3, color: palette.inkMuted),
-                  Container(width: 18, height: 6, color: palette.accent),
-                ],
+            child: ColoredBox(
+              color: palette.workspace,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 2, 8, 5),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: palette.surfaceRaised,
+                    border: Border.all(color: palette.outline),
+                  ),
+                ),
               ),
             ),
           ),

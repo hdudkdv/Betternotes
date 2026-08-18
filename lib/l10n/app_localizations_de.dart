@@ -217,6 +217,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fingerPanZoomHint => 'An: nur Stift malt, Finger schiebt.';
 
   @override
+  String get mouseAsPenHint =>
+      'Mit der Maus: Linksklick schreibt wie der Stift, Rechtsklick schiebt wie der Finger.';
+
+  @override
   String get defaultTemplate => 'Standardvorlage';
 
   @override
@@ -671,7 +675,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lookStudio => 'Studio';
 
   @override
-  String get lookStudioHint => 'Graphit mit Indigo-Akzent';
+  String get lookStudioHint => 'Standard: Graphit mit Indigo-Akzent';
 
   @override
   String get lookPaper => 'Papier';
@@ -1554,7 +1558,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get choosePlanHint =>
-      'Lehrer- und Schülerpläne. Käufe laufen über den Store.';
+      'Schüler- und Lehrerpläne: Free, Lite und Pro. Käufe laufen über den Store.';
 
   @override
   String get revenueCatTestStoreHint =>
@@ -1622,6 +1626,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get tierFree => 'Free';
+
+  @override
+  String get tierLite => 'Lite';
 
   @override
   String get tierPro => 'Pro';
@@ -2736,7 +2743,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get marketplace => 'Marketplace';
 
   @override
-  String get marketplaceHint => 'Optionale Funktionen mit Coins freischalten.';
+  String get marketplaceHint =>
+      'Free: Artikel nur mit Coins. Lite: 3 dauerhaft kaufen, danach Coins über Werbung. Pro: 5 gleichzeitig leihen.';
 
   @override
   String get marketplaceComingSoon =>
@@ -2785,7 +2793,58 @@ class AppLocalizationsDe extends AppLocalizations {
   String get gemmaOnDevice => 'On-Device · im Editor unter Assistent';
 
   @override
-  String get gemmaReady => 'Freigeschaltet · im Editor unter Assistent öffnen';
+  String get gemmaReady => 'Modell bereit · im Editor unter Assistent öffnen';
+
+  @override
+  String get gemmaNeedsSetup => 'Systemcheck und Modell laden';
+
+  @override
+  String get gemmaSetupTitle => 'Gemma einrichten';
+
+  @override
+  String get gemmaSetupBody =>
+      'Kurzer Systemcheck: RAM, Kerne und Rechenleistung. Danach wird das passende Gemma-Modell auf das Gerät geladen — leichter oder stärker.';
+
+  @override
+  String get gemmaRam => 'Arbeitsspeicher';
+
+  @override
+  String get gemmaCores => 'Prozessorkerne';
+
+  @override
+  String get gemmaBench => 'Rechentest';
+
+  @override
+  String get gemmaDevice => 'Gerät';
+
+  @override
+  String get gemmaTierLite => 'Gemma 3 270M';
+
+  @override
+  String get gemmaTierBalanced => 'Gemma 3 1B';
+
+  @override
+  String get gemmaTierFull => 'Gemma 3n E2B';
+
+  @override
+  String gemmaPicked(String tier, int size) {
+    return 'Empfohlen: $tier · ca. $size MB Download';
+  }
+
+  @override
+  String get gemmaDownload => 'Modell herunterladen';
+
+  @override
+  String gemmaDownloading(int percent) {
+    return 'Download $percent %';
+  }
+
+  @override
+  String get gemmaModelReady => 'Gemma ist auf diesem Gerät bereit.';
+
+  @override
+  String get gemmaDownloadFailed =>
+      'Download fehlgeschlagen. WLAN prüfen und erneut versuchen. Das Modell kommt von Google/Hugging Face und braucht etwas Speicher.';
 
   @override
   String get featureStudyMode => 'Lernmodus';
@@ -2916,7 +2975,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get featureInfoNoForcedAds =>
-      'Weniger Unterbrechungen durch Werbung in der App.';
+      'Premium und dieser Coin-Kauf schalten Werbung aus. Coins gibt es dann einmal täglich ohne Video.';
 
   @override
   String get featureInfoSessionCollab =>
@@ -2940,7 +2999,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get featureInfoAiAssistant =>
-      'Gemma führt dich wie eine Lehrerin: Zusammenhänge erklären, in Mathe nicht vorrechnen. Klausursatz und Taschenrechner bleiben bei dir.';
+      'Echtes Gemma-Modell auf dem Gerät. Nach dem Freischalten misst ein Systemcheck RAM und Leistung und lädt ein leichteres oder stärkeres Modell. Sie erklärt Zusammenhänge und rechnet in Mathe nicht vor.';
 
   @override
   String get scanPages => 'Seiten scannen';
@@ -3070,6 +3129,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get chartAddRow => 'Wert hinzufügen';
+
+  @override
+  String get chartMindmapBranch => 'Zweig';
+
+  @override
+  String get chartMindmapParent => 'Hängt an';
+
+  @override
+  String get chartMindmapSubpoints => 'Unterpunkte (Komma)';
+
+  @override
+  String get chartMindmapAddBranch => 'Zweig hinzufügen';
+
+  @override
+  String get chartMindmapAddChild => 'Unterzweig';
 
   @override
   String get chartInsert => 'Einfügen';
@@ -3547,4 +3621,148 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get webLoginBody =>
       'Google oder Apple — dasselbe Konto wie in der App. Danach lädt Notis deine aktuellen Cloud-Notizbücher.';
+
+  @override
+  String get stickers => 'Sticker';
+
+  @override
+  String get stickersHint =>
+      'Tippe einen Sticker an, um ihn auf die Seite zu legen.';
+
+  @override
+  String get stickerPackSchool => 'Schule';
+
+  @override
+  String get stickerPackMarks => 'Markierungen';
+
+  @override
+  String get stickerPackMood => 'Stimmung';
+
+  @override
+  String get stickyNote => 'Notizzettel';
+
+  @override
+  String get renamePage => 'Seite benennen';
+
+  @override
+  String get pageNameHint => 'Name dieser Seite';
+
+  @override
+  String pageNumberLabel(int number) {
+    return 'Seite $number';
+  }
+
+  @override
+  String pageCreatedOn(String date) {
+    return 'Erstellt $date';
+  }
+
+  @override
+  String pageEditedOn(String date) {
+    return 'Bearbeitet $date';
+  }
+
+  @override
+  String get adsForCoinsTitle => 'Werbung für Coins';
+
+  @override
+  String get adsForCoinsHint =>
+      'Kurze Videos bringen Coins für Marketplace-Artikel.';
+
+  @override
+  String get premiumNoAdsTitle => 'Keine Werbung für Coins';
+
+  @override
+  String get premiumNoAdsHint =>
+      'Werbung für Coins ist in diesem Plan nicht aktiv.';
+
+  @override
+  String get marketplaceLiteCoinsHint =>
+      'Die ersten 3 Artikel kaufst du mit Coins. Danach verdienst du Coins über Werbung.';
+
+  @override
+  String get marketplaceLiteAfterHint =>
+      'Die 3 dauerhaften Käufe sind genutzt. Weitere Artikel mit Coins aus Werbung.';
+
+  @override
+  String get claimDailyCoins => 'Tages-Coins holen';
+
+  @override
+  String get dailyCoinsAlreadyClaimed => 'Heutige Coins schon abgeholt';
+
+  @override
+  String get planPointNoAds => 'Keine Werbung, tägliche Coins ohne Video';
+
+  @override
+  String marketplaceBuySlots(int used, int limit) {
+    return '$used von $limit dauerhaften Käufen';
+  }
+
+  @override
+  String marketplaceLoanSlots(int used, int limit) {
+    return '$used von $limit Leihen';
+  }
+
+  @override
+  String get marketplaceBorrow => 'Leihen';
+
+  @override
+  String get marketplaceReturnLoan => 'Zurückgeben';
+
+  @override
+  String get marketplaceNeedLite =>
+      'Lite erlaubt 3 Käufe. Plan wählen, um den Marketplace zu nutzen.';
+
+  @override
+  String get marketplaceNeedPro =>
+      'Pro leiht 5 Artikel gleichzeitig. Plan wählen oder einen Slot freigeben.';
+
+  @override
+  String get marketplaceBuyCap =>
+      'Lite-Limit erreicht (3 Käufe). Für 5 Leihen auf Pro wechseln.';
+
+  @override
+  String get marketplaceLoanCap =>
+      'Alle 5 Leihen sind belegt. Gib zuerst etwas zurück.';
+
+  @override
+  String get accountHandoverTitle => 'Notizbücher auf diesem Gerät';
+
+  @override
+  String accountHandoverBody(int count) {
+    return 'Es liegen $count Notizbücher lokal. Sie gehören nicht automatisch zum neuen Konto.';
+  }
+
+  @override
+  String get accountHandoverDelete => 'Lokal löschen';
+
+  @override
+  String get accountHandoverDeleteHint =>
+      'Die Hefte verschwinden von diesem Gerät. Cloud-Kopien bleiben, falls schon hochgeladen.';
+
+  @override
+  String get accountHandoverCloud => 'In die Cloud speichern';
+
+  @override
+  String get accountHandoverCloudHint =>
+      'Jetzt hochladen und danach lokal entfernen. Du findest sie nach der nächsten Anmeldung mit diesem Konto.';
+
+  @override
+  String get accountHandoverCloudUnavailable =>
+      'Cloud-Speichern geht nur, solange du mit dem Ursprungskonto angemeldet bist.';
+
+  @override
+  String get accountHandoverLock => 'Lokal speichern und verschlüsseln';
+
+  @override
+  String get accountHandoverLockHint =>
+      'Die Hefte bleiben auf dem Gerät, sind aber nur mit dem Ursprungskonto zu öffnen.';
+
+  @override
+  String get accountHandoverLockUnavailable =>
+      'Verschlüsseln geht nur beim Abmelden, solange das Ursprungskonto noch aktiv ist.';
+
+  @override
+  String get accountNotebookLocked =>
+      'Dieses Notizbuch gehört einem anderen Konto und ist gesperrt.';
 }

@@ -4,6 +4,7 @@ import 'package:isar_community/isar.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../../features/auth/current_uid.dart';
 import '../../features/editor/domain/ink_models.dart';
 import '../../shared/utils/page_size.dart';
 import '../local/isar_entities.dart';
@@ -65,6 +66,8 @@ class IsarNotebookRepository extends NotebookRepository
         subjectKey: subjectMap[nb.id],
       );
     }).toList();
+    final access = await readNotebookAccessRaw();
+    list = [for (final n in list) applyNotebookAccess(n, access)];
     if (query.trim().isNotEmpty) {
       final q = query.trim().toLowerCase();
       list = list.where((n) => n.title.toLowerCase().contains(q)).toList();
@@ -86,10 +89,14 @@ class IsarNotebookRepository extends NotebookRepository
     final folderId = await notebookFolderId(id);
     final schoolClass = await notebookSchoolClass(id);
     final subjectKey = await notebookSubjectKey(id);
-    return nb.copyWith(
-      folderId: folderId,
-      schoolClass: schoolClass,
-      subjectKey: subjectKey,
+    final access = await readNotebookAccessRaw();
+    return applyNotebookAccess(
+      nb.copyWith(
+        folderId: folderId,
+        schoolClass: schoolClass,
+        subjectKey: subjectKey,
+      ),
+      access,
     );
   }
 
@@ -140,6 +147,11 @@ class IsarNotebookRepository extends NotebookRepository
     if (schoolClass != null) {
       await setNotebookSchoolClass(notebook.id, schoolClass);
     }
+    await setNotebookAccess(
+      notebook.id,
+      ownerUid: currentAuthUid(),
+      locked: false,
+    );
 
     await enqueueSyncOp(
       SyncOp(
@@ -150,7 +162,9 @@ class IsarNotebookRepository extends NotebookRepository
         createdAt: DateTime.now(),
       ),
     );
-    return notebook;
+    return notebook.copyWith(
+      ownerUid: currentAuthUid(),
+    );
   }
 
   @override
@@ -167,6 +181,11 @@ class IsarNotebookRepository extends NotebookRepository
     await setNotebookFolderId(notebook.id, notebook.folderId);
     await setNotebookSchoolClass(notebook.id, notebook.schoolClass);
     await setNotebookSubjectKey(notebook.id, notebook.subjectKey);
+    await setNotebookAccess(
+      notebook.id,
+      ownerUid: notebook.ownerUid,
+      locked: notebook.locked,
+    );
     await enqueueSyncOp(
       SyncOp(
         id: const Uuid().v4(),
@@ -194,8 +213,7 @@ class IsarNotebookRepository extends NotebookRepository
     await setNotebookSubjectKey(notebook.id, notebook.subjectKey);
   }
 
-  @override
-  Future<void> deleteNotebook(String id) async {
+  Future<void> _purgeNotebookLocal(String id) async {
     final notebook = await _isar.notebookEntitys
         .filter()
         .uuidEqualTo(id)
@@ -213,6 +231,13 @@ class IsarNotebookRepository extends NotebookRepository
       }
     });
     await deleteKv('outline_$id');
+    await deleteKv('locked_blob_$id');
+    await removeNotebookAccess(id);
+  }
+
+  @override
+  Future<void> deleteNotebook(String id) async {
+    await _purgeNotebookLocal(id);
     await enqueueSyncOp(
       SyncOp(
         id: const Uuid().v4(),
@@ -222,6 +247,18 @@ class IsarNotebookRepository extends NotebookRepository
         createdAt: DateTime.now(),
       ),
     );
+  }
+
+  @override
+  Future<void> deleteLocalNotebookOnly(String id) => _purgeNotebookLocal(id);
+
+  @override
+  Future<void> clearLocalNotebooksForCloudReload() async {
+    final notebooks = await getNotebooks();
+    for (final notebook in notebooks) {
+      if (notebook.locked) continue;
+      await _purgeNotebookLocal(notebook.id);
+    }
   }
 
   @override

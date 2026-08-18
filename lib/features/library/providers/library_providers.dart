@@ -34,6 +34,7 @@ void refreshLibraryLists(WidgetRef ref) {
   ref.invalidate(foldersProvider);
   ref.invalidate(allFoldersProvider);
   ref.invalidate(flashcardDecksProvider);
+  ref.invalidate(firstPageProvider);
 }
 
 final notebooksProvider = FutureProvider.autoDispose<List<Notebook>>((
@@ -77,6 +78,18 @@ final allFoldersProvider = FutureProvider.autoDispose<List<LibraryFolder>>((
   ref,
 ) {
   return ref.watch(notebookRepositoryProvider).getAllFolders();
+});
+
+/// First page of a notebook, for library cover previews.
+final firstPageProvider = FutureProvider.autoDispose.family<NotePage?, String>((
+  ref,
+  notebookId,
+) async {
+  ref.watch(libraryEpochProvider);
+  final pages = await ref.watch(notebookRepositoryProvider).getPages(notebookId);
+  if (pages.isEmpty) return null;
+  final sorted = [...pages]..sort((a, b) => a.index.compareTo(b.index));
+  return sorted.first;
 });
 
 enum AppUserRole { student, teacher }

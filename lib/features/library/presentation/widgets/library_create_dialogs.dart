@@ -45,8 +45,8 @@ Widget _colorPicker({
           onTap: () => onSelect(c),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            width: 34,
-            height: 34,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
               color: Color(c),
               borderRadius: BorderRadius.circular(10),

@@ -24,28 +24,28 @@ abstract final class EditorChrome {
   /// Background behind the pages.
   static Color get workspace => _p.workspace;
 
-  /// Floating pills (tool options, undo, page badge).
+  /// Floating tools (options, undo, page badge) — raised desk objects, not pills.
   static Color get floating => _p.floating;
-  static Color get floatingBorder => _p.onChrome.withValues(alpha: 0.12);
+  static Color get floatingBorder => _p.outline;
 
   /// Selection accent used for the active tool and options.
   static Color get selected => _p.chromeActive;
-  static Color get selectedSoft => _p.chromeActive.withValues(alpha: 0.22);
+  static Color get selectedSoft => _p.chromeActive.withValues(alpha: 0.16);
 
   /// Subtle fill for pressed or active chrome buttons.
-  static Color get chip => _p.onChrome.withValues(alpha: 0.10);
+  static Color get chip => _p.accentSoft;
 
   static Color get onDark => _p.onChrome;
   static Color get onDarkMuted => _p.onChromeMuted;
-  static Color get divider => _p.onChrome.withValues(alpha: 0.14);
+  static Color get divider => _p.outline;
 
-  static const tabRowHeight = 40.0;
-  static const toolRowHeight = 54.0;
-  static const pillRadius = 22.0;
+  static const tabRowHeight = 44.0;
+  static const toolRowHeight = 52.0;
+  static const dockWidth = 56.0;
+  static const pillRadius = 12.0;
+  static const dockBreakpoint = 720.0;
 
-  static List<BoxShadow> get pillShadow => const [
-    BoxShadow(color: Color(0x59000000), blurRadius: 18, offset: Offset(0, 6)),
-  ];
+  static List<BoxShadow> get pillShadow => const [];
 
   /// Legacy aliases kept so older call sites keep compiling.
   static Color get toolbar => floating;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../data/models/notebook.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -18,6 +19,7 @@ class PageSidebar extends StatelessWidget {
     required this.onAdd,
     required this.onDuplicate,
     required this.onDelete,
+    this.onRename,
     required this.onClose,
   });
 
@@ -29,6 +31,7 @@ class PageSidebar extends StatelessWidget {
   final VoidCallback onAdd;
   final Future<void> Function(int index) onDuplicate;
   final Future<void> Function(int index) onDelete;
+  final Future<void> Function(int index)? onRename;
   final VoidCallback onClose;
 
   @override
@@ -142,18 +145,37 @@ class PageSidebar extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: selected
-                              ? EditorChrome.onDark
-                              : EditorChrome.onDarkMuted,
-                          fontSize: 12,
-                          fontWeight: selected
-                              ? FontWeight.w700
-                              : FontWeight.w400,
+                      GestureDetector(
+                        onTap: onRename == null
+                            ? null
+                            : () => onRename!(index),
+                        child: Text(
+                          page.displayTitle(index + 1),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: selected
+                                ? EditorChrome.onDark
+                                : EditorChrome.onDarkMuted,
+                            fontSize: 12,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w400,
+                          ),
                         ),
                       ),
+                      if (page.createdStamp != null || page.updatedAt != null)
+                        Text(
+                          _sidebarDates(page),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: EditorChrome.onDarkMuted,
+                            fontSize: 9,
+                            height: 1.25,
+                          ),
+                        ),
                     ],
                   ),
                 );
@@ -175,6 +197,15 @@ class PageSidebar extends StatelessWidget {
       builder: (sheetContext) => SafeArea(
         child: Wrap(
           children: [
+            if (onRename != null)
+              ListTile(
+                leading: const Icon(Icons.drive_file_rename_outline_rounded),
+                title: Text(l10n.renamePage),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onRename!(index);
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.copy_outlined),
               title: Text(l10n.duplicatePage),
@@ -199,5 +230,19 @@ class PageSidebar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _sidebarDates(NotePage page) {
+    final format = DateFormat.MMMd();
+    final parts = <String>[];
+    final created = page.createdStamp;
+    if (created != null) parts.add(format.format(created));
+    final edited = page.updatedAt;
+    if (edited != null &&
+        (created == null ||
+            edited.difference(created).inMinutes.abs() >= 1)) {
+      parts.add(format.format(edited));
+    }
+    return parts.join(' · ');
   }
 }

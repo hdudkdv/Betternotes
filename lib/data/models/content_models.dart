@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-enum TextLayoutMode { free, lineBound }
+enum TextLayoutMode { free, lineBound, sticky }
 
 enum CanvasMode { page, infinite }
 
@@ -124,6 +124,7 @@ class TextBlock extends Equatable {
     required this.layoutMode,
     required this.spans,
     this.align = TextBlockAlign.left,
+    this.fillColor,
   });
 
   final String id;
@@ -136,6 +137,11 @@ class TextBlock extends Equatable {
   final List<TextSpanStyle> spans;
   final TextBlockAlign align;
 
+  /// Paper fill for sticky notes. Regular text boxes leave this null.
+  final int? fillColor;
+
+  bool get isSticky => layoutMode == TextLayoutMode.sticky;
+
   String get plainText => spans.map((s) => s.text).join();
 
   TextBlock copyWith({
@@ -146,6 +152,8 @@ class TextBlock extends Equatable {
     TextLayoutMode? layoutMode,
     List<TextSpanStyle>? spans,
     TextBlockAlign? align,
+    int? fillColor,
+    bool clearFill = false,
   }) {
     return TextBlock(
       id: id,
@@ -157,6 +165,7 @@ class TextBlock extends Equatable {
       layoutMode: layoutMode ?? this.layoutMode,
       spans: spans ?? this.spans,
       align: align ?? this.align,
+      fillColor: clearFill ? null : (fillColor ?? this.fillColor),
     );
   }
 
@@ -170,6 +179,7 @@ class TextBlock extends Equatable {
     'layoutMode': layoutMode.name,
     'spans': spans.map((s) => s.toJson()).toList(),
     'align': align.name,
+    if (fillColor != null) 'fillColor': fillColor,
   };
 
   factory TextBlock.fromJson(Map<String, dynamic> json) {
@@ -192,6 +202,7 @@ class TextBlock extends Equatable {
         (a) => a.name == json['align'],
         orElse: () => TextBlockAlign.left,
       ),
+      fillColor: json['fillColor'] as int?,
     );
   }
 
@@ -201,16 +212,20 @@ class TextBlock extends Equatable {
     required double y,
     TextLayoutMode layoutMode = TextLayoutMode.free,
     String text = 'Text',
+    int? fillColor,
+    double width = 220,
+    double height = 48,
   }) {
     return TextBlock(
       id: const Uuid().v4(),
       pageId: pageId,
       x: x,
       y: y,
-      width: 220,
-      height: 48,
+      width: width,
+      height: height,
       layoutMode: layoutMode,
       spans: [TextSpanStyle(text: text)],
+      fillColor: fillColor,
     );
   }
 
@@ -225,6 +240,7 @@ class TextBlock extends Equatable {
     layoutMode,
     spans,
     align,
+    fillColor,
   ];
 }
 
@@ -794,6 +810,91 @@ class ImageElement extends Equatable {
 
   @override
   List<Object?> get props => [id, pageId, localPath, x, y, width, height];
+}
+
+/// Built-in decorative sticker placed on a page (GoodNotes-style).
+class StickerElement extends Equatable {
+  const StickerElement({
+    required this.id,
+    required this.pageId,
+    required this.catalogId,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  final String id;
+  final String pageId;
+  final String catalogId;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+
+  Rect get bounds => Rect.fromLTWH(x, y, width, height);
+
+  StickerElement copyWith({
+    String? catalogId,
+    double? x,
+    double? y,
+    double? width,
+    double? height,
+  }) {
+    return StickerElement(
+      id: id,
+      pageId: pageId,
+      catalogId: catalogId ?? this.catalogId,
+      x: x ?? this.x,
+      y: y ?? this.y,
+      width: width ?? this.width,
+      height: height ?? this.height,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'pageId': pageId,
+    'catalogId': catalogId,
+    'x': x,
+    'y': y,
+    'width': width,
+    'height': height,
+  };
+
+  factory StickerElement.fromJson(Map<String, dynamic> json) {
+    return StickerElement(
+      id: json['id'] as String,
+      pageId: json['pageId'] as String,
+      catalogId: json['catalogId'] as String? ?? 'star',
+      x: (json['x'] as num).toDouble(),
+      y: (json['y'] as num).toDouble(),
+      width: (json['width'] as num).toDouble(),
+      height: (json['height'] as num).toDouble(),
+    );
+  }
+
+  factory StickerElement.create({
+    required String pageId,
+    required String catalogId,
+    required double x,
+    required double y,
+    double width = 72,
+    double height = 72,
+  }) {
+    return StickerElement(
+      id: const Uuid().v4(),
+      pageId: pageId,
+      catalogId: catalogId,
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+    );
+  }
+
+  @override
+  List<Object?> get props => [id, pageId, catalogId, x, y, width, height];
 }
 
 class NoteTag extends Equatable {

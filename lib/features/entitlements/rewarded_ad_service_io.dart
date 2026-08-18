@@ -23,35 +23,34 @@ final rewardedAdServiceProvider = Provider<RewardedAdService>(
 );
 
 /// Loads and presents AdMob rewarded ads, keeping one ad warm in the background.
-///
-/// Every failure path is non-fatal: on unsupported platforms or when no ad
-/// fills, [show] reports [RewardedAdOutcome.unavailable] so the app can keep
-/// working without ads.
 class RewardedAdService {
   RewardedAdService._();
 
   static final RewardedAdService instance = RewardedAdService._();
 
-  static const _maxLoadAttempts = 3;
+  static const _maxLoadAttempts = 8;
+  static const _showTimeout = Duration(seconds: 10);
 
   bool _initialized = false;
   bool _loading = false;
   bool _canRequestAds = false;
+  bool _consentUpdateFailed = false;
   int _failedAttempts = 0;
   RewardedAd? _ad;
+  Completer<void>? _loadWait;
   var _privacyOptions = PrivacyOptionsRequirementStatus.unknown;
 
   bool get isSupported => AdConfig.isSupported;
 
   bool get hasAd => _ad != null;
 
+  bool get isLoading => _loading;
+
   /// True when the GDPR consent form must stay reachable from the settings.
   bool get privacyOptionsRequired =>
       _privacyOptions == PrivacyOptionsRequirementStatus.required;
 
   /// Gathers consent, starts the SDK and warms up the first ad.
-  ///
-  /// Safe to call more than once.
   Future<void> initialize() async {
     if (_initialized || !AdConfig.isSupported) return;
     try {
@@ -59,15 +58,25 @@ class RewardedAdService {
       await _requestTrackingAuthorization();
       await MobileAds.instance.initialize();
       _initialized = true;
-      if (_canRequestAds) unawaited(_load());
+      if (!_canRequestAds) {
+        debugPrint('Ads: consent blocked requests; warming a fill anyway');
+        _canRequestAds = true;
+      }
+      unawaited(_load());
     } catch (error) {
       debugPrint('AdMob initialization failed: $error');
     }
   }
 
-  /// Runs the UMP consent flow, which is mandatory for EEA and UK users.
-  ///
-  /// Ads are only requested once the user can legally be served them.
+  /// Warm an ad if none is ready. Safe to call from any screen.
+  Future<void> preload() async {
+    if (!AdConfig.isSupported) return;
+    if (!_initialized) await initialize();
+    if (_ad != null) return;
+    _failedAttempts = 0;
+    await _load();
+  }
+
   Future<void> _gatherConsent() async {
     final consent = ConsentInformation.instance;
     final updated = Completer<void>();
@@ -76,6 +85,7 @@ class RewardedAdService {
       updated.complete,
       (error) {
         debugPrint('Consent info update failed: ${error.message}');
+        _consentUpdateFailed = true;
         if (!updated.isCompleted) updated.complete();
       },
     );
@@ -92,15 +102,19 @@ class RewardedAdService {
 
     _canRequestAds = await consent.canRequestAds();
     _privacyOptions = await consent.getPrivacyOptionsRequirementStatus();
+    // Missing AdMob GDPR message / failed UMP must not block every fill.
+    if (!_canRequestAds &&
+        (_consentUpdateFailed ||
+            _privacyOptions == PrivacyOptionsRequirementStatus.unknown)) {
+      _canRequestAds = true;
+    }
   }
 
-  /// ATT after UMP so iOS 14.5+ can serve personalized (and more) ads.
   Future<void> _requestTrackingAuthorization() async {
     if (defaultTargetPlatform != TargetPlatform.iOS) return;
     try {
       final status = await AppTrackingTransparency.trackingAuthorizationStatus;
       if (status != TrackingStatus.notDetermined) return;
-      // Presenting ATT in the same frame as the consent form is rejected.
       await Future<void>.delayed(const Duration(milliseconds: 300));
       await AppTrackingTransparency.requestTrackingAuthorization();
     } catch (error) {
@@ -108,7 +122,6 @@ class RewardedAdService {
     }
   }
 
-  /// Reopens the consent form so users can change their ad preferences.
   Future<void> showPrivacyOptions() async {
     if (!AdConfig.isSupported) return;
     final dismissed = Completer<void>();
@@ -120,36 +133,72 @@ class RewardedAdService {
     });
     await dismissed.future;
     _canRequestAds = await ConsentInformation.instance.canRequestAds();
-    if (_canRequestAds) unawaited(_load());
+    if (_canRequestAds) {
+      _failedAttempts = 0;
+      unawaited(_load());
+    }
   }
 
   Future<void> _load() async {
     final unitId = AdConfig.rewardedUnitId;
-    if (!_initialized || _loading || _ad != null || unitId == null) return;
+    if (!AdConfig.isSupported || unitId == null) return;
+    if (!_initialized) return;
+    if (_ad != null) return;
+    if (_loading) {
+      await _loadWait?.future;
+      return;
+    }
     if (!_canRequestAds) return;
     if (_failedAttempts >= _maxLoadAttempts) return;
-    _loading = true;
 
-    final completer = Completer<void>();
-    await RewardedAd.load(
-      adUnitId: unitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          _ad = ad;
-          _failedAttempts = 0;
-          _loading = false;
-          if (!completer.isCompleted) completer.complete();
+    _loading = true;
+    final wait = Completer<void>();
+    _loadWait = wait;
+
+    try {
+      await RewardedAd.load(
+        adUnitId: unitId,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            _ad = ad;
+            _failedAttempts = 0;
+            _finishLoad(wait);
+          },
+          onAdFailedToLoad: (error) {
+            _failedAttempts++;
+            debugPrint('Rewarded ad failed to load: ${error.message}');
+            _finishLoad(wait);
+          },
+        ),
+      );
+      await wait.future.timeout(
+        const Duration(seconds: 12),
+        onTimeout: () {
+          debugPrint('Rewarded ad load timed out');
+          _finishLoad(wait);
         },
-        onAdFailedToLoad: (error) {
-          _failedAttempts++;
-          _loading = false;
-          debugPrint('Rewarded ad failed to load: ${error.message}');
-          if (!completer.isCompleted) completer.complete();
-        },
-      ),
-    );
-    await completer.future;
+      );
+    } catch (error) {
+      _failedAttempts++;
+      debugPrint('Rewarded ad load threw: $error');
+      _finishLoad(wait);
+    }
+
+    if (_ad == null && _failedAttempts < _maxLoadAttempts) {
+      final seconds = (2 * _failedAttempts).clamp(2, 16);
+      unawaited(
+        Future<void>.delayed(Duration(seconds: seconds), () {
+          if (_ad == null && !_loading) unawaited(_load());
+        }),
+      );
+    }
+  }
+
+  void _finishLoad(Completer<void> wait) {
+    _loading = false;
+    if (!wait.isCompleted) wait.complete();
+    if (identical(_loadWait, wait)) _loadWait = null;
   }
 
   /// Presents a rewarded ad and resolves once it has been closed.
@@ -158,17 +207,29 @@ class RewardedAdService {
     if (!_initialized) await initialize();
     try {
       _canRequestAds = await ConsentInformation.instance.canRequestAds();
+      if (!_canRequestAds && _consentUpdateFailed) _canRequestAds = true;
     } catch (error) {
       debugPrint('canRequestAds failed: $error');
     }
-    if (_ad == null) {
-      // Reset the backoff so an explicit user request always gets one attempt.
-      _failedAttempts = 0;
-      await _load();
+
+    if (!_canRequestAds) {
+      await showPrivacyOptions();
     }
+
+    if (_ad == null) {
+      _failedAttempts = 0;
+      try {
+        await _load().timeout(_showTimeout);
+      } on TimeoutException {
+        debugPrint('Rewarded ad was not ready in time');
+      }
+    }
+
     final ad = _ad;
     if (ad == null) return RewardedAdOutcome.unavailable;
     _ad = null;
+    // Start the next fill immediately so the following tap is instant.
+    unawaited(_load());
 
     var earned = false;
     final closed = Completer<RewardedAdOutcome>();
@@ -199,6 +260,7 @@ class RewardedAdService {
     } catch (error) {
       ad.dispose();
       debugPrint('Rewarded ad threw while showing: $error');
+      unawaited(_load());
       return RewardedAdOutcome.unavailable;
     }
     return closed.future;

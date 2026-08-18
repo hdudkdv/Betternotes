@@ -23,6 +23,16 @@ class NotePageDraft {
 }
 
 abstract class NotebookRepository {
+  Future<String?> readKv(String key);
+  Future<void> writeKv(String key, String value);
+  Future<void> deleteKv(String key);
+
+  Future<void> setNotebookAccess(
+    String notebookId, {
+    String? ownerUid,
+    bool? locked,
+  });
+
   Future<List<Notebook>> getNotebooks({String query = ''});
 
   Future<Notebook?> getNotebook(String id);
@@ -76,7 +86,11 @@ abstract class NotebookRepository {
 
   Future<String> resolveFilesDir();
 
-  /// Drops local notebooks/pages so a web session can be replaced from cloud.
+  /// Removes a notebook from this device without enqueueing a cloud delete.
+  Future<void> deleteLocalNotebookOnly(String id);
+
+  /// Drops local notebooks/pages so a session can be replaced from cloud.
+  /// Locked notebooks belonging to another account stay on the device.
   Future<void> clearLocalNotebooksForCloudReload() async {}
 
   // Outline

@@ -222,10 +222,10 @@ class AppTheme {
         thumbColor: palette.accent,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: palette.chrome,
+        backgroundColor: palette.ink,
         contentTextStyle: GoogleFonts.getFont(
           palette.bodyFont,
-          color: palette.onChrome,
+          color: palette.surface,
           fontWeight: FontWeight.w600,
         ),
         behavior: SnackBarBehavior.floating,
@@ -302,6 +302,22 @@ const coverPalette = <int>[
   0xFF0F766E,
   0xFF334155,
   0xFFEA580C,
+  0xFF1E3A5F,
+  0xFF4C1D95,
+  0xFF831843,
+  0xFF14532D,
+  0xFF9F1239,
+  0xFF155E75,
+  0xFF713F12,
+  0xFF1E293B,
+  0xFFC2410C,
+  0xFF6D28D9,
+  0xFF0E7490,
+  0xFFA16207,
+  0xFF166534,
+  0xFF9D174D,
+  0xFF1D4ED8,
+  0xFF44403C,
 ];
 
 /// Folder icon keys stored on [LibraryFolder.iconKey].

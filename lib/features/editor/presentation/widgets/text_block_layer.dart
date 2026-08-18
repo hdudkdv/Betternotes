@@ -511,7 +511,7 @@ class _TextBlockWidgetState extends State<_TextBlockWidget> {
             strutStyle: strut,
           );
 
-    return Padding(
+    final padded = Padding(
       padding: EdgeInsets.symmetric(
         horizontal: _lineBound ? 0 : _freeInsetX,
         vertical: _lineBound ? 0 : _freeInsetY,
@@ -524,6 +524,22 @@ class _TextBlockWidgetState extends State<_TextBlockWidget> {
               ),
               child: child,
             ),
+    );
+    if (!widget.block.isSticky) return padded;
+    final fill = Color(widget.block.fillColor ?? 0xFFFFF59D);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 8,
+            offset: Offset(1, 3),
+          ),
+        ],
+      ),
+      child: padded,
     );
   }
 

@@ -212,6 +212,13 @@ a:hover { color: var(--blue-deep); }
   padding: 12px 0 48px;
 }
 
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
 .card {
   background: var(--card);
   border-radius: 20px;
@@ -286,6 +293,6 @@ footer {
 [hidden] { display: none !important; }
 
 @media (max-width: 800px) {
-  .hero, .grid { grid-template-columns: 1fr; }
+  .hero, .grid, .plan-grid { grid-template-columns: 1fr; }
   .hero { padding-top: 24px; }
 }

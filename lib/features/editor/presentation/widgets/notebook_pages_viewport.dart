@@ -9,6 +9,7 @@ import '../../../../data/models/content_models.dart';
 import '../../../../data/models/notebook.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/utils/page_size.dart';
+import '../../domain/pointer_routing.dart';
 import '../editor_chrome.dart';
 import '../page_preview_cache.dart';
 import 'ink_painter.dart';
@@ -43,13 +44,7 @@ class PageSnapshot extends StatelessWidget {
         return DecoratedBox(
           decoration: BoxDecoration(
             color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.45),
-                blurRadius: 32,
-                offset: const Offset(0, 18),
-              ),
-            ],
+            border: Border.all(color: EditorChrome.divider),
           ),
           child: image != null
               ? _CachedPageImage(image: image, pageSize: pageSize)
@@ -219,7 +214,8 @@ class AddPageAffordance extends StatelessWidget {
 }
 
 /// Touch / trackpad may scroll pages. Stylus and mouse write ink and must
-/// never drive [PageView] / [ListView] scrolling.
+/// never drive [PageView] / [ListView] scrolling. Right-click browse is
+/// handled in [InkCanvas] / the viewport listener, not by scroll physics.
 class _TouchOnlyScrollBehavior extends MaterialScrollBehavior {
   const _TouchOnlyScrollBehavior();
 
@@ -227,8 +223,6 @@ class _TouchOnlyScrollBehavior extends MaterialScrollBehavior {
   Set<PointerDeviceKind> get dragDevices => const {
     PointerDeviceKind.touch,
     PointerDeviceKind.trackpad,
-    // Desktop testing / mouse-as-finger navigation.
-    PointerDeviceKind.mouse,
   };
 }
 
@@ -245,6 +239,7 @@ class NotebookPagesViewport extends StatefulWidget {
     this.onReachEnd,
     this.onFlipStart,
     this.readOnly = false,
+    this.navigationLocked = false,
   });
 
   final List<NotePage> pages;
@@ -258,6 +253,9 @@ class NotebookPagesViewport extends StatefulWidget {
   /// Sync the leaving page into [pages] before the live canvas is hidden.
   final VoidCallback? onFlipStart;
   final bool readOnly;
+
+  /// Page lock (Schloss): stay on this page — no swipe / scroll / adjacent.
+  final bool navigationLocked;
 
   @override
   State<NotebookPagesViewport> createState() => NotebookPagesViewportState();
@@ -351,17 +349,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   int _viewportPointers = 0;
 
   bool _isBrowseKind(PointerEvent event) {
-    if (event.kind == PointerDeviceKind.stylus ||
-        event.kind == PointerDeviceKind.invertedStylus) {
-      return false;
-    }
-    if (event.kind == PointerDeviceKind.touch &&
-        (event.pressureMax > 1.0 || (event.size > 0 && event.size < 0.08))) {
-      return false;
-    }
-    return event.kind == PointerDeviceKind.touch ||
-        event.kind == PointerDeviceKind.mouse ||
-        event.kind == PointerDeviceKind.trackpad;
+    return PointerRouting.browsesLikeFinger(event);
   }
 
   void _onViewportPointerDown(PointerDownEvent event) {
@@ -372,7 +360,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
       _browseLastGlobal = null;
       return;
     }
-    if (_scrollLock || _zoomed) return;
+    if (_scrollLock || _zoomed || widget.navigationLocked) return;
     if (!_isBrowseKind(event)) return;
     _browsePointer = event.pointer;
     _browseDown = event.position;
@@ -381,9 +369,9 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
 
   void _onViewportPointerMove(PointerMoveEvent event) {
     if (_viewportPointers >= 2) return;
-    if (_scrollLock || _zoomed) return;
-    if (!_isBrowseKind(event)) return;
+    if (_scrollLock || _zoomed || widget.navigationLocked) return;
     if (_browsePointer != null && event.pointer != _browsePointer) return;
+    if (_browsePointer == null && !_isBrowseKind(event)) return;
 
     if (_browsePointer == null) {
       _browsePointer = event.pointer;
@@ -456,7 +444,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   ScrollPhysics get _listPhysics {
-    if (_scrollLock) {
+    if (_scrollLock || widget.navigationLocked) {
       return const NeverScrollableScrollPhysics();
     }
     return const ClampingScrollPhysics();
@@ -550,6 +538,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   void goToAdjacent(int delta) {
+    if (widget.navigationLocked) return;
     final target = widget.pageIndex + delta;
     if (target >= widget.pages.length && delta > 0 && !widget.readOnly) {
       _requestAddPage();
@@ -617,6 +606,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
 
   /// Consume browse pan from [InkCanvas]. Returns true if handled.
   bool handleBrowsePan(Offset delta) {
+    if (widget.navigationLocked) return true;
     if (widget.canvasMode == CanvasMode.infinite) return false;
 
     if (widget.browseMode == PageBrowseMode.swipeHorizontal) {
@@ -665,6 +655,12 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   void handleBrowsePanEnd() {
+    if (widget.navigationLocked) {
+      _swipeAccum = 0;
+      _swipeVelocity = 0;
+      _lastPanMicros = 0;
+      return;
+    }
     if (widget.browseMode != PageBrowseMode.swipeHorizontal) {
       _swipeAccum = 0;
       _swipeVelocity = 0;
@@ -694,7 +690,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
 
   bool _onPageScroll(ScrollNotification n) {
     if (widget.browseMode != PageBrowseMode.swipeHorizontal) return false;
-    if (_scrollLock) return false;
+    if (_scrollLock || widget.navigationLocked) return false;
     if (n is! ScrollEndNotification) return false;
 
     final pc = _pageController;
@@ -782,7 +778,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
 
   bool _onScroll(ScrollNotification n) {
     if (widget.browseMode != PageBrowseMode.scrollVertical) return false;
-    if (_scrollLock) return false;
+    if (_scrollLock || widget.navigationLocked) return false;
     if (n is OverscrollNotification &&
         n.overscroll > 8 &&
         n.metrics.extentAfter <= 0) {
@@ -937,7 +933,9 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
                             )
                           : RepaintBoundary(
                               child: GestureDetector(
-                                onTap: () => _emitPage(index),
+                                onTap: widget.navigationLocked
+                                    ? null
+                                    : () => _emitPage(index),
                                 child: PageSnapshot(
                                   page: widget.pages[index],
                                   width: constraints.maxWidth * 0.92,

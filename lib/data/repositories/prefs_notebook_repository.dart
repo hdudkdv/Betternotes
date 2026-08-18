@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../features/auth/current_uid.dart';
 import '../../features/editor/domain/ink_models.dart';
 import '../../shared/utils/page_size.dart';
 import '../models/content_models.dart';
@@ -75,18 +76,50 @@ class PrefsNotebookRepository extends NotebookRepository
 
   @override
   Future<void> clearLocalNotebooksForCloudReload() async {
-    final notebooks = _readNotebooks();
+    final notebooks = await getNotebooks();
     for (final notebook in notebooks) {
+      if (notebook.locked) continue;
       await _prefs.remove('$_pagesPrefix${notebook.id}');
       await deleteKv('outline_${notebook.id}');
+      await deleteKv('locked_blob_${notebook.id}');
+      await removeNotebookAccess(notebook.id);
     }
-    await _prefs.remove(_notebooksKey);
+    final kept = notebooks.where((n) => n.locked).toList();
+    await _writeNotebooks(kept);
     await deleteKv('sync_ops');
   }
+
+  Future<void> _purgeNotebookLocal(String id) async {
+    final notebooks = _readNotebooks()..removeWhere((n) => n.id == id);
+    await _writeNotebooks(notebooks);
+    await _prefs.remove('$_pagesPrefix$id');
+    await deleteKv('outline_$id');
+    await deleteKv('locked_blob_$id');
+    await removeNotebookAccess(id);
+  }
+
+  @override
+  Future<void> deleteNotebook(String id) async {
+    await _purgeNotebookLocal(id);
+    await enqueueSyncOp(
+      SyncOp(
+        id: const Uuid().v4(),
+        entityType: 'delete_notebook',
+        entityId: id,
+        payloadJson: jsonEncode({'id': id}),
+        createdAt: DateTime.now(),
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteLocalNotebookOnly(String id) => _purgeNotebookLocal(id);
 
   @override
   Future<List<Notebook>> getNotebooks({String query = ''}) async {
     var list = _readNotebooks();
+    final access = await readNotebookAccessRaw();
+    list = [for (final n in list) applyNotebookAccess(n, access)];
     if (query.trim().isNotEmpty) {
       final q = query.trim().toLowerCase();
       list = list.where((n) => n.title.toLowerCase().contains(q)).toList();
@@ -103,7 +136,9 @@ class PrefsNotebookRepository extends NotebookRepository
   @override
   Future<Notebook?> getNotebook(String id) async {
     try {
-      return _readNotebooks().firstWhere((n) => n.id == id);
+      final notebook = _readNotebooks().firstWhere((n) => n.id == id);
+      final access = await readNotebookAccessRaw();
+      return applyNotebookAccess(notebook, access);
     } catch (_) {
       return null;
     }
@@ -146,6 +181,11 @@ class PrefsNotebookRepository extends NotebookRepository
     if (schoolClass != null) {
       await setNotebookSchoolClass(notebook.id, schoolClass);
     }
+    await setNotebookAccess(
+      notebook.id,
+      ownerUid: currentAuthUid(),
+      locked: false,
+    );
     await enqueueSyncOp(
       SyncOp(
         id: const Uuid().v4(),
@@ -155,7 +195,9 @@ class PrefsNotebookRepository extends NotebookRepository
         createdAt: DateTime.now(),
       ),
     );
-    return notebook;
+    return notebook.copyWith(
+      ownerUid: currentAuthUid(),
+    );
   }
 
   @override
@@ -168,6 +210,11 @@ class PrefsNotebookRepository extends NotebookRepository
     await setNotebookFolderId(notebook.id, notebook.folderId);
     await setNotebookSchoolClass(notebook.id, notebook.schoolClass);
     await setNotebookSubjectKey(notebook.id, notebook.subjectKey);
+    await setNotebookAccess(
+      notebook.id,
+      ownerUid: notebook.ownerUid,
+      locked: notebook.locked,
+    );
     await enqueueSyncOp(
       SyncOp(
         id: const Uuid().v4(),
@@ -192,23 +239,6 @@ class PrefsNotebookRepository extends NotebookRepository
     await setNotebookFolderId(notebook.id, notebook.folderId);
     await setNotebookSchoolClass(notebook.id, notebook.schoolClass);
     await setNotebookSubjectKey(notebook.id, notebook.subjectKey);
-  }
-
-  @override
-  Future<void> deleteNotebook(String id) async {
-    final notebooks = _readNotebooks()..removeWhere((n) => n.id == id);
-    await _writeNotebooks(notebooks);
-    await _prefs.remove('$_pagesPrefix$id');
-    await deleteKv('outline_$id');
-    await enqueueSyncOp(
-      SyncOp(
-        id: const Uuid().v4(),
-        entityType: 'delete_notebook',
-        entityId: id,
-        payloadJson: jsonEncode({'id': id}),
-        createdAt: DateTime.now(),
-      ),
-    );
   }
 
   @override

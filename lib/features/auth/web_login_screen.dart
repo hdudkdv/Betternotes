@@ -25,7 +25,7 @@ class _WebLoginScreenState extends ConsumerState<WebLoginScreen> {
       _error = null;
     });
     try {
-      await signInAndLoadCloud(ref, signIn);
+      await signInAndLoadCloud(ref, signIn, context: context);
       if (!mounted) return;
       if (!ref.read(authProvider).signedIn) {
         setState(() => _busy = false);

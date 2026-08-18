@@ -1,7 +1,7 @@
 name: betternotes
 description: Notis — tablet-first handwritten notes for school and study.
 publish_to: 'none'
-version: 1.0.1+4
+version: 1.0.1+5
 
 environment:
   sdk: ^3.11.4
@@ -51,6 +51,8 @@ dependencies:
   google_mlkit_text_recognition: ^0.15.0
   cunning_document_scanner: ^1.3.1
   purchases_ui_flutter: ^10.9.0
+  flutter_gemma: 0.16.5
+  device_info_plus: ^11.5.0
 
 dependency_overrides:
   # 0.4.5 fails iOS release AOT (`PdfFileCache?` used without null checks).

@@ -19,6 +19,7 @@ enum InkTool {
   /// Kept for older sessions; prefer [DrawingGuide.compass].
   compass,
   image,
+  sticker,
 }
 
 /// Straight / circular drawing aids that work together with a pen tool.
@@ -65,6 +66,9 @@ extension InkToolX on InkTool {
 
   bool get isGeometryGuide =>
       this == InkTool.ruler || this == InkTool.compass || this == InkTool.shape;
+
+  /// Image / sticker overlays — no ink, the layer owns the pointer.
+  bool get isOverlayTool => this == InkTool.image || this == InkTool.sticker;
 }
 
 enum InteractionMode { edit, read }

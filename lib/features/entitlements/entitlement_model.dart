@@ -6,7 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../library/providers/library_providers.dart';
 
-enum AppTier { free, pro, proPlus, teacher }
+enum AppTier { free, lite, pro, proPlus, teacher }
+
+/// Paid level used by the six public plans (role × this).
+enum PaidTier { free, lite, pro }
 
 /// Unlockable / gated capabilities (Phase 1: local only).
 abstract final class FeatureKeys {
@@ -66,9 +69,12 @@ abstract final class FeatureKeys {
     packFreelance,
   ];
 
-  /// Coin extras only — never included in a subscription.
+  /// Marketplace extras. Free/Lite buy with coins; Pro loans 5 at a time.
   static const marketplace = <String>[
     aiAssistant,
+    pdfCompress,
+    handwritingOcr,
+    audioTranscription,
     chartPack,
     calcPlus,
     formulaPack,
@@ -118,6 +124,8 @@ class EntitlementState extends Equatable {
     this.serverCostEuro = 12,
     this.donationsCoveredEuro = 0,
     this.supportUrl = 'https://ko-fi.com/',
+    this.lastDailyCoinDay,
+    this.loaned = const {},
   });
 
   final AppTier tier;
@@ -127,30 +135,85 @@ class EntitlementState extends Equatable {
   final int donationsCoveredEuro;
   final String supportUrl;
 
-  bool get isProOrHigher =>
-      tier == AppTier.pro || tier == AppTier.proPlus || tier == AppTier.teacher;
+  /// Local calendar day (`yyyy-MM-dd`) of the last premium coin grant.
+  final String? lastDailyCoinDay;
 
+  /// Marketplace extras currently borrowed (Pro: up to 5).
+  final Set<String> loaned;
+
+  bool get isProOrHigher => paidTier != PaidTier.free;
+
+  /// Legacy flag from stored `AppTier.teacher`. Role lives on [AppSettings].
   bool get isTeacher => tier == AppTier.teacher;
 
-  bool hasAccess(String feature) {
+  PaidTier get paidTier => switch (tier) {
+    AppTier.free => PaidTier.free,
+    AppTier.lite => PaidTier.lite,
+    AppTier.pro || AppTier.proPlus || AppTier.teacher => PaidTier.pro,
+  };
+
+  int get marketplacePurchases => unlocked
+      .where(FeatureKeys.marketplace.contains)
+      .length;
+
+  int get marketplaceLoans =>
+      loaned.where(FeatureKeys.marketplace.contains).length;
+
+  int get marketplaceBuyLimit => switch (paidTier) {
+    PaidTier.lite => 3,
+    _ => 0,
+  };
+
+  int get marketplaceLoanLimit => switch (paidTier) {
+    PaidTier.pro => 5,
+    _ => 0,
+  };
+
+  /// Free and Lite spend coins. Lite's first 3 are the included permanent buys;
+  /// further Lite unlocks still cost coins (from ads). Pro uses loans instead.
+  bool get canBuyMarketplace => paidTier != PaidTier.pro;
+
+  bool get canLoanMarketplace =>
+      paidTier == PaidTier.pro && marketplaceLoans < marketplaceLoanLimit;
+
+  /// Ads are only a coin faucet: Free always, Lite after the 3 permanent buys.
+  bool get adsEnabled => switch (paidTier) {
+    PaidTier.free => true,
+    PaidTier.lite => marketplacePurchases >= marketplaceBuyLimit,
+    PaidTier.pro => false,
+  };
+
+  static String dayKey([DateTime? now]) {
+    final n = now ?? DateTime.now();
+    final y = n.year.toString().padLeft(4, '0');
+    final m = n.month.toString().padLeft(2, '0');
+    final d = n.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  bool get canClaimDailyCoins => false;
+
+  bool hasAccess(String feature, {bool isTeacherRole = false}) {
     if (unlocked.contains(feature)) return true;
+    if (loaned.contains(feature) && paidTier == PaidTier.pro) return true;
     if (FeatureKeys.marketplace.contains(feature)) return false;
-    switch (tier) {
-      case AppTier.free:
+    if (feature == FeatureKeys.whiteboard) {
+      return isTeacherRole && paidTier == PaidTier.pro;
+    }
+    switch (paidTier) {
+      case PaidTier.free:
         return false;
-      case AppTier.pro:
+      case PaidTier.lite:
         return const {
-          FeatureKeys.noForcedAds,
           FeatureKeys.premiumPaper,
           FeatureKeys.premiumCover,
-          FeatureKeys.pdfCompress,
           FeatureKeys.sessionCollab,
           FeatureKeys.cloudSync,
+          FeatureKeys.studyMode,
         }.contains(feature);
-      case AppTier.proPlus:
-        return feature != FeatureKeys.whiteboard;
-      case AppTier.teacher:
-        return true;
+      case PaidTier.pro:
+        return feature != FeatureKeys.whiteboard &&
+            feature != FeatureKeys.noForcedAds;
     }
   }
 
@@ -161,6 +224,8 @@ class EntitlementState extends Equatable {
     int? serverCostEuro,
     int? donationsCoveredEuro,
     String? supportUrl,
+    String? lastDailyCoinDay,
+    Set<String>? loaned,
   }) {
     return EntitlementState(
       tier: tier ?? this.tier,
@@ -169,23 +234,32 @@ class EntitlementState extends Equatable {
       serverCostEuro: serverCostEuro ?? this.serverCostEuro,
       donationsCoveredEuro: donationsCoveredEuro ?? this.donationsCoveredEuro,
       supportUrl: supportUrl ?? this.supportUrl,
+      lastDailyCoinDay: lastDailyCoinDay ?? this.lastDailyCoinDay,
+      loaned: loaned ?? this.loaned,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'tier': tier.name,
+    'tier': switch (paidTier) {
+      PaidTier.free => AppTier.free.name,
+      PaidTier.lite => AppTier.lite.name,
+      PaidTier.pro => AppTier.pro.name,
+    },
+    'paidTier': paidTier.name,
     'coins': coins,
     'unlocked': unlocked.toList(),
     'serverCostEuro': serverCostEuro,
     'donationsCoveredEuro': donationsCoveredEuro,
     'supportUrl': supportUrl,
+    'lastDailyCoinDay': lastDailyCoinDay,
+    'loaned': loaned.toList(),
   };
 
   factory EntitlementState.fromJson(Map<String, dynamic> json) {
     return EntitlementState(
-      tier: AppTier.values.firstWhere(
-        (t) => t.name == json['tier'],
-        orElse: () => AppTier.free,
+      tier: _tierFromName(
+        json['tier'] as String?,
+        paid: json['paidTier'] as String?,
       ),
       coins: (json['coins'] as num?)?.toInt() ?? 0,
       unlocked: {
@@ -195,7 +269,30 @@ class EntitlementState extends Equatable {
       donationsCoveredEuro:
           (json['donationsCoveredEuro'] as num?)?.toInt() ?? 0,
       supportUrl: json['supportUrl'] as String? ?? 'https://ko-fi.com/',
+      lastDailyCoinDay: json['lastDailyCoinDay'] as String?,
+      loaned: {
+        for (final u in (json['loaned'] as List? ?? const [])) u as String,
+      },
     );
+  }
+
+  static AppTier _tierFromName(String? name, {String? paid}) {
+    switch (paid) {
+      case 'lite':
+        return AppTier.lite;
+      case 'pro':
+        return AppTier.pro;
+      case 'free':
+        return AppTier.free;
+    }
+    return switch (name) {
+      'lite' => AppTier.lite,
+      'pro' => AppTier.lite,
+      'proPlus' => AppTier.pro,
+      'teacher' => AppTier.pro,
+      'free' => AppTier.free,
+      _ => AppTier.free,
+    };
   }
 
   @override
@@ -206,6 +303,8 @@ class EntitlementState extends Equatable {
     serverCostEuro,
     donationsCoveredEuro,
     supportUrl,
+    lastDailyCoinDay,
+    loaned,
   ];
 }
 
@@ -243,8 +342,23 @@ class EntitlementNotifier extends StateNotifier<EntitlementState> {
     await _save();
   }
 
+  /// Premium users earn the same coin amount as one ad, once per local day.
+  Future<int?> claimDailyCoins({int amount = 10}) async {
+    if (!state.canClaimDailyCoins) return null;
+    state = state.copyWith(
+      coins: (state.coins + amount).clamp(0, 999999),
+      lastDailyCoinDay: EntitlementState.dayKey(),
+    );
+    await _save();
+    return amount;
+  }
+
   Future<bool> unlockWithCoins(String feature) async {
     if (state.hasAccess(feature)) return true;
+    if (FeatureKeys.marketplace.contains(feature) &&
+        state.paidTier == PaidTier.pro) {
+      return false;
+    }
     final cost = FeatureKeys.coinCost(feature);
     if (state.coins < cost) return false;
     state = state.copyWith(
@@ -253,6 +367,22 @@ class EntitlementNotifier extends StateNotifier<EntitlementState> {
     );
     await _save();
     return true;
+  }
+
+  Future<bool> borrowFeature(String feature) async {
+    if (state.hasAccess(feature)) return true;
+    if (!FeatureKeys.marketplace.contains(feature)) return false;
+    if (!state.canLoanMarketplace) return false;
+    state = state.copyWith(loaned: {...state.loaned, feature});
+    await _save();
+    return true;
+  }
+
+  Future<void> returnLoan(String feature) async {
+    state = state.copyWith(
+      loaned: {for (final key in state.loaned) if (key != feature) key},
+    );
+    await _save();
   }
 
   Future<void> unlockFeature(String feature) async {

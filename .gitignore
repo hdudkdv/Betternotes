@@ -49,3 +49,9 @@ app.*.map.json
 
 # Built Flutter web app copied into the marketing site before deploy
 /hosting/app/
+
+# Local Gemma weight downloads (upload to Firebase Storage, never commit)
+/tool/gemma_models/
+
+# Local Xcode/IPA export dumps
+/IOSEXport/

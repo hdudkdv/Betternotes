@@ -1,12 +1,16 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../data/models/content_models.dart';
 import '../../domain/ink_engine.dart';
 import '../../domain/ink_models.dart';
+import '../../domain/pointer_routing.dart';
+import '../editor_chrome.dart';
 import 'ink_painter.dart';
 import 'cached_page_background.dart';
 import 'page_background_painter.dart';
@@ -98,6 +102,8 @@ class InkCanvasState extends State<InkCanvas>
   int? _drawPointer;
   bool _drawing = false;
   bool _drawIsStylus = false;
+  /// Right-mouse pointers that should pan like a finger.
+  final Set<int> _fingerMice = {};
   Offset? _panLastFocal;
   Size _viewportSize = Size.zero;
   double _fitScale = 1;
@@ -433,6 +439,9 @@ class InkCanvasState extends State<InkCanvas>
   void initState() {
     super.initState();
     _transform.addListener(_onTransformChanged);
+    if (kIsWeb) {
+      BrowserContextMenu.disableContextMenu();
+    }
   }
 
   @override
@@ -454,6 +463,9 @@ class InkCanvasState extends State<InkCanvas>
 
   @override
   void dispose() {
+    if (kIsWeb) {
+      BrowserContextMenu.enableContextMenu();
+    }
     _viewAnim?.dispose();
     _transform.removeListener(_onTransformChanged);
     _transform.dispose();
@@ -539,26 +551,22 @@ class InkCanvasState extends State<InkCanvas>
         const Offset(PageViewportFit.gutter / 2, PageViewportFit.gutter / 2);
   }
 
-  bool _isActiveStylus(PointerEvent event) =>
-      event.kind == PointerDeviceKind.stylus ||
-      event.kind == PointerDeviceKind.invertedStylus ||
-      // Cheap pens and some Windows/Android stacks report a stylus as touch
-      // but still expose a pressure range or a tiny contact patch.
-      (event.kind == PointerDeviceKind.touch &&
-          (event.pressureMax > 1.0 || (event.size > 0 && event.size < 0.08)));
-
   /// Whether this pointer should ink (vs. pan / page-browse).
   bool _canDrawWith(PointerEvent event) {
     if (widget.readOnly) return false;
     if (widget.engine.tool == InkTool.none) return false;
-    if (widget.engine.tool == InkTool.image) return false;
+    if (widget.engine.tool.isOverlayTool) return false;
+    if (_fingerMice.contains(event.pointer) ||
+        PointerRouting.isRightMouse(event)) {
+      return false;
+    }
     if (widget.engine.tool == InkTool.text) {
       return true; // tap to place text
     }
-    if (_isActiveStylus(event)) return true;
+    if (PointerRouting.drawsLikeStylus(event)) return true;
     // Stylus-only mode (normal notebook pages): fingers navigate.
     if (widget.fingerPanZoom) return false;
-    return _isTouch(event) || event.kind == PointerDeviceKind.mouse;
+    return _isTouch(event);
   }
 
   bool _canBrowseWith(PointerEvent event) {
@@ -694,12 +702,12 @@ class InkCanvasState extends State<InkCanvas>
     if (widget.canvasMode == CanvasMode.infinite) return false;
     if (widget.fingerPanZoom) return false;
     if (_isZoomed) return false;
-    if (_isActiveStylus(event)) return false;
+    if (PointerRouting.drawsLikeStylus(event)) return false;
     if (widget.engine.tool == InkTool.text ||
         widget.engine.tool == InkTool.lasso) {
       return false;
     }
-    return _isTouch(event) || event.kind == PointerDeviceKind.mouse;
+    return _isTouch(event);
   }
 
   bool _isPageSwipeAxis(Offset slop) {
@@ -746,9 +754,13 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _handlePointerDown(PointerDownEvent event) {
-    // Palm rejection: ignore touch while a stylus stroke is active.
-    if (_drawing && _drawIsStylus && _isTouch(event)) {
+    final rightMouse = PointerRouting.isRightMouse(event);
+    // Palm rejection: ignore touch / right-mouse while a stylus stroke is active.
+    if (_drawing && _drawIsStylus && (_isTouch(event) || rightMouse)) {
       return;
+    }
+    if (rightMouse) {
+      _fingerMice.add(event.pointer);
     }
 
     _pointerGlobal[event.pointer] = event.position;
@@ -793,10 +805,10 @@ class InkCanvasState extends State<InkCanvas>
         return;
       }
       setState(() {});
-      _beginStroke(
+        _beginStroke(
         event.pointer,
         event.localPosition,
-        isStylus: _isActiveStylus(event),
+        isStylus: PointerRouting.drawsLikeStylus(event),
         pressure: event.pressure == 0 ? 0.5 : event.pressure,
       );
       return;
@@ -893,6 +905,7 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _handlePointerUp(PointerUpEvent event) {
+    _fingerMice.remove(event.pointer);
     final wasMulti = _pointerGlobal.length >= 2;
     final maxPointers = _multiMaxPointers;
     final travel = _multiTravel;
@@ -961,6 +974,7 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
+    _fingerMice.remove(event.pointer);
     _pointerGlobal.remove(event.pointer);
     if (event.pointer == _pendingPointer) {
       _clearDrawPending();
@@ -1044,19 +1058,14 @@ class InkCanvasState extends State<InkCanvas>
                   child: Center(
                     child: GestureDetector(
                       onDoubleTap: widget.onDoubleTap,
+                      onSecondaryTap: () {},
                       child: Container(
                         width: pageSize.width,
                         height: pageSize.height,
                         decoration: BoxDecoration(
-                          boxShadow: infinite
+                          border: infinite
                               ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.45),
-                                    blurRadius: 32,
-                                    offset: const Offset(0, 18),
-                                  ),
-                                ],
+                              : Border.all(color: EditorChrome.divider),
                         ),
                         child: RepaintBoundary(
                           child: Stack(

@@ -87,6 +87,7 @@
   "writing": "Schreiben",
   "fingerPanZoom": "Nur Stift malt (Finger schiebt)",
   "fingerPanZoomHint": "An: nur Stift malt, Finger schiebt.",
+  "mouseAsPenHint": "Mit der Maus: Linksklick schreibt wie der Stift, Rechtsklick schiebt wie der Finger.",
   "defaultTemplate": "Standardvorlage",
   "language": "Sprache",
   "german": "Deutsch",
@@ -241,7 +242,7 @@
   "appearance": "Aussehen",
   "appearanceHint": "Look und Hell-/Dunkelmodus der App",
   "lookStudio": "Studio",
-  "lookStudioHint": "Graphit mit Indigo-Akzent",
+  "lookStudioHint": "Standard: Graphit mit Indigo-Akzent",
   "lookPaper": "Papier",
   "lookPaperHint": "Creme, Tiefgrün, Serifen",
   "lookFresh": "Frisch",
@@ -655,7 +656,7 @@
   },
   "paywallUnavailable": "Die Paywall ist auf diesem Gerät nicht verfügbar.",
   "choosePlan": "Plan wählen",
-  "choosePlanHint": "Lehrer- und Schülerpläne. Käufe laufen über den Store.",
+  "choosePlanHint": "Schüler- und Lehrerpläne: Free, Lite und Pro. Käufe laufen über den Store.",
   "revenueCatTestStoreHint": "Die App nutzt noch den RevenueCat-Test-Store. Für Apple den Apple-API-Key (appl_) verwenden.",
   "planLehrerLite": "Lehrer Lite",
   "planLehrerPro": "Lehrer Pro",
@@ -678,6 +679,7 @@
   "sectionSyncPreview": "Sync (Vorschau)",
   "localTierHint": "Lokal zum Testen — keine echten Käufe.",
   "tierFree": "Free",
+  "tierLite": "Lite",
   "tierPro": "Pro",
   "tierProPlus": "Pro+",
   "tierTeacher": "Lehrer",
@@ -1127,7 +1129,7 @@
   "classroomAutoConnectSettingHint": "Verbindet nur, wenn mindestens das gespeicherte Fach oder der gespeicherte Raum mit der Lehrer-Session übereinstimmt.",
   "classroomAutoConnectMismatch": "Automatische Verbindung abgelehnt: Fach und Raum stimmen nicht überein.",
   "marketplace": "Marketplace",
-  "marketplaceHint": "Optionale Funktionen mit Coins freischalten.",
+  "marketplaceHint": "Free: Artikel nur mit Coins. Lite: 3 dauerhaft kaufen, danach Coins über Werbung. Pro: 5 gleichzeitig leihen.",
   "marketplaceComingSoon": "Kauf und Freischaltung folgen in einem späteren Update.",
   "marketplaceSoonBadge": "Bald",
   "marketplaceInkOcrHint": "Handschrift und Fotos werden lokal erkannt und nur als unsichtbarer Suchindex gespeichert.",
@@ -1142,7 +1144,33 @@
   "gemmaSubtitle": "Lernbegleitung wie eine Lehrerin",
   "gemmaBody": "Führt dich durch den Lösungsweg und erklärt Zusammenhänge — in Mathe, Geschichte oder bei einer Karikatur. Die fertige Lösung und den Klausursatz schreibst du selbst.",
   "gemmaOnDevice": "On-Device · im Editor unter Assistent",
-  "gemmaReady": "Freigeschaltet · im Editor unter Assistent öffnen",
+  "gemmaReady": "Modell bereit · im Editor unter Assistent öffnen",
+  "gemmaNeedsSetup": "Systemcheck und Modell laden",
+  "gemmaSetupTitle": "Gemma einrichten",
+  "gemmaSetupBody": "Kurzer Systemcheck: RAM, Kerne und Rechenleistung. Danach wird das passende Gemma-Modell auf das Gerät geladen — leichter oder stärker.",
+  "gemmaRam": "Arbeitsspeicher",
+  "gemmaCores": "Prozessorkerne",
+  "gemmaBench": "Rechentest",
+  "gemmaDevice": "Gerät",
+  "gemmaTierLite": "Gemma 3 270M",
+  "gemmaTierBalanced": "Gemma 3 1B",
+  "gemmaTierFull": "Gemma 3n E2B",
+  "gemmaPicked": "Empfohlen: {tier} · ca. {size} MB Download",
+  "@gemmaPicked": {
+    "placeholders": {
+      "tier": { "type": "String" },
+      "size": { "type": "int" }
+    }
+  },
+  "gemmaDownload": "Modell herunterladen",
+  "gemmaDownloading": "Download {percent} %",
+  "@gemmaDownloading": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "gemmaModelReady": "Gemma ist auf diesem Gerät bereit.",
+  "gemmaDownloadFailed": "Download fehlgeschlagen. WLAN prüfen und erneut versuchen. Das Modell kommt von Google/Hugging Face und braucht etwas Speicher.",
   "featureStudyMode": "Lernmodus",
   "featureChartPack": "Diagramm-Pack",
   "featureCalcPlus": "Rechner-Plus",
@@ -1182,13 +1210,13 @@
   "featureInfoAudioTranscription": "Gesprochene Notizen werden lokal in Text umgewandelt.",
   "featureInfoPdfCompress": "PDFs kleiner machen, bevor du sie teilst oder exportierst.",
   "featureInfoHandwritingOcr": "Handschrift und Fotos werden lokal erkannt und nur als unsichtbarer Suchindex gespeichert.",
-  "featureInfoNoForcedAds": "Weniger Unterbrechungen durch Werbung in der App.",
+  "featureInfoNoForcedAds": "Premium und dieser Coin-Kauf schalten Werbung aus. Coins gibt es dann einmal täglich ohne Video.",
   "featureInfoSessionCollab": "In einer Session gemeinsam am selben Heft arbeiten.",
   "featureInfoAsyncCollab": "Über die Cloud zeitversetzt zusammenarbeiten und kommentieren.",
   "featureInfoWhiteboard": "Lehrer-Whiteboard für den Unterricht, speicherbar zu den Materialien.",
   "featureInfoCloudSync": "Cloud-Sync, wenn kein Gerät in der Nähe für eine direkte Verbindung da ist.",
   "featureInfoStudyMode": "Ruhigere Ansicht zum Lernen, mit weniger Ablenkung um das Blatt.",
-  "featureInfoAiAssistant": "Gemma führt dich wie eine Lehrerin: Zusammenhänge erklären, in Mathe nicht vorrechnen. Klausursatz und Taschenrechner bleiben bei dir.",
+  "featureInfoAiAssistant": "Echtes Gemma-Modell auf dem Gerät. Nach dem Freischalten misst ein Systemcheck RAM und Leistung und lädt ein leichteres oder stärkeres Modell. Sie erklärt Zusammenhänge und rechnet in Mathe nicht vor.",
   "scanPages": "Seiten scannen",
   "scanPagesHint": "System-Dokumentenscanner — Blätter werden zu Seiten.",
   "scanExam": "Klausur scannen?",
@@ -1231,6 +1259,11 @@
   "chartLabel": "Name",
   "chartValue": "Wert",
   "chartAddRow": "Wert hinzufügen",
+  "chartMindmapBranch": "Zweig",
+  "chartMindmapParent": "Hängt an",
+  "chartMindmapSubpoints": "Unterpunkte (Komma)",
+  "chartMindmapAddBranch": "Zweig hinzufügen",
+  "chartMindmapAddChild": "Unterzweig",
   "chartInsert": "Einfügen",
   "assistant": "Gemma",
   "assistantHint": "Wie eine Lehrerin: Weg zeigen, Zusammenhänge erklären. Rechnen und Klausursatz bleiben bei dir.",
@@ -1405,5 +1438,76 @@
   "webCloudUpdated": "Aktuelle Cloud-Daten geladen.",
   "webAudioUnavailable": "Audio-Aufnahmen sind im Browser nicht verfügbar. Bitte die App auf dem Tablet nutzen.",
   "webLoginHeadline": "Mit deinem Konto anmelden",
-  "webLoginBody": "Google oder Apple — dasselbe Konto wie in der App. Danach lädt Notis deine aktuellen Cloud-Notizbücher."
+  "webLoginBody": "Google oder Apple — dasselbe Konto wie in der App. Danach lädt Notis deine aktuellen Cloud-Notizbücher.",
+  "stickers": "Sticker",
+  "stickersHint": "Tippe einen Sticker an, um ihn auf die Seite zu legen.",
+  "stickerPackSchool": "Schule",
+  "stickerPackMarks": "Markierungen",
+  "stickerPackMood": "Stimmung",
+  "stickyNote": "Notizzettel",
+  "renamePage": "Seite benennen",
+  "pageNameHint": "Name dieser Seite",
+  "pageNumberLabel": "Seite {number}",
+  "@pageNumberLabel": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "pageCreatedOn": "Erstellt {date}",
+  "@pageCreatedOn": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "pageEditedOn": "Bearbeitet {date}",
+  "@pageEditedOn": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "adsForCoinsTitle": "Werbung für Coins",
+  "adsForCoinsHint": "Kurze Videos bringen Coins für Marketplace-Artikel.",
+  "premiumNoAdsTitle": "Keine Werbung für Coins",
+  "premiumNoAdsHint": "Werbung für Coins ist in diesem Plan nicht aktiv.",
+  "marketplaceLiteCoinsHint": "Die ersten 3 Artikel kaufst du mit Coins. Danach verdienst du Coins über Werbung.",
+  "marketplaceLiteAfterHint": "Die 3 dauerhaften Käufe sind genutzt. Weitere Artikel mit Coins aus Werbung.",
+  "claimDailyCoins": "Tages-Coins holen",
+  "dailyCoinsAlreadyClaimed": "Heutige Coins schon abgeholt",
+  "planPointNoAds": "Keine Werbung, tägliche Coins ohne Video",
+  "marketplaceBuySlots": "{used} von {limit} dauerhaften Käufen",
+  "@marketplaceBuySlots": {
+    "placeholders": {
+      "used": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "marketplaceLoanSlots": "{used} von {limit} Leihen",
+  "@marketplaceLoanSlots": {
+    "placeholders": {
+      "used": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "marketplaceBorrow": "Leihen",
+  "marketplaceReturnLoan": "Zurückgeben",
+  "marketplaceNeedLite": "Lite erlaubt 3 Käufe. Plan wählen, um den Marketplace zu nutzen.",
+  "marketplaceNeedPro": "Pro leiht 5 Artikel gleichzeitig. Plan wählen oder einen Slot freigeben.",
+  "marketplaceBuyCap": "Lite-Limit erreicht (3 Käufe). Für 5 Leihen auf Pro wechseln.",
+  "marketplaceLoanCap": "Alle 5 Leihen sind belegt. Gib zuerst etwas zurück.",
+  "accountHandoverTitle": "Notizbücher auf diesem Gerät",
+  "accountHandoverBody": "Es liegen {count} Notizbücher lokal. Sie gehören nicht automatisch zum neuen Konto.",
+  "@accountHandoverBody": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "accountHandoverDelete": "Lokal löschen",
+  "accountHandoverDeleteHint": "Die Hefte verschwinden von diesem Gerät. Cloud-Kopien bleiben, falls schon hochgeladen.",
+  "accountHandoverCloud": "In die Cloud speichern",
+  "accountHandoverCloudHint": "Jetzt hochladen und danach lokal entfernen. Du findest sie nach der nächsten Anmeldung mit diesem Konto.",
+  "accountHandoverCloudUnavailable": "Cloud-Speichern geht nur, solange du mit dem Ursprungskonto angemeldet bist.",
+  "accountHandoverLock": "Lokal speichern und verschlüsseln",
+  "accountHandoverLockHint": "Die Hefte bleiben auf dem Gerät, sind aber nur mit dem Ursprungskonto zu öffnen.",
+  "accountHandoverLockUnavailable": "Verschlüsseln geht nur beim Abmelden, solange das Ursprungskonto noch aktiv ist.",
+  "accountNotebookLocked": "Dieses Notizbuch gehört einem anderen Konto und ist gesperrt."
 }

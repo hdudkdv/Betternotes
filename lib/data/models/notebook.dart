@@ -22,6 +22,8 @@ class Notebook extends Equatable {
     this.defaultPaperFormat = PaperFormat.a4,
     this.defaultOrientation = PageOrientation.portrait,
     this.defaultTemplate = PageTemplate.blank,
+    this.ownerUid,
+    this.locked = false,
   });
 
   final String id;
@@ -44,6 +46,15 @@ class Notebook extends Equatable {
   final PageOrientation defaultOrientation;
   final PageTemplate defaultTemplate;
 
+  /// Firebase uid that owns this notebook on this device. Null = unsigned local.
+  final String? ownerUid;
+
+  /// Encrypted on device; only [ownerUid] can unlock after signing in.
+  final bool locked;
+
+  bool isLockedFor(String? viewerUid) =>
+      locked && (ownerUid == null || ownerUid != viewerUid);
+
   Notebook copyWith({
     String? title,
     int? coverColor,
@@ -58,9 +69,12 @@ class Notebook extends Equatable {
     PaperFormat? defaultPaperFormat,
     PageOrientation? defaultOrientation,
     PageTemplate? defaultTemplate,
+    String? ownerUid,
+    bool? locked,
     bool clearFolder = false,
     bool clearSchoolClass = false,
     bool clearSubjectKey = false,
+    bool clearOwner = false,
   }) {
     return Notebook(
       id: id,
@@ -78,6 +92,8 @@ class Notebook extends Equatable {
       defaultPaperFormat: defaultPaperFormat ?? this.defaultPaperFormat,
       defaultOrientation: defaultOrientation ?? this.defaultOrientation,
       defaultTemplate: defaultTemplate ?? this.defaultTemplate,
+      ownerUid: clearOwner ? null : (ownerUid ?? this.ownerUid),
+      locked: locked ?? this.locked,
     );
   }
 
@@ -97,6 +113,8 @@ class Notebook extends Equatable {
     'defaultPaperFormat': defaultPaperFormat.name,
     'defaultOrientation': defaultOrientation.name,
     'defaultTemplate': defaultTemplate.name,
+    'ownerUid': ownerUid,
+    'locked': locked,
   };
 
   factory Notebook.fromJson(Map<String, dynamic> json) {
@@ -130,6 +148,8 @@ class Notebook extends Equatable {
         (template) => template.name == json['defaultTemplate'],
         orElse: () => PageTemplate.blank,
       ),
+      ownerUid: json['ownerUid'] as String?,
+      locked: json['locked'] as bool? ?? false,
     );
   }
 
@@ -180,6 +200,8 @@ class Notebook extends Equatable {
     defaultPaperFormat,
     defaultOrientation,
     defaultTemplate,
+    ownerUid,
+    locked,
   ];
 }
 
@@ -195,8 +217,11 @@ class NotePage extends Equatable {
     this.textBlocks = const [],
     this.shapes = const [],
     this.images = const [],
+    this.stickers = const [],
+    this.title,
     this.paperTemplateId,
     this.customPaper,
+    this.createdAt,
     this.updatedAt,
     this.paperFormat = PaperFormat.a4,
     this.orientation = PageOrientation.portrait,
@@ -213,8 +238,15 @@ class NotePage extends Equatable {
   final List<TextBlock> textBlocks;
   final List<ShapeElement> shapes;
   final List<ImageElement> images;
+  final List<StickerElement> stickers;
+
+  /// Optional user-facing name for this page. Empty means “Seite N”.
+  final String? title;
   final String? paperTemplateId;
   final PaperTemplate? customPaper;
+
+  /// When the page was first created. Older documents may only have [updatedAt].
+  final DateTime? createdAt;
 
   /// Per-page revision timestamp used by the offline-first sync merge.
   ///
@@ -236,8 +268,11 @@ class NotePage extends Equatable {
     List<TextBlock>? textBlocks,
     List<ShapeElement>? shapes,
     List<ImageElement>? images,
+    List<StickerElement>? stickers,
+    String? title,
     String? paperTemplateId,
     PaperTemplate? customPaper,
+    DateTime? createdAt,
     DateTime? updatedAt,
     PaperFormat? paperFormat,
     PageOrientation? orientation,
@@ -245,6 +280,7 @@ class NotePage extends Equatable {
     bool clearBackgroundPdf = false,
     bool clearPaperTemplate = false,
     bool clearCustomPaper = false,
+    bool clearTitle = false,
   }) {
     return NotePage(
       id: id,
@@ -259,10 +295,13 @@ class NotePage extends Equatable {
       textBlocks: textBlocks ?? this.textBlocks,
       shapes: shapes ?? this.shapes,
       images: images ?? this.images,
+      stickers: stickers ?? this.stickers,
+      title: clearTitle ? null : (title ?? this.title),
       paperTemplateId: clearPaperTemplate
           ? null
           : (paperTemplateId ?? this.paperTemplateId),
       customPaper: clearCustomPaper ? null : (customPaper ?? this.customPaper),
+      createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       paperFormat: paperFormat ?? this.paperFormat,
       orientation: orientation ?? this.orientation,
@@ -281,8 +320,11 @@ class NotePage extends Equatable {
     'textBlocks': textBlocks.map((t) => t.toJson()).toList(),
     'shapes': shapes.map((s) => s.toJson()).toList(),
     'images': images.map((i) => i.toJson()).toList(),
+    'stickers': stickers.map((s) => s.toJson()).toList(),
+    'title': title,
     'paperTemplateId': paperTemplateId,
     'customPaper': customPaper?.toJson(),
+    'createdAt': createdAt?.toIso8601String(),
     'updatedAt': updatedAt?.toIso8601String(),
     'paperFormat': paperFormat.name,
     'orientation': orientation.name,
@@ -316,12 +358,20 @@ class NotePage extends Equatable {
         for (final i in (json['images'] as List? ?? const []))
           ImageElement.fromJson(Map<String, dynamic>.from(i as Map)),
       ],
+      stickers: [
+        for (final s in (json['stickers'] as List? ?? const []))
+          StickerElement.fromJson(Map<String, dynamic>.from(s as Map)),
+      ],
+      title: json['title'] as String?,
       paperTemplateId: json['paperTemplateId'] as String?,
       customPaper: json['customPaper'] != null
           ? PaperTemplate.fromJson(
               Map<String, dynamic>.from(json['customPaper'] as Map),
             )
           : null,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.tryParse(json['createdAt'].toString()),
       updatedAt: json['updatedAt'] == null
           ? null
           : DateTime.tryParse(json['updatedAt'].toString()),
@@ -356,11 +406,20 @@ class NotePage extends Equatable {
       backgroundPdfPath: backgroundPdfPath,
       paperTemplateId: paperTemplateId,
       customPaper: customPaper,
+      createdAt: now,
       updatedAt: now,
       paperFormat: paperFormat,
       orientation: orientation,
     );
   }
+
+  String displayTitle(int number) {
+    final named = title?.trim();
+    if (named != null && named.isNotEmpty) return named;
+    return '$number';
+  }
+
+  DateTime? get createdStamp => createdAt ?? updatedAt;
 
   @override
   List<Object?> get props => [
@@ -374,8 +433,11 @@ class NotePage extends Equatable {
     textBlocks,
     shapes,
     images,
+    stickers,
+    title,
     paperTemplateId,
     customPaper,
+    createdAt,
     updatedAt,
     paperFormat,
     orientation,

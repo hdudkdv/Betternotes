@@ -326,6 +326,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN oder Hotspot.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

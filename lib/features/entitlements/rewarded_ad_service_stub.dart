@@ -17,6 +17,8 @@ class RewardedAdService {
 
   Future<void> initialize() async {}
 
+  Future<void> preload() async {}
+
   Future<void> showPrivacyOptions() async {}
 
   Future<RewardedAdOutcome> show() async => RewardedAdOutcome.unavailable;

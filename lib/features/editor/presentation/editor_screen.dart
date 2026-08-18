@@ -16,6 +16,7 @@ import 'package:uuid/uuid.dart';
 import '../../../data/models/content_models.dart';
 import '../../../data/models/notebook.dart';
 import '../../../data/repositories/notebook_repository.dart';
+import '../../auth/current_uid.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/file_store.dart';
 import '../../../shared/utils/page_size.dart';
@@ -51,7 +52,10 @@ import 'widgets/image_elements_layer.dart';
 import 'widgets/ink_canvas.dart';
 import 'widgets/notebook_pages_viewport.dart';
 import 'widgets/outline_sidebar.dart';
+import 'widgets/page_meta_overlay.dart';
 import 'widgets/page_sidebar.dart';
+import 'widgets/sticker_layer.dart';
+import 'widgets/sticker_picker_sheet.dart';
 import 'widgets/page_snapshots_sheet.dart';
 import 'widgets/save_page_as_template_sheet.dart';
 import 'widgets/share_export_sheet.dart';
@@ -155,11 +159,13 @@ class EditorController extends ChangeNotifier {
   List<TextBlock> textBlocks = [];
   List<ShapeElement> shapes = [];
   List<ImageElement> images = [];
+  List<StickerElement> stickers = [];
   String? selectedTextId;
 
   /// Text block with an active caret. Selection alone only arms dragging.
   String? editingTextId;
   String? selectedImageId;
+  String? selectedStickerId;
   Set<String> selectedShapeIds = {};
   Set<String> selectedImageIds = {};
   Set<String> selectedTextIds = {};
@@ -202,6 +208,7 @@ class EditorController extends ChangeNotifier {
       textBlocks = page.textBlocks;
       shapes = page.shapes;
       images = page.images;
+      stickers = page.stickers;
     }
     notifyListeners();
   }
@@ -216,7 +223,15 @@ class EditorController extends ChangeNotifier {
 
   Future<void> _load() async {
     try {
-      notebook = await repository.getNotebook(notebookId);
+      final loaded = await repository.getNotebook(notebookId);
+      notebook = loaded;
+      if (loaded != null &&
+          loaded.isLockedFor(currentAuthUid())) {
+        error = 'notebook_locked';
+        loading = false;
+        notifyListeners();
+        return;
+      }
       pages = await repository.getPages(notebookId);
       outline = await repository.getOutline(notebookId);
       tags = await repository.getTags(notebookId: notebookId);
@@ -290,9 +305,11 @@ class EditorController extends ChangeNotifier {
     });
     shapes = List.of(page.shapes);
     images = List.of(page.images);
+    stickers = List.of(page.stickers);
     selectedTextId = null;
     editingTextId = null;
     selectedImageId = null;
+    selectedStickerId = null;
     selectedShapeIds = {};
     selectedImageIds = {};
     selectedTextIds = {};
@@ -656,6 +673,7 @@ class EditorController extends ChangeNotifier {
       textBlocks: textBlocks,
       shapes: shapes,
       images: images,
+      stickers: stickers,
       updatedAt: DateTime.now(),
     );
     pages[pageIndex] = updated;
@@ -706,12 +724,14 @@ class EditorController extends ChangeNotifier {
         page.strokes.length != ink.strokes.length ||
         page.shapes.length != shapes.length ||
         page.images.length != images.length ||
+        page.stickers.length != stickers.length ||
         page.textBlocks.length != textBlocks.length;
     pages[pageIndex] = page.copyWith(
       strokes: List.of(ink.strokes),
       textBlocks: List.of(textBlocks),
       shapes: List.of(shapes),
       images: List.of(images),
+      stickers: List.of(stickers),
       updatedAt: dirty ? DateTime.now() : page.updatedAt,
     );
     if (dirty) {
@@ -720,6 +740,7 @@ class EditorController extends ChangeNotifier {
   }
 
   Future<void> selectPage(int index) async {
+    if (interactionMode == InteractionMode.read) return;
     if (index == pageIndex || index < 0 || index >= pages.length) return;
     final leavingPath = currentPage?.backgroundPdfPath;
     // Saving the page we leave takes its snapshot synchronously, so the swap
@@ -799,8 +820,11 @@ class EditorController extends ChangeNotifier {
       textBlocks: source.textBlocks,
       shapes: source.shapes,
       images: source.images,
+      stickers: source.stickers,
+      title: source.title,
       paperTemplateId: source.paperTemplateId,
       customPaper: source.customPaper,
+      createdAt: DateTime.now(),
       paperFormat: source.paperFormat,
       orientation: source.orientation,
     );
@@ -820,6 +844,20 @@ class EditorController extends ChangeNotifier {
     onPageDeleted?.call(pageId);
     pages = await repository.getPages(notebookId);
     await _bindPage(index.clamp(0, pages.length - 1));
+    notifyListeners();
+  }
+
+  Future<void> renamePage(int index, String? title) async {
+    if (index < 0 || index >= pages.length) return;
+    final trimmed = title?.trim();
+    final page = pages[index];
+    final updated = page.copyWith(
+      title: trimmed,
+      clearTitle: trimmed == null || trimmed.isEmpty,
+      updatedAt: DateTime.now(),
+    );
+    pages[index] = updated;
+    await repository.savePage(updated);
     notifyListeners();
   }
 
@@ -1023,6 +1061,13 @@ class EditorController extends ChangeNotifier {
       width = metrics.contentWidth;
       height = metrics.pageHeight;
       initialText = text == 'New text' || text == 'Neuer Text' ? '' : text;
+    } else if (layout == TextLayoutMode.sticky) {
+      x = (at?.dx ?? 72).clamp(16, 420);
+      y = (at?.dy ?? 88 + textBlocks.where((b) => b.isSticky).length * 24.0)
+          .clamp(16, 700);
+      width = 200;
+      height = 168;
+      initialText = at == null ? text : '';
     } else {
       x = (at?.dx ?? 80).clamp(16, 400);
       y = (at?.dy ?? 100 + textBlocks.length * 28.0).clamp(16, 700);
@@ -1038,7 +1083,11 @@ class EditorController extends ChangeNotifier {
       y: y,
       layoutMode: layout,
       text: initialText,
-    ).copyWith(width: width, height: height);
+    ).copyWith(
+      width: width,
+      height: height,
+      fillColor: layout == TextLayoutMode.sticky ? 0xFFFFF59D : null,
+    );
     textBlocks = [...textBlocks, block];
     selectedTextId = block.id;
     // A fresh block goes straight to the keyboard so typing needs no extra tap.
@@ -1052,7 +1101,10 @@ class EditorController extends ChangeNotifier {
   void _pruneEmptyText([String? keepId]) {
     final kept = [
       for (final block in textBlocks)
-        if (block.id == keepId || block.plainText.trim().isNotEmpty) block,
+        if (block.id == keepId ||
+            block.isSticky ||
+            block.plainText.trim().isNotEmpty)
+          block,
     ];
     if (kept.length == textBlocks.length) return;
     textBlocks = kept;
@@ -1206,6 +1258,49 @@ class EditorController extends ChangeNotifier {
     images = [...images, element];
     selectedImageId = element.id;
     ink.setTool(InkTool.image);
+    notifyListeners();
+    _scheduleSave();
+  }
+
+  void insertSticker(String catalogId, {Offset? at}) {
+    final page = currentPage;
+    if (page == null) return;
+    final element = StickerElement.create(
+      pageId: page.id,
+      catalogId: catalogId,
+      x: (at?.dx ?? 96).clamp(16, 500),
+      y: (at?.dy ?? 120 + stickers.length * 16.0).clamp(16, 700),
+    );
+    stickers = [...stickers, element];
+    selectedStickerId = element.id;
+    selectedImageId = null;
+    ink.setTool(InkTool.sticker);
+    notifyListeners();
+    _scheduleSave();
+  }
+
+  void updateSticker(StickerElement sticker) {
+    stickers = [
+      for (final s in stickers)
+        if (s.id == sticker.id) sticker else s,
+    ];
+    notifyListeners();
+    _scheduleSave();
+  }
+
+  void selectSticker(String? id) {
+    selectedStickerId = id;
+    selectedImageId = null;
+    selectedTextId = null;
+    notifyListeners();
+  }
+
+  void deleteSticker(String id) {
+    stickers = [
+      for (final s in stickers)
+        if (s.id != id) s,
+    ];
+    if (selectedStickerId == id) selectedStickerId = null;
     notifyListeners();
     _scheduleSave();
   }
@@ -1437,7 +1532,7 @@ class EditorController extends ChangeNotifier {
       if (textBlockAt(pagePoint) == null) addTextBlock(at: pagePoint);
       return;
     }
-    if (ink.tool == InkTool.image) {
+    if (ink.tool == InkTool.image || ink.tool == InkTool.sticker) {
       return;
     }
     if (ink.tool == InkTool.shape) {
@@ -1533,7 +1628,7 @@ class EditorController extends ChangeNotifier {
       colorValue: stroke.colorValue,
       strokeWidth: stroke.width,
       style: stroke.style,
-      allowImperfectLine: true,
+      loose: true,
     );
     if (shape == null) return false;
     ink.cancelStroke();
@@ -1900,8 +1995,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       case EditorGestureAction.redo:
         c.ink.redo();
       case EditorGestureAction.nextPage:
+        if (c.interactionMode == InteractionMode.read) return;
         _pagesViewportKey.currentState?.goToAdjacent(1);
       case EditorGestureAction.previousPage:
+        if (c.interactionMode == InteractionMode.read) return;
         _pagesViewportKey.currentState?.goToAdjacent(-1);
       case EditorGestureAction.exportPage:
         await c.shareCurrentPage();
@@ -1976,6 +2073,44 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       await ClassroomAutoConnect.decline(prefs);
       ref.read(classroomAutoConnectEnabledProvider.notifier).state = false;
     }
+  }
+
+  Future<void> _pickSticker(EditorController controller) async {
+    controller.ink.setTool(InkTool.sticker);
+    final sticker = await showStickerPicker(context);
+    if (sticker == null || !mounted) return;
+    controller.insertSticker(sticker.id);
+  }
+
+  Future<void> _renamePage(EditorController controller, int index) async {
+    final l10n = AppLocalizations.of(context)!;
+    final page = controller.pages[index];
+    final field = TextEditingController(text: page.title ?? '');
+    final next = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.renamePage),
+        content: TextField(
+          controller: field,
+          autofocus: true,
+          decoration: InputDecoration(hintText: l10n.pageNameHint),
+          onSubmitted: (value) => Navigator.pop(dialogContext, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, field.text),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    field.dispose();
+    if (next == null) return;
+    await controller.renamePage(index, next);
   }
 
   Future<void> _addPage(EditorController controller) async {
@@ -2113,8 +2248,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         appBar: AppBar(backgroundColor: EditorChrome.topBar),
         body: Center(
           child: Text(
-            controller.error!,
-            style: const TextStyle(color: Colors.white),
+            controller.error == 'notebook_locked'
+                ? AppLocalizations.of(context)!.accountNotebookLocked
+                : controller.error!,
+            style: TextStyle(color: EditorChrome.onDark),
           ),
         ),
       );
@@ -2200,6 +2337,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   onAdd: () => _addPage(controller),
                   onDuplicate: controller.duplicatePage,
                   onDelete: controller.deletePage,
+                  onRename: (index) => _renamePage(controller, index),
                   onClose: () => setState(() => _sidebarOpen = false),
                 ),
               Expanded(
@@ -2210,6 +2348,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   browseMode: browseMode,
                   canvasMode: canvasMode,
                   readOnly: readOnly,
+                  navigationLocked: reading,
                   onPageChanged: controller.selectPage,
                   onReachEnd: () => _addPage(controller),
                   onFlipStart: controller.syncActivePageMemory,
@@ -2353,6 +2492,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                     !controller.drawingAids.compass!.fixed,
                                   ),
                             ),
+                          Positioned.fill(
+                            child: PageMetaOverlay(
+                              page: page,
+                              pageNumber: index + 1,
+                            ),
+                          ),
                           IgnorePointer(
                             ignoring: controller.ink.tool != InkTool.image,
                             child: ImageElementsLayer(
@@ -2365,6 +2510,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               onSelect: controller.selectImage,
                               onChanged: controller.updateImage,
                               onDelete: controller.deleteImage,
+                            ),
+                          ),
+                          IgnorePointer(
+                            ignoring: controller.ink.tool != InkTool.sticker,
+                            child: StickerLayer(
+                              stickers: controller.stickers,
+                              selectedId: controller.selectedStickerId,
+                              editable:
+                                  !readOnly &&
+                                  !presenting &&
+                                  controller.ink.tool == InkTool.sticker,
+                              onSelect: controller.selectSticker,
+                              onChanged: controller.updateSticker,
+                              onDelete: controller.deleteSticker,
                             ),
                           ),
                           IgnorePointer(
@@ -2429,7 +2588,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   onShapeKindChanged: controller.setShapeKind,
                   onTextLayoutModeChanged: controller.setTextLayoutMode,
                   onAddText: () => controller.addTextBlock(text: l10n.newText),
+                  onAddSticky: () {
+                    controller.setTextLayoutMode(TextLayoutMode.sticky);
+                    controller.addTextBlock(
+                      mode: TextLayoutMode.sticky,
+                      text: '',
+                    );
+                  },
                   onPickImage: controller.pickAndInsertImage,
+                  onPickSticker: () => _pickSticker(controller),
+                  hasSelectedSticker: controller.selectedStickerId != null,
+                  onDeleteSticker: controller.selectedStickerId == null
+                      ? null
+                      : () => controller.deleteSticker(
+                          controller.selectedStickerId!,
+                        ),
                   hasLassoSelection: controller.hasLassoSelection,
                   onDeleteSelection: controller.deleteLassoSelection,
                   hasSelectedImage: controller.selectedImageId != null,
@@ -2843,7 +3016,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         child: Column(
           children: [
             if (!presenting)
-              EditorTopBar(
+              Expanded(
+                child: EditorTopBar(
+                body: workspace,
                 notebookId: widget.notebookId,
                 tabIds: tabs.ids.isEmpty ? [widget.notebookId] : tabs.ids,
                 engine: controller.ink,
@@ -2895,6 +3070,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 onSearch: () => context.push('/search'),
                 onOutline: () => _openOutline(context, controller, l10n),
                 onPickImage: controller.pickAndInsertImage,
+                onPickSticker: () => _pickSticker(controller),
                 onCalculator: () => _openCalculator(controller),
                 onFormulaBook: () => _openFormulaBook(controller),
                 calculatorOpen: _calcOpen,
@@ -2923,8 +3099,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 onToggleCompass: controller.toggleCompassAid,
                 onCreateDiagram: () => _createDiagram(controller),
                 onOpenPacks: () => _openPacks(controller),
-              ),
-            Expanded(child: workspace),
+                ),
+              )
+            else
+              Expanded(child: workspace),
           ],
         ),
       ),

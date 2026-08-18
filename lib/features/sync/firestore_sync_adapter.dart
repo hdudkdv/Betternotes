@@ -294,6 +294,9 @@ class FirestoreSyncAdapter {
         newest = stamp;
       }
       final local = await _repository.getNotebook(notebook.id);
+      if (local != null && local.locked) {
+        continue;
+      }
       if (local == null ||
           preferRemote ||
           notebook.updatedAt.isAfter(local.updatedAt)) {
@@ -406,6 +409,7 @@ class FirestoreSyncAdapter {
   Future<void> pushLocalSnapshot() async {
     await ensureProfile();
     for (final notebook in await _repository.getNotebooks()) {
+      if (notebook.locked && notebook.ownerUid != _uid) continue;
       await _user
           .collection('notebooks')
           .doc(notebook.id)

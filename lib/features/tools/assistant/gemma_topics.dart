@@ -45,24 +45,30 @@ abstract final class GemmaTopics {
 
   static String mathConcept(String kind, {required bool german}) {
     return switch (kind) {
-      'linear' || 'equation' => german
-          ? 'Eine Gleichung bleibt wahr, wenn du auf beiden Seiten dasselbe tust. Deshalb nimmst du erst die Zahl ohne x weg (Umkehroperation) und teilst oder multiplizierst danach. Das Ergebnis rechne ich dir nicht vor.'
-          : 'An equation stays true if you do the same thing on both sides. First undo the number without x, then divide or multiply. I will not compute the result for you.',
-      'expression' => german
-          ? 'Punkt vor Strich: Multiplikation und Division zuerst, dann plus und minus. Klammern noch früher. Tippe nur die Teilrechnung, die jetzt dran ist.'
-          : 'Multiplication and division first, then plus and minus. Brackets even earlier. Type only the part that is due now.',
-      'trig' => german
-          ? 'sin, cos, tan brauchen eine Einheit: Grad oder Bogenmaß. In der Schule fast immer Grad. Die Taste am Taschenrechner musst du selbst prüfen.'
-          : 'sin, cos, tan need a unit: degrees or radians. School work is almost always degrees. Check the calculator mode yourself.',
-      'derivative' => german
-          ? 'Die Ableitung beschreibt die Steigung. Die Potenzregel steht im Tafelwerk: aus x^n wird n·x^(n−1). Einsetzen tust du.'
-          : 'The derivative is the slope. The power rule is in the formula book: x^n becomes n·x^(n−1). You substitute.',
-      'percent' => german
-          ? 'p % von G heißt (p/100)·G. Prozent ist ein Hundertstel. Grundwert, Prozentwert und Prozentsatz nicht vertauschen.'
-          : 'p% of G means (p/100)·G. Percent is a hundredth. Do not mix up base, amount, and rate.',
-      _ => german
-          ? 'Ich erkläre den Weg und den Zusammenhang. Die letzte Zahl oder den Klausursatz formulierst du selbst.'
-          : 'I explain the method and the connection. You write the final number or exam sentence yourself.',
+      'linear' || 'equation' =>
+        german
+            ? 'Eine Gleichung bleibt wahr, wenn du auf beiden Seiten dasselbe tust. Deshalb nimmst du erst die Zahl ohne x weg (Umkehroperation) und teilst oder multiplizierst danach. Das Ergebnis rechne ich dir nicht vor.'
+            : 'An equation stays true if you do the same thing on both sides. First undo the number without x, then divide or multiply. I will not compute the result for you.',
+      'expression' =>
+        german
+            ? 'Punkt vor Strich: Multiplikation und Division zuerst, dann plus und minus. Klammern noch früher. Tippe nur die Teilrechnung, die jetzt dran ist.'
+            : 'Multiplication and division first, then plus and minus. Brackets even earlier. Type only the part that is due now.',
+      'trig' =>
+        german
+            ? 'sin, cos, tan brauchen eine Einheit: Grad oder Bogenmaß. In der Schule fast immer Grad. Die Taste am Taschenrechner musst du selbst prüfen.'
+            : 'sin, cos, tan need a unit: degrees or radians. School work is almost always degrees. Check the calculator mode yourself.',
+      'derivative' =>
+        german
+            ? 'Die Ableitung beschreibt die Steigung. Die Potenzregel steht im Tafelwerk: aus x^n wird n·x^(n−1). Einsetzen tust du.'
+            : 'The derivative is the slope. The power rule is in the formula book: x^n becomes n·x^(n−1). You substitute.',
+      'percent' =>
+        german
+            ? 'p % von G heißt (p/100)·G. Prozent ist ein Hundertstel. Grundwert, Prozentwert und Prozentsatz nicht vertauschen.'
+            : 'p% of G means (p/100)·G. Percent is a hundredth. Do not mix up base, amount, and rate.',
+      _ =>
+        german
+            ? 'Ich erkläre den Weg und den Zusammenhang. Die letzte Zahl oder den Klausursatz formulierst du selbst.'
+            : 'I explain the method and the connection. You write the final number or exam sentence yourself.',
     };
   }
 

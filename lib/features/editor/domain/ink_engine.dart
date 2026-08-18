@@ -231,7 +231,8 @@ class InkEngine extends ChangeNotifier {
     if (tool == InkTool.none ||
         tool == InkTool.text ||
         tool == InkTool.shape ||
-        tool == InkTool.image) {
+        tool == InkTool.image ||
+        tool == InkTool.sticker) {
       return;
     }
 
@@ -269,7 +270,8 @@ class InkEngine extends ChangeNotifier {
     if (tool == InkTool.none ||
         tool == InkTool.text ||
         tool == InkTool.shape ||
-        tool == InkTool.image) {
+        tool == InkTool.image ||
+        tool == InkTool.sticker) {
       return;
     }
 
@@ -351,7 +353,8 @@ class InkEngine extends ChangeNotifier {
     if (tool == InkTool.none ||
         tool == InkTool.text ||
         tool == InkTool.shape ||
-        tool == InkTool.image) {
+        tool == InkTool.image ||
+        tool == InkTool.sticker) {
       return;
     }
 

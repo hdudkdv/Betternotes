@@ -49,18 +49,13 @@ Future<Uint8List?> showChartBuilderSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => _ChartBuilderSheet(
-      chartPack: chartPack,
-      helperPack: helperPack,
-    ),
+    builder: (context) =>
+        _ChartBuilderSheet(chartPack: chartPack, helperPack: helperPack),
   );
 }
 
 class _ChartBuilderSheet extends StatefulWidget {
-  const _ChartBuilderSheet({
-    required this.chartPack,
-    required this.helperPack,
-  });
+  const _ChartBuilderSheet({required this.chartPack, required this.helperPack});
 
   final bool chartPack;
   final bool helperPack;
@@ -81,33 +76,50 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
 
   bool get _gantt => _kind == ChartKind.gantt;
   bool get _needsPack => const {
-        ChartKind.gantt,
-        ChartKind.area,
-        ChartKind.er,
-        ChartKind.usecase,
-        ChartKind.flow,
-        ChartKind.venn,
-        ChartKind.sequence,
-      }.contains(_kind);
+    ChartKind.gantt,
+    ChartKind.area,
+    ChartKind.er,
+    ChartKind.usecase,
+    ChartKind.flow,
+    ChartKind.venn,
+    ChartKind.sequence,
+  }.contains(_kind);
   bool get _needsHelper => const {
-        ChartKind.axes,
-        ChartKind.numberline,
-        ChartKind.cornell,
-        ChartKind.vocab,
-      }.contains(_kind);
+    ChartKind.axes,
+    ChartKind.numberline,
+    ChartKind.cornell,
+    ChartKind.vocab,
+  }.contains(_kind);
   bool get _textOnly => const {
-        ChartKind.mindmap,
-        ChartKind.er,
-        ChartKind.usecase,
-        ChartKind.flow,
-        ChartKind.venn,
-        ChartKind.sequence,
-      }.contains(_kind);
+    ChartKind.mindmap,
+    ChartKind.er,
+    ChartKind.usecase,
+    ChartKind.flow,
+    ChartKind.venn,
+    ChartKind.sequence,
+  }.contains(_kind);
   bool get _noRows => const {
-        ChartKind.axes,
-        ChartKind.numberline,
-        ChartKind.cornell,
-      }.contains(_kind);
+    ChartKind.axes,
+    ChartKind.numberline,
+    ChartKind.cornell,
+  }.contains(_kind);
+
+  void _seedMindmapRows() {
+    final looksDefault =
+        _rows.length == 3 &&
+        _rows[0].label == 'A' &&
+        _rows[1].label == 'B' &&
+        _rows[2].label == 'C';
+    if (!looksDefault) return;
+    _rows
+      ..clear()
+      ..addAll([
+        ChartSeriesRow(label: 'Ursache'),
+        ChartSeriesRow(label: 'Beispiel', start: 'Ursache'),
+        ChartSeriesRow(label: 'Folge'),
+        ChartSeriesRow(label: 'Nächster Schritt', start: 'Folge'),
+      ]);
+  }
 
   @override
   void dispose() {
@@ -139,22 +151,22 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
   }
 
   List<(ChartKind, String)> _chips(AppLocalizations l10n) => [
-        (ChartKind.pie, l10n.chartPie),
-        (ChartKind.bar, l10n.chartBar),
-        (ChartKind.line, l10n.chartLine),
-        (ChartKind.mindmap, l10n.chartMindmap),
-        (ChartKind.gantt, l10n.chartGantt),
-        (ChartKind.area, l10n.chartArea),
-        (ChartKind.er, l10n.chartEr),
-        (ChartKind.usecase, l10n.chartUsecase),
-        (ChartKind.flow, l10n.chartFlow),
-        (ChartKind.venn, l10n.chartVenn),
-        (ChartKind.sequence, l10n.chartSequence),
-        (ChartKind.axes, l10n.chartAxes),
-        (ChartKind.numberline, l10n.chartNumberline),
-        (ChartKind.cornell, l10n.chartCornell),
-        (ChartKind.vocab, l10n.chartVocab),
-      ];
+    (ChartKind.pie, l10n.chartPie),
+    (ChartKind.bar, l10n.chartBar),
+    (ChartKind.line, l10n.chartLine),
+    (ChartKind.mindmap, l10n.chartMindmap),
+    (ChartKind.gantt, l10n.chartGantt),
+    (ChartKind.area, l10n.chartArea),
+    (ChartKind.er, l10n.chartEr),
+    (ChartKind.usecase, l10n.chartUsecase),
+    (ChartKind.flow, l10n.chartFlow),
+    (ChartKind.venn, l10n.chartVenn),
+    (ChartKind.sequence, l10n.chartSequence),
+    (ChartKind.axes, l10n.chartAxes),
+    (ChartKind.numberline, l10n.chartNumberline),
+    (ChartKind.cornell, l10n.chartCornell),
+    (ChartKind.vocab, l10n.chartVocab),
+  ];
 
   bool _locked(ChartKind kind) {
     const pack = {
@@ -179,11 +191,20 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
 
   (String, String, String?) _rowLabels(AppLocalizations l10n) {
     return switch (_kind) {
-      ChartKind.er => (l10n.chartEntity, l10n.chartAttributes, l10n.chartRelation),
+      ChartKind.er => (
+        l10n.chartEntity,
+        l10n.chartAttributes,
+        l10n.chartRelation,
+      ),
       ChartKind.usecase => (l10n.chartActor, l10n.chartUsecase, null),
       ChartKind.sequence => (l10n.chartFrom, l10n.chartTo, l10n.chartMessage),
       ChartKind.venn => (l10n.chartSet, l10n.chartItems, null),
-      ChartKind.mindmap || ChartKind.flow => (l10n.chartLabel, '', null),
+      ChartKind.mindmap => (
+        l10n.chartMindmapBranch,
+        l10n.chartMindmapSubpoints,
+        l10n.chartMindmapParent,
+      ),
+      ChartKind.flow => (l10n.chartLabel, '', null),
       _ => (l10n.chartLabel, l10n.chartValue, null),
     };
   }
@@ -210,7 +231,9 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
           Expanded(
             child: TextFormField(
               initialValue: _rows[i].start,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 labelText: l10n.chartStart,
                 isDense: true,
@@ -223,7 +246,9 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
           Expanded(
             child: TextFormField(
               initialValue: _rows[i].end,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 labelText: l10n.chartEnd,
                 isDense: true,
@@ -254,7 +279,8 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
           const SizedBox(width: 8),
           Expanded(
             child: TextFormField(
-              initialValue: _kind == ChartKind.sequence
+              initialValue:
+                  _kind == ChartKind.sequence || _kind == ChartKind.mindmap
                   ? _rows[i].start
                   : _rows[i].end,
               decoration: InputDecoration(
@@ -263,7 +289,7 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
                 border: const OutlineInputBorder(),
               ),
               onChanged: (v) {
-                if (_kind == ChartKind.sequence) {
+                if (_kind == ChartKind.sequence || _kind == ChartKind.mindmap) {
                   _rows[i].start = v;
                 } else {
                   _rows[i].end = v;
@@ -272,6 +298,20 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
             ),
           ),
         ],
+        if (_kind == ChartKind.mindmap)
+          IconButton(
+            tooltip: l10n.chartMindmapAddChild,
+            onPressed: () => setState(() {
+              final parent = _rows[i].label.trim();
+              _rows.insert(
+                i + 1,
+                ChartSeriesRow(
+                  start: parent.isEmpty ? _title.text.trim() : parent,
+                ),
+              );
+            }),
+            icon: const Icon(Icons.account_tree_outlined),
+          ),
         IconButton(
           onPressed: _rows.length <= 1
               ? null
@@ -330,7 +370,13 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
                             context.push('/marketplace');
                             return;
                           }
-                          setState(() => _kind = item.$1);
+                          setState(() {
+                            final wasMindmap = _kind == ChartKind.mindmap;
+                            _kind = item.$1;
+                            if (item.$1 == ChartKind.mindmap && !wasMindmap) {
+                              _seedMindmapRows();
+                            }
+                          });
                         },
                       ),
                   ],
@@ -352,11 +398,14 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
                       child: _rowEditor(l10n, i),
                     ),
                   TextButton.icon(
-                    onPressed: () => setState(
-                      () => _rows.add(ChartSeriesRow()),
-                    ),
+                    onPressed: () =>
+                        setState(() => _rows.add(ChartSeriesRow())),
                     icon: const Icon(Icons.add_rounded),
-                    label: Text(l10n.chartAddRow),
+                    label: Text(
+                      _kind == ChartKind.mindmap
+                          ? l10n.chartMindmapAddBranch
+                          : l10n.chartAddRow,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 6),
@@ -395,8 +444,8 @@ abstract final class ChartRenderer {
     required ChartKind kind,
     required String title,
     required List<ChartSeriesRow> rows,
-    int width = 720,
-    int height = 520,
+    int? width,
+    int? height,
   }) async {
     final values = <({String label, double value, double start, double end})>[];
     for (final row in rows) {
@@ -414,25 +463,35 @@ abstract final class ChartRenderer {
       }
     }
 
+    var w = width ?? 720;
+    var h = height ?? 520;
+    if (kind == ChartKind.mindmap) {
+      final n = rows.where((r) => r.label.trim().isNotEmpty).length;
+      w = (760 + n * 40).clamp(760, 1400);
+      h = (600 + n * 32).clamp(600, 1100);
+    }
+
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(
       recorder,
-      Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+      Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
     );
     canvas.drawRect(
-      Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+      Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
       Paint()..color = const Color(0xFFFFFCF7),
     );
 
     if (title.isNotEmpty &&
         kind != ChartKind.mindmap &&
         kind != ChartKind.cornell) {
-      final builder = ui.ParagraphBuilder(
-        ui.ParagraphStyle(fontSize: 20, fontWeight: FontWeight.w700),
-      )..pushStyle(ui.TextStyle(color: const Color(0xFF1A1A1A)))
-        ..addText(title);
+      final builder =
+          ui.ParagraphBuilder(
+              ui.ParagraphStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            )
+            ..pushStyle(ui.TextStyle(color: const Color(0xFF1A1A1A)))
+            ..addText(title);
       final p = builder.build()
-        ..layout(ui.ParagraphConstraints(width: width - 48.0));
+        ..layout(ui.ParagraphConstraints(width: w - 48.0));
       canvas.drawParagraph(p, const Offset(24, 16));
     }
 
@@ -441,23 +500,23 @@ abstract final class ChartRenderer {
       title.isEmpty || kind == ChartKind.mindmap || kind == ChartKind.cornell
           ? 24
           : 52,
-      width - 60.0,
-      height - (title.isEmpty ? 56.0 : 80.0),
+      w - 60.0,
+      h - (title.isEmpty ? 56.0 : 80.0),
     );
 
     switch (kind) {
       case ChartKind.pie:
         _pie(canvas, plot, values);
-        _legend(canvas, Offset(24, height - 36.0), values);
+        _legend(canvas, Offset(24, h - 36.0), values);
       case ChartKind.bar:
         _bar(canvas, plot, values);
-        _legend(canvas, Offset(24, height - 36.0), values);
+        _legend(canvas, Offset(24, h - 36.0), values);
       case ChartKind.line:
         _line(canvas, plot, values);
-        _legend(canvas, Offset(24, height - 36.0), values);
+        _legend(canvas, Offset(24, h - 36.0), values);
       case ChartKind.area:
         _area(canvas, plot, values);
-        _legend(canvas, Offset(24, height - 36.0), values);
+        _legend(canvas, Offset(24, h - 36.0), values);
       case ChartKind.gantt:
         _gantt(canvas, plot, values);
       case ChartKind.mindmap:
@@ -483,7 +542,7 @@ abstract final class ChartRenderer {
     }
 
     final picture = recorder.endRecording();
-    final image = await picture.toImage(width, height);
+    final image = await picture.toImage(w, h);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     picture.dispose();
@@ -611,7 +670,8 @@ abstract final class ChartRenderer {
       final row = values[i];
       final y = plot.top + i * rowH + 6;
       final h = math.max(14.0, rowH - 12);
-      final x = plot.left + 72 + ((row.start - minX) / span) * (plot.width - 72);
+      final x =
+          plot.left + 72 + ((row.start - minX) / span) * (plot.width - 72);
       final w = ((row.end - row.start) / span) * (plot.width - 72);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -620,10 +680,12 @@ abstract final class ChartRenderer {
         ),
         Paint()..color = _colors[i % _colors.length],
       );
-      final builder = ui.ParagraphBuilder(
-        ui.ParagraphStyle(fontSize: 12, fontWeight: FontWeight.w600),
-      )..pushStyle(ui.TextStyle(color: const Color(0xFF1A1A1A)))
-        ..addText(row.label);
+      final builder =
+          ui.ParagraphBuilder(
+              ui.ParagraphStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            )
+            ..pushStyle(ui.TextStyle(color: const Color(0xFF1A1A1A)))
+            ..addText(row.label);
       final p = builder.build()
         ..layout(const ui.ParagraphConstraints(width: 68));
       canvas.drawParagraph(p, Offset(plot.left, y + 2));
@@ -642,10 +704,12 @@ abstract final class ChartRenderer {
         5,
         Paint()..color = _colors[i % _colors.length],
       );
-      final builder = ui.ParagraphBuilder(
-        ui.ParagraphStyle(fontSize: 12, fontWeight: FontWeight.w600),
-      )..pushStyle(ui.TextStyle(color: const Color(0xFF1A1A1A)))
-        ..addText(values[i].label);
+      final builder =
+          ui.ParagraphBuilder(
+              ui.ParagraphStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            )
+            ..pushStyle(ui.TextStyle(color: const Color(0xFF1A1A1A)))
+            ..addText(values[i].label);
       final p = builder.build()
         ..layout(const ui.ParagraphConstraints(width: 80));
       canvas.drawParagraph(p, Offset(x + 14, origin.dy));
@@ -662,10 +726,12 @@ abstract final class ChartRenderer {
     double maxWidth = 160,
     Color color = const Color(0xFF1A1A1A),
   }) {
-    final builder = ui.ParagraphBuilder(
-      ui.ParagraphStyle(fontSize: size, fontWeight: weight),
-    )..pushStyle(ui.TextStyle(color: color))
-      ..addText(text);
+    final builder =
+        ui.ParagraphBuilder(
+            ui.ParagraphStyle(fontSize: size, fontWeight: weight),
+          )
+          ..pushStyle(ui.TextStyle(color: color))
+          ..addText(text);
     final p = builder.build()..layout(ui.ParagraphConstraints(width: maxWidth));
     canvas.drawParagraph(p, at);
   }
@@ -713,46 +779,129 @@ abstract final class ChartRenderer {
     String title,
     List<ChartSeriesRow> rows,
   ) {
-    final nodes = [
-      for (final row in rows)
-        if (row.label.trim().isNotEmpty) row.label.trim(),
-    ];
-    if (nodes.isEmpty) return;
+    final root = _MindNode(title.trim().isEmpty ? 'Thema' : title.trim(), 0);
+    final primaries = <_MindNode>[];
+    final byLabel = <String, _MindNode>{};
+
+    for (var i = 0; i < rows.length; i++) {
+      final label = rows[i].label.trim();
+      if (label.isEmpty) continue;
+      final node = _MindNode(label, i);
+      primaries.add(node);
+      byLabel.putIfAbsent(label.toLowerCase(), () => node);
+    }
+
+    var p = 0;
+    for (var i = 0; i < rows.length; i++) {
+      final label = rows[i].label.trim();
+      if (label.isEmpty) continue;
+      final target = primaries[p++];
+      final parentName = rows[i].start.trim();
+      var parent = parentName.isEmpty
+          ? root
+          : (byLabel[parentName.toLowerCase()] ?? root);
+      if (identical(parent, target) ||
+          parentName.toLowerCase() == label.toLowerCase() ||
+          _mindContains(target, parent)) {
+        parent = root;
+      }
+      parent.children.add(target);
+
+      for (final extra in rows[i].value.split(',')) {
+        final child = extra.trim();
+        if (child.isEmpty) continue;
+        target.children.add(_MindNode(child, i + target.children.length + 1));
+      }
+    }
+
+    if (root.children.isEmpty && primaries.isEmpty) return;
+
     final center = plot.center;
-    canvas.drawCircle(center, 46, Paint()..color = const Color(0xFF1D4E89));
+    canvas.drawCircle(center, 48, Paint()..color = const Color(0xFF1D4E89));
     _text(
       canvas,
-      Offset(center.dx - 40, center.dy - 12),
-      title.isEmpty ? 'Thema' : title,
+      Offset(center.dx - 42, center.dy - 12),
+      root.text,
       size: 14,
       weight: FontWeight.w800,
-      maxWidth: 80,
+      maxWidth: 84,
       color: const Color(0xFFFFFFFF),
     );
-    for (var i = 0; i < nodes.length; i++) {
-      final angle = -math.pi / 2 + (i * 2 * math.pi / nodes.length);
-      final tip = Offset(
-        center.dx + math.cos(angle) * 150,
-        center.dy + math.sin(angle) * 110,
+
+    final firstCount = math.max(1, root.children.length);
+    final baseR = math.min(plot.width, plot.height) * 0.28;
+    _paintMindChildren(
+      canvas,
+      plot,
+      root,
+      center,
+      startAngle: -math.pi / 2,
+      sweep: math.pi * 2,
+      radius: baseR * (firstCount > 6 ? 1.15 : 1),
+      depth: 1,
+    );
+  }
+
+  static void _paintMindChildren(
+    Canvas canvas,
+    Rect plot,
+    _MindNode parent,
+    Offset origin, {
+    required double startAngle,
+    required double sweep,
+    required double radius,
+    required int depth,
+  }) {
+    final kids = parent.children;
+    if (kids.isEmpty) return;
+    final boxW = depth == 1 ? 112.0 : 96.0;
+    final boxH = depth == 1 ? 36.0 : 30.0;
+    final rx = radius * (plot.width / math.max(plot.height, 1));
+    final ry = radius;
+    for (var i = 0; i < kids.length; i++) {
+      final angle = startAngle + ((i + 0.5) / kids.length) * sweep;
+      var tip = Offset(
+        origin.dx + math.cos(angle) * rx,
+        origin.dy + math.sin(angle) * ry,
       );
+      tip = Offset(
+        tip.dx.clamp(plot.left + boxW / 2, plot.right - boxW / 2),
+        tip.dy.clamp(plot.top + boxH / 2, plot.bottom - boxH / 2),
+      );
+      final color = _colors[kids[i].color % _colors.length];
       canvas.drawLine(
-        center,
+        origin,
         tip,
         Paint()
-          ..color = _colors[i % _colors.length]
-          ..strokeWidth = 2,
+          ..color = color
+          ..strokeWidth = depth == 1 ? 2.2 : 1.5
+          ..strokeCap = StrokeCap.round,
       );
       _box(
         canvas,
-        Rect.fromCenter(center: tip, width: 108, height: 36),
-        _colors[i % _colors.length],
+        Rect.fromCenter(center: tip, width: boxW, height: boxH),
+        color,
       );
       _text(
         canvas,
-        Offset(tip.dx - 48, tip.dy - 8),
-        nodes[i],
-        maxWidth: 96,
+        Offset(tip.dx - boxW / 2 + 6, tip.dy - 8),
+        kids[i].text,
+        size: depth == 1 ? 13 : 11,
+        maxWidth: boxW - 12,
       );
+      if (depth < 4 && kids[i].children.isNotEmpty) {
+        final childSweep = math.max(0.55, sweep / kids.length);
+        _paintMindChildren(
+          canvas,
+          plot,
+          kids[i],
+          tip,
+          startAngle: angle - childSweep / 2,
+          sweep: childSweep,
+          radius: radius * 0.72,
+          depth: depth + 1,
+        );
+      }
     }
   }
 
@@ -799,12 +948,7 @@ abstract final class ChartRenderer {
     }
     for (var i = 0; i < items.length - 1; i++) {
       final rel = items[i].end.trim();
-      _arrow(
-        canvas,
-        centers[i],
-        centers[i + 1],
-        const Color(0xFF444444),
-      );
+      _arrow(canvas, centers[i], centers[i + 1], const Color(0xFF444444));
       if (rel.isNotEmpty) {
         final mid = Offset.lerp(centers[i], centers[i + 1], 0.5)!;
         _text(canvas, Offset(mid.dx - 30, mid.dy - 16), rel, size: 11);
@@ -861,7 +1005,13 @@ abstract final class ChartRenderer {
           ..color = const Color(0xFF1A1A1A)
           ..strokeWidth = 2,
       );
-      _text(canvas, Offset(x - 24, y + 58), actorList[i], size: 11, maxWidth: 70);
+      _text(
+        canvas,
+        Offset(x - 24, y + 58),
+        actorList[i],
+        size: 11,
+        maxWidth: 70,
+      );
     }
     final system = Rect.fromLTWH(
       plot.left + 110,
@@ -941,15 +1091,15 @@ abstract final class ChartRenderer {
     final centers = sets.length == 1
         ? [plot.center]
         : sets.length == 2
-            ? [
-                plot.center.translate(-r * 0.55, 0),
-                plot.center.translate(r * 0.55, 0),
-              ]
-            : [
-                plot.center.translate(-r * 0.55, -r * 0.2),
-                plot.center.translate(r * 0.55, -r * 0.2),
-                plot.center.translate(0, r * 0.55),
-              ];
+        ? [
+            plot.center.translate(-r * 0.55, 0),
+            plot.center.translate(r * 0.55, 0),
+          ]
+        : [
+            plot.center.translate(-r * 0.55, -r * 0.2),
+            plot.center.translate(r * 0.55, -r * 0.2),
+            plot.center.translate(0, r * 0.55),
+          ];
     for (var i = 0; i < sets.length; i++) {
       canvas.drawCircle(
         centers[i],
@@ -1117,7 +1267,12 @@ abstract final class ChartRenderer {
     _box(canvas, sum, const Color(0xFFD4A017));
     _text(canvas, Offset(cue.left + 8, cue.top + 8), 'Stichworte', size: 12);
     _text(canvas, Offset(notes.left + 8, notes.top + 8), 'Notizen', size: 12);
-    _text(canvas, Offset(sum.left + 8, sum.top + 8), 'Zusammenfassung', size: 12);
+    _text(
+      canvas,
+      Offset(sum.left + 8, sum.top + 8),
+      'Zusammenfassung',
+      size: 12,
+    );
   }
 
   static void _vocab(
@@ -1165,4 +1320,20 @@ abstract final class ChartRenderer {
       Paint()..color = const Color(0xFFAAAAAA),
     );
   }
+}
+
+class _MindNode {
+  _MindNode(this.text, this.color);
+
+  final String text;
+  final int color;
+  final children = <_MindNode>[];
+}
+
+bool _mindContains(_MindNode root, _MindNode needle) {
+  if (identical(root, needle)) return true;
+  for (final child in root.children) {
+    if (_mindContains(child, needle)) return true;
+  }
+  return false;
 }

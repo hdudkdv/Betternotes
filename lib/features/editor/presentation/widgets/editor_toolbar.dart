@@ -24,9 +24,13 @@ class ToolOptionsBar extends ConsumerWidget {
     required this.onShapeKindChanged,
     required this.onTextLayoutModeChanged,
     required this.onAddText,
+    this.onAddSticky,
     required this.onPickImage,
+    this.onPickSticker,
     this.onDeleteImage,
+    this.onDeleteSticker,
     this.hasSelectedImage = false,
+    this.hasSelectedSticker = false,
     this.onDeleteSelection,
     this.hasLassoSelection = false,
     this.onToggleRuler,
@@ -44,11 +48,15 @@ class ToolOptionsBar extends ConsumerWidget {
   final ValueChanged<ShapeKind> onShapeKindChanged;
   final ValueChanged<TextLayoutMode> onTextLayoutModeChanged;
   final VoidCallback onAddText;
+  final VoidCallback? onAddSticky;
   final VoidCallback onPickImage;
+  final VoidCallback? onPickSticker;
   final VoidCallback? onDeleteImage;
+  final VoidCallback? onDeleteSticker;
   final VoidCallback? onDeleteSelection;
   final bool hasLassoSelection;
   final bool hasSelectedImage;
+  final bool hasSelectedSticker;
   final VoidCallback? onToggleRuler;
   final VoidCallback? onToggleCompass;
   final bool rulerActive;
@@ -293,12 +301,24 @@ class ToolOptionsBar extends ConsumerWidget {
             label: l10n.pageText,
             onTap: () => onTextLayoutModeChanged(TextLayoutMode.lineBound),
           ),
+          _labelChip(
+            selected: textLayoutMode == TextLayoutMode.sticky,
+            icon: Icons.sticky_note_2_outlined,
+            label: l10n.stickyNote,
+            onTap: () => onTextLayoutModeChanged(TextLayoutMode.sticky),
+          ),
           _divider(),
           _pillAction(
             icon: Icons.add_rounded,
             label: l10n.addTextBox,
             onTap: onAddText,
           ),
+          if (onAddSticky != null)
+            _pillAction(
+              icon: Icons.sticky_note_2_outlined,
+              label: l10n.stickyNote,
+              onTap: onAddSticky!,
+            ),
         ];
       case InkTool.shape:
         return [
@@ -359,6 +379,20 @@ class ToolOptionsBar extends ConsumerWidget {
               icon: Icons.delete_outline_rounded,
               label: l10n.delete,
               onTap: onDeleteImage!,
+            ),
+        ];
+      case InkTool.sticker:
+        return [
+          _pillAction(
+            icon: Icons.emoji_emotions_outlined,
+            label: l10n.stickers,
+            onTap: onPickSticker ?? () {},
+          ),
+          if (hasSelectedSticker && onDeleteSticker != null)
+            _pillAction(
+              icon: Icons.delete_outline_rounded,
+              label: l10n.delete,
+              onTap: onDeleteSticker!,
             ),
         ];
     }
@@ -953,9 +987,11 @@ class _EraserSizeDot extends StatelessWidget {
               height: diameter,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: selected ? EditorChrome.selected : Colors.white24,
+                color: selected ? EditorChrome.selected : Colors.transparent,
                 border: Border.all(
-                  color: selected ? Colors.white : Colors.white38,
+                  color: selected
+                      ? EditorChrome.selected
+                      : EditorChrome.divider,
                   width: selected ? 2 : 1,
                 ),
               ),

@@ -16,19 +16,21 @@ class ShapeRecognition {
     required double strokeWidth,
     StrokeStyle style = StrokeStyle.solid,
     bool allowImperfectLine = false,
+    bool loose = false,
   }) {
-    if (points.length < 5) return null;
+    loose = loose || allowImperfectLine;
+    if (points.length < 4) return null;
     final raw = [for (final p in points) p.offset];
-    final pts = _resample(raw, 48);
+    final pts = _resample(raw, loose ? 64 : 48);
     var length = 0.0;
     for (var i = 1; i < pts.length; i++) {
       length += (pts[i] - pts[i - 1]).distance;
     }
-    if (length < 24) return null;
+    if (length < (loose ? 16 : 24)) return null;
 
-    final closed = _isClosed(pts, length);
+    final closed = _isClosed(pts, length, loose: loose);
 
-    final circle = _asCircle(pts, length, closed: closed);
+    final circle = _asCircle(pts, length, closed: closed, loose: loose);
     if (circle != null) {
       return ShapeElement.create(
         pageId: pageId,
@@ -43,7 +45,7 @@ class ShapeRecognition {
       );
     }
 
-    final rect = _asRect(pts, length, closed: closed);
+    final rect = _asRect(pts, length, closed: closed, loose: loose);
     if (rect != null) {
       return ShapeElement.create(
         pageId: pageId,
@@ -58,7 +60,7 @@ class ShapeRecognition {
       );
     }
 
-    final ellipse = _asEllipse(pts, length, closed: closed);
+    final ellipse = _asEllipse(pts, length, closed: closed, loose: loose);
     if (ellipse != null) {
       return ShapeElement.create(
         pageId: pageId,
@@ -73,7 +75,7 @@ class ShapeRecognition {
       );
     }
 
-    final line = _asLine(pts, length, loose: allowImperfectLine);
+    final line = _asLine(pts, length, loose: loose);
     if (line != null) {
       return ShapeElement.create(
         pageId: pageId,
@@ -90,17 +92,30 @@ class ShapeRecognition {
     return null;
   }
 
-  static bool _isClosed(List<Offset> pts, double length) {
+  static bool _isClosed(
+    List<Offset> pts,
+    double length, {
+    required bool loose,
+  }) {
     final gap = (pts.first - pts.last).distance;
-    if (gap < math.max(28.0, length * 0.16)) return true;
-    // Almost-closed: the start sits near the last quarter of the stroke.
-    final window = math.max(4, pts.length ~/ 6);
+    if (gap < math.max(loose ? 48.0 : 28.0, length * (loose ? 0.32 : 0.16))) {
+      return true;
+    }
+    final window = math.max(4, pts.length ~/ (loose ? 4 : 6));
     for (var i = pts.length - window; i < pts.length; i++) {
-      if ((pts[i] - pts.first).distance < math.max(22.0, length * 0.12)) {
+      if ((pts[i] - pts.first).distance <
+          math.max(loose ? 36.0 : 22.0, length * (loose ? 0.22 : 0.12))) {
         return true;
       }
     }
     return false;
+  }
+
+  static (Offset, Offset) _lineEnds(List<Offset> pts, {required bool loose}) {
+    if (!loose || pts.length < 8) return (pts.first, pts.last);
+    final i0 = (pts.length * 0.08).floor().clamp(0, pts.length - 2);
+    final i1 = (pts.length * 0.92).ceil().clamp(i0 + 1, pts.length - 1);
+    return (pts[i0], pts[i1]);
   }
 
   static (Offset, Offset)? _asLine(
@@ -108,26 +123,28 @@ class ShapeRecognition {
     double length, {
     required bool loose,
   }) {
-    var a = pts.first;
-    var b = pts.last;
+    var ends = _lineEnds(pts, loose: loose);
+    var a = ends.$1;
+    var b = ends.$2;
     var span = (b - a).distance;
-    if (span < 28) return null;
+    if (span < (loose ? 18 : 28)) return null;
     final straight = span / length;
-    if (straight < (loose ? 0.80 : 0.90)) return null;
+    if (straight < (loose ? 0.58 : 0.88)) return null;
     var maxDev = 0.0;
     for (final p in pts) {
       maxDev = math.max(maxDev, _distToSegment(p, a, b));
     }
-    final limit = math.max(loose ? 12.0 : 7.0, span * (loose ? 0.09 : 0.055));
+    final limit = math.max(loose ? 22.0 : 7.0, span * (loose ? 0.18 : 0.055));
     if (maxDev > limit) return null;
 
     final dx = (b.dx - a.dx).abs();
     final dy = (b.dy - a.dy).abs();
-    if (dy < dx * 0.12) {
+    final snap = loose ? 0.22 : 0.12;
+    if (dy < dx * snap) {
       final y = (a.dy + b.dy) / 2;
       a = Offset(a.dx, y);
       b = Offset(b.dx, y);
-    } else if (dx < dy * 0.12) {
+    } else if (dx < dy * snap) {
       final x = (a.dx + b.dx) / 2;
       a = Offset(x, a.dy);
       b = Offset(x, b.dy);
@@ -139,12 +156,13 @@ class ShapeRecognition {
     List<Offset> pts,
     double length, {
     required bool closed,
+    required bool loose,
   }) {
-    if (!closed && length < 80) return null;
+    if (!closed && length < (loose ? 48 : 80)) return null;
     final box = _bounds(pts);
     final aspect =
         (box.width - box.height).abs() / math.max(box.width, box.height);
-    if (aspect > 0.18) return null;
+    if (aspect > (loose ? 0.36 : 0.18)) return null;
     var cx = 0.0, cy = 0.0;
     for (final p in pts) {
       cx += p.dx;
@@ -156,7 +174,7 @@ class ShapeRecognition {
       meanR += (p - center).distance;
     }
     meanR /= pts.length;
-    if (meanR < 14) return null;
+    if (meanR < (loose ? 10 : 14)) return null;
     center = box.center;
     meanR = math.min(box.width, box.height) / 2;
 
@@ -166,12 +184,12 @@ class ShapeRecognition {
       varR += d * d;
     }
     varR = math.sqrt(varR / pts.length);
-    if (varR > meanR * 0.20) return null;
+    if (varR > meanR * (loose ? 0.38 : 0.20)) return null;
 
     final expected = 2 * math.pi * meanR;
     final circErr = (length - expected).abs() / expected;
-    if (!closed && circErr > 0.28) return null;
-    if (closed && circErr > 0.38) return null;
+    if (!closed && circErr > (loose ? 0.48 : 0.28)) return null;
+    if (closed && circErr > (loose ? 0.58 : 0.38)) return null;
     return (center: center, radius: meanR);
   }
 
@@ -179,13 +197,19 @@ class ShapeRecognition {
     List<Offset> pts,
     double length, {
     required bool closed,
+    required bool loose,
   }) {
-    if (!closed) return null;
+    if (!closed && !loose) return null;
     final box = _bounds(pts);
-    if (box.width < 22 || box.height < 22) return null;
+    if (box.width < (loose ? 16 : 22) || box.height < (loose ? 16 : 22)) {
+      return null;
+    }
+    final skinny =
+        math.min(box.width, box.height) / math.max(box.width, box.height);
+    if (skinny < (loose ? 0.28 : 0.18)) return null;
 
-    final corners = _sharpCorners(pts);
-    if (corners.length >= 3 && corners.length <= 6) {
+    final corners = _sharpCorners(pts, loose: loose);
+    if (corners.length >= (loose ? 2 : 3) && corners.length <= 8) {
       var right = 0;
       for (var i = 0; i < corners.length; i++) {
         final prev = corners[(i - 1 + corners.length) % corners.length];
@@ -197,9 +221,11 @@ class ShapeRecognition {
         if (den < 1e-4) continue;
         final cos = ((a.dx * b.dx + a.dy * b.dy) / den).clamp(-1.0, 1.0);
         final deg = math.acos(cos) * 180 / math.pi;
-        if (deg > 65 && deg < 115) right++;
+        if (deg > (loose ? 48.0 : 65.0) && deg < (loose ? 140.0 : 115.0)) {
+          right++;
+        }
       }
-      if (right >= 3) return box;
+      if (right >= (loose ? 2 : 3)) return box;
     }
 
     var edgeErr = 0.0;
@@ -209,9 +235,12 @@ class ShapeRecognition {
       edgeErr += math.min(dx, dy);
     }
     edgeErr /= pts.length;
-    if (edgeErr > math.max(10.0, math.min(box.width, box.height) * 0.12)) {
-      return null;
-    }
+    final limit = math.max(
+      loose ? 16.0 : 10.0,
+      math.min(box.width, box.height) * (loose ? 0.22 : 0.12),
+    );
+    if (edgeErr > limit) return null;
+    if (!closed && loose && edgeErr > limit * 0.85) return null;
     return box;
   }
 
@@ -219,13 +248,21 @@ class ShapeRecognition {
     List<Offset> pts,
     double length, {
     required bool closed,
+    required bool loose,
   }) {
-    if (!closed) return null;
+    if (!closed && !loose) return null;
     final box = _bounds(pts);
-    if (box.width < 26 || box.height < 26) return null;
+    if (box.width < (loose ? 18 : 26) || box.height < (loose ? 18 : 26)) {
+      return null;
+    }
+    final skinny =
+        math.min(box.width, box.height) / math.max(box.width, box.height);
+    if (skinny < (loose ? 0.28 : 0.18)) return null;
     final rx = box.width / 2;
     final ry = box.height / 2;
-    if ((rx - ry).abs() / math.max(rx, ry) < 0.10) return null;
+    if ((rx - ry).abs() / math.max(rx, ry) < (loose ? 0.06 : 0.10)) {
+      return null;
+    }
     final c = box.center;
     var err = 0.0;
     for (final p in pts) {
@@ -234,11 +271,11 @@ class ShapeRecognition {
       err += (nx * nx + ny * ny - 1).abs();
     }
     err /= pts.length;
-    if (err > 0.32) return null;
+    if (err > (loose ? 0.58 : 0.32)) return null;
     return box;
   }
 
-  static List<Offset> _sharpCorners(List<Offset> pts) {
+  static List<Offset> _sharpCorners(List<Offset> pts, {bool loose = false}) {
     if (pts.length < 8) return const [];
     final corners = <Offset>[];
     const window = 3;
@@ -249,7 +286,7 @@ class ShapeRecognition {
       if (den < 4) continue;
       final cos = ((a.dx * b.dx + a.dy * b.dy) / den).clamp(-1.0, 1.0);
       final deg = math.acos(cos) * 180 / math.pi;
-      if (deg < 48) continue;
+      if (deg < (loose ? 32 : 48)) continue;
       if (corners.isNotEmpty && (corners.last - pts[i]).distance < 16) {
         corners[corners.length - 1] = pts[i];
       } else {

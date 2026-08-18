@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../search/recognition/recognition_service.dart';
+import 'gemma_runtime.dart';
+import 'gemma_setup.dart';
 import 'gemma_tutor.dart';
 
 class AssistantMessage {
@@ -20,7 +23,7 @@ class AssistantMessage {
 }
 
 /// Marketplace Gemma coach: guides like a teacher, explains connections.
-class AssistantPanel extends StatefulWidget {
+class AssistantPanel extends ConsumerStatefulWidget {
   const AssistantPanel({
     super.key,
     required this.unlocked,
@@ -31,21 +34,30 @@ class AssistantPanel extends StatefulWidget {
   final List<String> pageImagePaths;
 
   @override
-  State<AssistantPanel> createState() => _AssistantPanelState();
+  ConsumerState<AssistantPanel> createState() => _AssistantPanelState();
 }
 
-class _AssistantPanelState extends State<AssistantPanel> {
+class _AssistantPanelState extends ConsumerState<AssistantPanel> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   GemmaTutor? _tutor;
   final _messages = <AssistantMessage>[];
   List<String> _chips = const [];
   bool _readingImage = false;
+  bool _thinking = false;
 
   GemmaTutor get _coach {
     return _tutor ??= GemmaTutor(
       german: Localizations.localeOf(context).languageCode == 'de',
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(gemmaRuntimeProvider).restore();
+    });
   }
 
   @override
@@ -65,10 +77,37 @@ class _AssistantPanelState extends State<AssistantPanel> {
     super.dispose();
   }
 
-  void _send([String? preset]) {
+  Future<void> _send([String? preset]) async {
     final text = (preset ?? _input.text).trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _thinking) return;
     if (preset == null) _input.clear();
+    final runtime = ref.read(gemmaRuntimeProvider);
+    if (runtime.isReady) {
+      setState(() {
+        _messages.add(AssistantMessage(fromUser: true, text: text));
+        _thinking = true;
+        _chips = const [];
+      });
+      _scrollToEnd();
+      final reply = await runtime.complete(
+        text,
+        german: Localizations.localeOf(context).languageCode == 'de',
+      );
+      if (!mounted) return;
+      setState(() {
+        _thinking = false;
+        _messages.add(
+          AssistantMessage(
+            fromUser: false,
+            text: (reply == null || reply.isEmpty)
+                ? _coach.respond(text).text
+                : reply,
+          ),
+        );
+      });
+      _scrollToEnd();
+      return;
+    }
     _push(text, _coach.respond(text));
   }
 
@@ -80,6 +119,10 @@ class _AssistantPanelState extends State<AssistantPanel> {
       _messages.add(AssistantMessage(fromUser: false, text: reply.text));
       _chips = reply.chips;
     });
+    _scrollToEnd();
+  }
+
+  void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
       _scroll.animateTo(
@@ -101,6 +144,44 @@ class _AssistantPanelState extends State<AssistantPanel> {
     } catch (_) {}
     if (!mounted) return;
     setState(() => _readingImage = false);
+    final runtime = ref.read(gemmaRuntimeProvider);
+    if (runtime.isReady) {
+      setState(() {
+        _messages.add(
+          AssistantMessage(
+            fromUser: true,
+            text: l10n.assistantImageAttached,
+            imagePath: path,
+          ),
+        );
+        _thinking = true;
+      });
+      _scrollToEnd();
+      final reply = await runtime.complete(
+        l10n.assistantImageAttached,
+        german: Localizations.localeOf(context).languageCode == 'de',
+        extra: ocr,
+      );
+      if (!mounted) return;
+      setState(() {
+        _thinking = false;
+        _messages.add(
+          AssistantMessage(
+            fromUser: false,
+            text: (reply == null || reply.isEmpty)
+                ? _coach
+                      .respondImage(
+                        ocrText: ocr,
+                        label: l10n.assistantImageAttached,
+                      )
+                      .text
+                : reply,
+          ),
+        );
+      });
+      _scrollToEnd();
+      return;
+    }
     final reply = _coach.respondImage(
       ocrText: ocr,
       label: l10n.assistantImageAttached,
@@ -179,12 +260,37 @@ class _AssistantPanelState extends State<AssistantPanel> {
             style: AppTheme.body(fontSize: 12, color: AppTheme.inkMuted),
           ),
         ),
+        if (!ref.watch(gemmaRuntimeProvider).isReady)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: OutlinedButton.icon(
+              onPressed: () => showGemmaSetupSheet(context),
+              icon: const Icon(Icons.memory_outlined, size: 18),
+              label: Text(l10n.gemmaNeedsSetup),
+            ),
+          ),
         Expanded(
           child: ListView.builder(
             controller: _scroll,
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: _messages.length,
+            itemCount: _messages.length + (_thinking ? 1 : 0),
             itemBuilder: (context, index) {
+              if (index >= _messages.length) {
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8, left: 4),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppTheme.inkMuted,
+                      ),
+                    ),
+                  ),
+                );
+              }
               final msg = _messages[index];
               return Align(
                 alignment: msg.fromUser
@@ -240,7 +346,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
             children: [
               IconButton(
                 tooltip: l10n.assistantAttachImage,
-                onPressed: _readingImage ? null : _attachImage,
+                onPressed: _readingImage || _thinking ? null : _attachImage,
                 icon: _readingImage
                     ? const SizedBox(
                         width: 18,
@@ -260,7 +366,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
                 ),
               ),
               IconButton(
-                onPressed: _send,
+                onPressed: _thinking ? null : _send,
                 icon: const Icon(Icons.send_rounded),
               ),
             ],

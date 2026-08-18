@@ -17,6 +17,7 @@ import '../../data/repositories/notebook_repository.dart';
 import '../../shared/utils/file_store.dart';
 import '../../shared/utils/page_size.dart';
 import '../editor/domain/ink_models.dart';
+import '../editor/domain/sticker_catalog.dart';
 
 class PdfService {
   PdfService(this._repository);
@@ -232,12 +233,45 @@ class PdfService {
                   },
                 ),
                 ...imageWidgets,
+                for (final sticker in page.stickers)
+                  pw.Positioned(
+                    left: sticker.x,
+                    top: sticker.y,
+                    child: pw.SizedBox(
+                      width: sticker.width,
+                      height: sticker.height,
+                      child: pw.Center(
+                        child: pw.Text(
+                          StickerCatalog.byId(sticker.catalogId)?.emoji ?? '★',
+                          style: pw.TextStyle(fontSize: sticker.width * 0.7),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (page.title != null && page.title!.trim().isNotEmpty)
+                  pw.Positioned(
+                    left: 28,
+                    top: 18,
+                    child: pw.Text(
+                      page.title!.trim(),
+                      style: const pw.TextStyle(fontSize: 13),
+                    ),
+                  ),
                 for (final block in page.textBlocks)
                   pw.Positioned(
                     left: block.x,
                     top: block.y,
-                    child: pw.SizedBox(
+                    child: pw.Container(
                       width: block.width,
+                      height: block.isSticky ? block.height : null,
+                      padding: block.isSticky
+                          ? const pw.EdgeInsets.all(8)
+                          : pw.EdgeInsets.zero,
+                      color: block.isSticky
+                          ? pdf.PdfColor.fromInt(
+                              block.fillColor ?? 0xFFFFF59D,
+                            )
+                          : null,
                       child: pw.Text(
                         block.plainText,
                         style: pw.TextStyle(

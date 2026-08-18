@@ -73,6 +73,9 @@ abstract final class PackCatalog {
       titleDe: 'Arbeit & Organisation',
       titleEn: 'Work & organisation',
       keys: [
+        FeatureKeys.pdfCompress,
+        FeatureKeys.handwritingOcr,
+        FeatureKeys.audioTranscription,
         FeatureKeys.packAgile,
         FeatureKeys.packFreelance,
         FeatureKeys.packDev,

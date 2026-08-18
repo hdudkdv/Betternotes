@@ -333,8 +333,8 @@ class GemmaTutor {
     final topics = GemmaTopics.matchAll(raw);
     final intro = topics.isEmpty
         ? (german
-            ? 'Geschichte: Ich erkläre den Zusammenhang, du wendest ihn auf die Aufgabe an.\n\nNenn Ereignis, Personen oder die Leitfrage genauer — z. B. Versailles, Weimar, Mauer, Industrialisierung.'
-            : 'History: I explain the connection, you apply it to the task.\n\nName the event, people, or question more precisely — e.g. Versailles, Weimar, the Wall, industrialisation.')
+              ? 'Geschichte: Ich erkläre den Zusammenhang, du wendest ihn auf die Aufgabe an.\n\nNenn Ereignis, Personen oder die Leitfrage genauer — z. B. Versailles, Weimar, Mauer, Industrialisierung.'
+              : 'History: I explain the connection, you apply it to the task.\n\nName the event, people, or question more precisely — e.g. Versailles, Weimar, the Wall, industrialisation.')
         : '${GemmaTopics.format(topics, german: german)}\n\n${german ? 'Das ist der Zusammenhang. Was genau fragt deine Aufgabe — Ursachen, Folgen oder eine Bewertung?' : 'That is the connection. What exactly does your task ask — causes, consequences, or a judgement?'}';
     _steps.addAll([
       _Step(hintDe: intro, hintEn: intro),
@@ -424,8 +424,7 @@ class GemmaTutor {
       _kind == _Kind.percent ||
       _kind == _Kind.derivative;
 
-  bool get _isHumanitiesKind =>
-      _kind == _Kind.history || _kind == _Kind.image;
+  bool get _isHumanitiesKind => _kind == _Kind.history || _kind == _Kind.image;
 
   GemmaReply _checkGuess(double guess, String raw) {
     final step = _currentStep();
@@ -439,10 +438,7 @@ class GemmaTutor {
 
     final later = _laterExpected();
     if (later != null && _near(guess, later)) {
-      return GemmaReply(
-        text: _t('jumpedAhead'),
-        chips: _stepChips(),
-      );
+      return GemmaReply(text: _t('jumpedAhead'), chips: _stepChips());
     }
 
     if (step.expected.isEmpty) {
@@ -745,14 +741,13 @@ class GemmaTutor {
   bool _matchesAny(double guess, List<double> expected) =>
       expected.any((e) => _near(guess, e));
 
-  bool _near(double a, double b) => (a - b).abs() <= 1e-6 * (1 + b.abs()) ||
-      (a - b).abs() < 0.015;
+  bool _near(double a, double b) =>
+      (a - b).abs() <= 1e-6 * (1 + b.abs()) || (a - b).abs() < 0.015;
 
   bool _sameExpr(String a, String b) {
-    String norm(String s) => CalculatorEngine.prepareSource(s)
-        .replaceAll(' ', '')
-        .replaceAll('*', '')
-        .toLowerCase();
+    String norm(String s) => CalculatorEngine.prepareSource(
+      s,
+    ).replaceAll(' ', '').replaceAll('*', '').toLowerCase();
     if (norm(a) == norm(b)) return true;
     // Numeric probe at a few x values.
     for (final x in const [0.5, 2.0, 3.0]) {
@@ -787,8 +782,7 @@ class GemmaTutor {
       'notYet':
           'Das passt noch nicht. Rechne den aktuellen Schritt noch einmal am Taschenrechner — ohne abzukürzen.',
       'goodStep': 'Der Schritt passt. Weiter.',
-      'solved':
-          'Dein Ergebnis stimmt. Gut, dass du selbst gerechnet hast.',
+      'solved': 'Dein Ergebnis stimmt. Gut, dass du selbst gerechnet hast.',
       'stayWithStep': 'Bleib bei diesem Schritt:',
     };
     const en = {

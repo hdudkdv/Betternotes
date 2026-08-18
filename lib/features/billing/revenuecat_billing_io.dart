@@ -353,19 +353,16 @@ class RevenueCatBilling extends ChangeNotifier {
     customerInfo = info;
     final active = info.entitlements.active.keys.toSet();
     tier = active.intersection(RevenueCatConfig.teacherEntitlements).isNotEmpty
-        ? AppTier.teacher
-        : active
-              .intersection(RevenueCatConfig.teacherLiteEntitlements)
-              .isNotEmpty
-        ? AppTier.proPlus
-        : active
-              .intersection(RevenueCatConfig.studentProEntitlements)
-              .isNotEmpty
-        ? AppTier.proPlus
-        : active
-              .intersection(RevenueCatConfig.studentLiteEntitlements)
-              .isNotEmpty
         ? AppTier.pro
+        : active.intersection(RevenueCatConfig.studentProEntitlements).isNotEmpty
+        ? AppTier.pro
+        : active
+              .intersection({
+                ...RevenueCatConfig.teacherLiteEntitlements,
+                ...RevenueCatConfig.studentLiteEntitlements,
+              })
+              .isNotEmpty
+        ? AppTier.lite
         : AppTier.free;
     notifyListeners();
   }

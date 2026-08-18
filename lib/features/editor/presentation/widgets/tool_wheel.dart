@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/ink_models.dart';
 import '../editor_chrome.dart';
@@ -127,10 +128,13 @@ class ToolWheelOverlay extends StatelessWidget {
                     child: InkWell(
                       customBorder: const CircleBorder(),
                       onTap: onDismiss,
-                      child: const SizedBox(
+                      child: SizedBox(
                         width: 80,
                         height: 80,
-                        child: Icon(Icons.close_rounded, color: Colors.white),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: EditorChrome.onDark,
+                        ),
                       ),
                     ),
                   ),
@@ -172,14 +176,18 @@ class _WheelButton extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.white, size: 22),
+              Icon(
+                icon,
+                color: selected ? AppTheme.onAccent : EditorChrome.onDark,
+                size: 22,
+              ),
               const SizedBox(height: 2),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: selected ? AppTheme.onAccent : EditorChrome.onDark,
                   fontSize: 9,
                   fontWeight: FontWeight.w600,
                 ),

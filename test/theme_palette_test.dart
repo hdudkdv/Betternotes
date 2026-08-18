@@ -45,6 +45,14 @@ void main() {
     }
   });
 
+  test('studio light chrome recedes; workspace is a desk', () {
+    final studio = paletteFor(AppLook.studio, Brightness.light);
+    expect(studio.chrome.computeLuminance(), greaterThan(0.7));
+    expect(studio.workspace.computeLuminance(), greaterThan(0.5));
+    expect(studio.onChrome.computeLuminance(), lessThan(0.2));
+    expect(studio.look, AppLook.studio);
+  });
+
   test('activating a look moves the app and editor tokens with it', () {
     AppTheme.use(paletteFor(AppLook.paper, Brightness.light));
     final paperSurface = AppTheme.paper;

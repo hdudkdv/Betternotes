@@ -18,6 +18,20 @@ void main() {
     expect(bytes!.length, greaterThan(200));
   });
 
+  test('renders nested mindmap branches', () async {
+    final bytes = await ChartRenderer.renderPng(
+      kind: ChartKind.mindmap,
+      title: 'Photosynthese',
+      rows: [
+        ChartSeriesRow(label: 'Licht', value: 'Chlorophyll, Spektrum'),
+        ChartSeriesRow(label: 'Wasser'),
+        ChartSeriesRow(label: 'Beispiel', start: 'Licht'),
+      ],
+    );
+    expect(bytes, isNotNull);
+    expect(bytes!.length, greaterThan(200));
+  });
+
   test('renders an ER sketch', () async {
     final bytes = await ChartRenderer.renderPng(
       kind: ChartKind.er,
