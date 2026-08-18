@@ -2154,6 +2154,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get termsOfService => 'Terms of service';
 
   @override
+  String get termsOfUseEula => 'Terms of Use (EULA)';
+
+  @override
   String get impressum => 'Legal notice';
 
   @override

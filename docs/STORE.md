@@ -74,6 +74,43 @@ Public site (Firebase Hosting): [https://notis-notizbuecher.web.app](https://not
 
 Use the privacy URL in AdMob (**Privacy & messaging**), Play Console and App Store Connect.
 
+### App Store Connect — required for auto-renewable subscriptions
+
+Apple rejects the binary if the **listing metadata** has no working EULA link
+(Guideline 3.1.2). This is not the in-app Settings page.
+
+Use these URLs (already live):
+
+- Terms of Use (EULA): https://notis-notizbuecher.web.app/agb  
+  alias: https://notis-notizbuecher.web.app/eula (after the next web deploy)
+- Privacy Policy: https://notis-notizbuecher.web.app/datenschutz
+
+Do all of the following in App Store Connect, then reply to App Review
+(no new build required for this specific rejection):
+
+1. **App Information → Privacy Policy URL**  
+   `https://notis-notizbuecher.web.app/datenschutz`
+2. **App Information → License Agreement → Edit**  
+   Choose **Custom EULA** (we have our own terms, not only Apple’s standard).  
+   Paste the English “Terms of Use (EULA)” text from `/agb`.
+3. **Subscriptions → [group] → App Store Localization** (every locale)  
+   Terms of Use (EULA) URL: `https://notis-notizbuecher.web.app/agb`  
+   Privacy Policy URL: `https://notis-notizbuecher.web.app/datenschutz`
+4. **iOS version → Description** (German and English), last lines:
+
+```
+Terms of Use (EULA): https://notis-notizbuecher.web.app/agb
+Privacy Policy: https://notis-notizbuecher.web.app/datenschutz
+```
+
+```
+Nutzungsbedingungen (EULA): https://notis-notizbuecher.web.app/agb
+Datenschutzerklärung: https://notis-notizbuecher.web.app/datenschutz
+```
+
+Then **Reply to App Review** that the EULA is in the description, as a custom
+license, and on the subscription group.
+
 In-app copies stay under Settings → About (`/legal/privacy`, `/legal/terms`, `/legal/impressum`).
 Impressum still contains placeholders — replace with real publisher data before store release.
 

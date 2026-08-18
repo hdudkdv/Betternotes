@@ -4070,6 +4070,12 @@ abstract class AppLocalizations {
   /// **'Terms of service'**
   String get termsOfService;
 
+  /// No description provided for @termsOfUseEula.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Use (EULA)'**
+  String get termsOfUseEula;
+
   /// No description provided for @impressum.
   ///
   /// In en, this message translates to:

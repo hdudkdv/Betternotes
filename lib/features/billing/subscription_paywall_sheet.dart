@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../legal/legal_urls.dart';
 import '../library/providers/library_providers.dart';
 import 'plan_catalog.dart';
 import 'revenuecat_billing.dart';
@@ -119,6 +121,27 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                   )
               else
                 for (final plan in plans) _CatalogPlanCard(plan: plan),
+              const SizedBox(height: 8),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                children: [
+                  TextButton(
+                    onPressed: () => launchUrl(
+                      Uri.parse(LegalUrls.privacy),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    child: Text(l10n.privacyPolicy),
+                  ),
+                  TextButton(
+                    onPressed: () => launchUrl(
+                      Uri.parse(LegalUrls.terms),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    child: Text(l10n.termsOfUseEula),
+                  ),
+                ],
+              ),
               TextButton(
                 onPressed: () =>
                     Navigator.pop(context, PurchaseOutcome.cancelled),

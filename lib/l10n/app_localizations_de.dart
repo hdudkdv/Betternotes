@@ -2162,6 +2162,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get termsOfService => 'AGB';
 
   @override
+  String get termsOfUseEula => 'Nutzungsbedingungen (EULA)';
+
+  @override
   String get impressum => 'Impressum';
 
   @override

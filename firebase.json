@@ -13,6 +13,7 @@
       "redirects": [
         { "source": "/privacy", "destination": "/datenschutz", "type": 301 },
         { "source": "/terms", "destination": "/agb", "type": 301 },
+        { "source": "/eula", "destination": "/agb", "type": 301 },
         { "source": "/legal-notice", "destination": "/impressum", "type": 301 }
       ],
       "rewrites": [
@@ -83,6 +84,7 @@
       "redirects": [
         { "source": "/privacy", "destination": "/datenschutz", "type": 301 },
         { "source": "/terms", "destination": "/agb", "type": 301 },
+        { "source": "/eula", "destination": "/agb", "type": 301 },
         { "source": "/legal-notice", "destination": "/impressum", "type": 301 }
       ],
       "rewrites": [
