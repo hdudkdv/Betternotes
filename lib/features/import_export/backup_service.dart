@@ -67,6 +67,7 @@ class BackupService {
         'teacherTrack': prefs.getString('teacherTrack'),
         'profileSetupCompleted': prefs.getBool('profileSetupCompleted'),
         'teacherWorkspaceV1': prefs.getString('teacherWorkspaceV1'),
+        'teacherGradebookV1': prefs.getString('teacherGradebookV1'),
         'classroomAutoConnectEnabled':
             prefs.getBool('classroomAutoConnectEnabled'),
         'classroomAutoConnectAsked':
@@ -256,6 +257,10 @@ class BackupService {
     final teacherWorkspace = manifest['teacherWorkspaceV1'];
     if (teacherWorkspace is String && teacherWorkspace.isNotEmpty) {
       await prefs.setString('teacherWorkspaceV1', teacherWorkspace);
+    }
+    final teacherGradebook = manifest['teacherGradebookV1'];
+    if (teacherGradebook is String && teacherGradebook.isNotEmpty) {
+      await prefs.setString('teacherGradebookV1', teacherGradebook);
     }
     final autoConnectEnabled = manifest['classroomAutoConnectEnabled'];
     if (autoConnectEnabled is bool) {

@@ -348,6 +348,25 @@
   "subjectHint": "e.g. English",
   "room": "Room",
   "roomHint": "e.g. R204",
+  "timetableClassHint": "e.g. 8a",
+  "timetableClassPlan": "{className} timetable",
+  "@timetableClassPlan": {
+    "placeholders": {
+      "className": {"type": "String"}
+    }
+  },
+  "timetableNewClass": "Add class",
+  "timetableNewClassHint": "A separate timetable for this class",
+  "timetableCopyPlan": "Copy the current plan",
+  "timetableDeleteClass": "Delete this class timetable",
+  "timetableDeleteClassConfirm": "The timetable for {className} will be deleted. Other classes stay as they are.",
+  "@timetableDeleteClassConfirm": {
+    "placeholders": {
+      "className": {"type": "String"}
+    }
+  },
+  "timetableGeneralPlan": "General",
+  "timetableOpenGradebook": "Grade report for this class",
   "color": "Color",
   "clear": "Clear",
   "editPeriod": "Edit period",
@@ -1033,9 +1052,10 @@
   "roleSection": "Role",
   "roleSectionHint": "Your role controls which workspaces and options are shown.",
   "teacherWorkspace": "Teacher workspace",
+  "teacherHomeHint": "Board, classes, assignments",
   "teacherOverview": "Overview",
   "teacherOverviewTitle": "Prepare and run lessons efficiently",
-  "teacherOverviewHint": "Live sessions, assignments, lesson calendar, materials, and audio explanations in one place.",
+  "teacherOverviewHint": "Live sessions, grade reports, per-class timetables, assignments, and materials in one place.",
   "teacherLiveClass": "Live class",
   "teacherLiveClassHint": "Start a host-controlled session and manage writing, hands, focus, and progress.",
   "teacherLessonJournal": "Lesson journal",
@@ -1080,7 +1100,104 @@
   "teacherNoMaterials": "No materials yet. Add PDF, Office, or image files.",
   "teacherDistribute": "Distribute to class",
   "teacherDistributionQueued": "Distribution queued. Cloud download commands require a configured backend.",
-  "teacherGradeReportHint": "Entered grades automatically produce a count, average, and distribution.",
+  "teacherGradeReportHint": "Grade distribution and progress per class, school year, and topic.",
+  "teacherGradeReportOverviewHint": "Enter grades quickly. The report tracks distribution, development over the school year, and performance per topic.",
+  "teacherGradeTopic": "Topic",
+  "teacherGradeNewTopic": "Add topic",
+  "teacherGradeTopicHint": "e.g. Fractions, Grammar",
+  "teacherGradeAllTopics": "All topics",
+  "teacherGradeNewAssessment": "Add graded work",
+  "teacherGradeAssessmentTitle": "Title",
+  "teacherGradeAssessmentHint": "e.g. Test 1, oral",
+  "teacherGradeDate": "Date",
+  "teacherGradeEnterGrades": "Enter grades",
+  "teacherGradeEntryHint": "Tap 1–6. Leave unselected to skip a student.",
+  "teacherGradeShowMirror": "Show grade report",
+  "teacherGradeCount": "{count} grades",
+  "@teacherGradeCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "teacherGradeAverageValue": "Avg {value}",
+  "@teacherGradeAverageValue": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "teacherGradeTrend": "Performance over time",
+  "teacherGradeTrendHint": "Class average for graded work in the selected year and topic.",
+  "teacherGradeTopicAverages": "Performance by topic",
+  "teacherGradeTopicAveragesHint": "Overall view of this class across topics.",
+  "teacherGradeRoster": "Class roster",
+  "teacherGradeRosterEmpty": "No students yet. Names are enough for the grade report.",
+  "teacherGradeAddStudent": "Add student",
+  "teacherGradeStudentHint": "First and last name",
+  "teacherGradeNoClass": "Add a class first, then you can keep a grade report.",
+  "teacherNoAssessments": "No graded work in this filter yet.",
+  "teacherPickerTitle": "Random picker",
+  "teacherPickerHint": "Picks a person or a group. Connected devices see the result — the chosen person most clearly.",
+  "teacherPickerDrawPerson": "Pick a person",
+  "teacherPickerDrawGroup": "Pick a group",
+  "teacherPickerWholeClass": "Whole class",
+  "teacherPickerConnectedOnly": "Connected only",
+  "teacherPickerNoRepeat": "No repeats",
+  "teacherPickerEmpty": "Nobody in this selection.",
+  "teacherPickerGroups": "Groups",
+  "teacherPickerNewGroup": "Add group",
+  "teacherPickerGroupName": "e.g. Group A",
+  "teacherPickerNoGroups": "No groups yet. Create some and choose the members.",
+  "teacherPickerGroupCount": "{count} members",
+  "@teacherPickerGroupCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "teacherPickerYouAreUp": "You're up!",
+  "teacherPickerSomeoneUp": "{name} is up",
+  "@teacherPickerSomeoneUp": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "teacherPickerYourGroup": "Your group is up!",
+  "teacherPickerGroupUp": "Group {name} is up",
+  "@teacherPickerGroupUp": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "teacherPickerShownOnDevice": "Shown on their device",
+  "teacherPickerNotConnected": "Not connected — only visible here",
+  "teacherPickerClear": "Clear pick",
+  "teacherPickerConnectedCount": "{connected} of {total} connected",
+  "@teacherPickerConnectedCount": {
+    "placeholders": {
+      "connected": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "teacherPickerNew": "New picker",
+  "teacherPickerName": "Name",
+  "teacherPickerNameHint": "e.g. Repeating 8a",
+  "teacherPickerKindDatacheck": "Repeating",
+  "teacherPickerKindFlash": "Quick",
+  "teacherPickerKindDatacheckHint": "Work through the class without repeats. The person stays visible until you pick the next one.",
+  "teacherPickerKindFlashHint": "Briefly show one person — only a few seconds on connected devices.",
+  "teacherPickerSavedHint": "Each named picker runs independently. Repeating remembers progress; quick only flashes a name.",
+  "teacherPickerNone": "No picker yet. Create one with a name — repeating or quick.",
+  "teacherPickerNext": "Next person",
+  "teacherPickerResetRound": "Reset round",
+  "teacherPickerProgress": "{done} of {total} already called",
+  "@teacherPickerProgress": {
+    "placeholders": {
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "teacherPickerRoundDone": "Everyone has been called. Reset the round to start again.",
+  "teacherPickerDelete": "Delete picker",
+  "teacherPickerDatacheckStay": "Stays visible until the next person is picked",
   "teacherGradedCount": "Graded work",
   "teacherClassAverage": "Class average",
   "teacherNoGrades": "No graded work available yet.",

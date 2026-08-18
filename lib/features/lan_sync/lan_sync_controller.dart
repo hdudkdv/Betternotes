@@ -61,6 +61,77 @@ class LanClassroomSignal {
   final Object? value;
 }
 
+class ClassroomPick {
+  const ClassroomPick({
+    required this.kind,
+    required this.name,
+    this.groupName,
+    this.deviceId,
+    this.members = const [],
+    this.memberDeviceIds = const [],
+    this.sticky = true,
+    this.holdMs = 3000,
+  });
+
+  /// `student`, `group`, or `clear`.
+  final String kind;
+  final String name;
+  final String? groupName;
+  final String? deviceId;
+  final List<String> members;
+  final List<String> memberDeviceIds;
+  final bool sticky;
+  final int holdMs;
+
+  bool get isStudent => kind == 'student';
+  bool get isGroup => kind == 'group';
+
+  bool concernsYou({
+    required String deviceId,
+    required String deviceName,
+  }) {
+    if (this.deviceId != null && this.deviceId == deviceId) return true;
+    if (memberDeviceIds.contains(deviceId)) return true;
+    final mine = deviceName.trim().toLowerCase();
+    if (mine.isEmpty) return false;
+    bool matches(String other) {
+      final value = other.trim().toLowerCase();
+      if (value.isEmpty) return false;
+      if (value == mine) return true;
+      final a = value.split(RegExp(r'\s+')).first;
+      final b = mine.split(RegExp(r'\s+')).first;
+      return a == b && a.length >= 3;
+    }
+
+    if (matches(name)) return true;
+    return members.any(matches);
+  }
+
+  static ClassroomPick? tryFromMessage(Map<String, dynamic> message) {
+    final kind = message['pickKind']?.toString();
+    if (kind == null || kind.isEmpty) return null;
+    if (kind == 'clear') {
+      return const ClassroomPick(kind: 'clear', name: '');
+    }
+    return ClassroomPick(
+      kind: kind,
+      name: message['pickName']?.toString() ?? '',
+      groupName: message['pickGroupName']?.toString(),
+      deviceId: message['pickDeviceId']?.toString(),
+      members: [
+        for (final item in (message['pickMembers'] as List? ?? const []))
+          item.toString(),
+      ],
+      memberDeviceIds: [
+        for (final item in (message['pickMemberDeviceIds'] as List? ?? const []))
+          item.toString(),
+      ],
+      sticky: message['pickSticky'] as bool? ?? true,
+      holdMs: (message['pickHoldMs'] as num?)?.toInt() ?? 3000,
+    );
+  }
+}
+
 class LanAssignmentEvent {
   const LanAssignmentEvent({
     required this.type,
@@ -139,6 +210,7 @@ class LanSyncController extends ChangeNotifier {
   bool classroomFocusConsent = false;
   String? classroomMaterialUrl;
   String? classroomMaterialTitle;
+  ClassroomPick? classroomPick;
   LanClassroomSignal? lastClassroomSignal;
   int classroomSignalSeq = 0;
   LanAssignmentEvent? lastAssignmentEvent;
@@ -404,6 +476,7 @@ class LanSyncController extends ChangeNotifier {
     classroomFocusConsent = false;
     classroomMaterialUrl = null;
     classroomMaterialTitle = null;
+    classroomPick = null;
     lastClassroomSignal = null;
     _peerWritePermissions.clear();
     _resetIncoming();
@@ -521,6 +594,39 @@ class LanSyncController extends ChangeNotifier {
         targetDeviceId: '*',
         materialUrl: url,
         materialTitle: title,
+      ),
+    );
+  }
+
+  Map<String, dynamic> _pickCommand(ClassroomPick pick) {
+    return LanSyncMessage.classroomCommand(
+      targetDeviceId: '*',
+      pickKind: pick.kind,
+      pickName: pick.name,
+      pickGroupName: pick.groupName,
+      pickDeviceId: pick.deviceId,
+      pickMembers: pick.members,
+      pickMemberDeviceIds: pick.memberDeviceIds,
+      pickSticky: pick.sticky,
+      pickHoldMs: pick.holdMs,
+    );
+  }
+
+  Future<void> broadcastClassroomPick(ClassroomPick pick) async {
+    classroomPick = pick;
+    notifyListeners();
+    if (role != LanSyncRole.host || !classroomMode) return;
+    await _transport.broadcast(_pickCommand(pick));
+  }
+
+  Future<void> clearClassroomPick() async {
+    classroomPick = null;
+    notifyListeners();
+    if (role != LanSyncRole.host || !classroomMode) return;
+    await _transport.broadcast(
+      LanSyncMessage.classroomCommand(
+        targetDeviceId: '*',
+        pickKind: 'clear',
       ),
     );
   }
@@ -858,6 +964,14 @@ class LanSyncController extends ChangeNotifier {
           canWrite: false,
           muted: false,
           focusCheckEnabled: classroomFocusCheckEnabled,
+          pickKind: classroomPick?.kind,
+          pickName: classroomPick?.name,
+          pickGroupName: classroomPick?.groupName,
+          pickDeviceId: classroomPick?.deviceId,
+          pickMembers: classroomPick?.members,
+          pickMemberDeviceIds: classroomPick?.memberDeviceIds,
+          pickSticky: classroomPick?.sticky,
+          pickHoldMs: classroomPick?.holdMs,
         ),
       );
       if (_activeAssignmentStart != null) {
@@ -1173,6 +1287,10 @@ class LanSyncController extends ChangeNotifier {
       classroomMaterialUrl = message['materialUrl'] as String;
       classroomMaterialTitle =
           message['materialTitle']?.toString() ?? 'Material';
+    }
+    final pick = ClassroomPick.tryFromMessage(message);
+    if (pick != null) {
+      classroomPick = pick.kind == 'clear' ? null : pick;
     }
     notifyListeners();
   }

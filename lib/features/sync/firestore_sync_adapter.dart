@@ -58,6 +58,7 @@ class FirestoreSyncAdapter {
     'userRole',
     'teacherTrack',
     'teacherWorkspaceV1',
+    'teacherGradebookV1',
     'classroomAutoConnectSubject',
     'classroomAutoConnectRoom',
   ];

@@ -894,6 +894,37 @@ class AppLocalizationsDe extends AppLocalizations {
   String get roomHint => 'z. B. R204';
 
   @override
+  String get timetableClassHint => 'z. B. 8a';
+
+  @override
+  String timetableClassPlan(String className) {
+    return 'Stundenplan $className';
+  }
+
+  @override
+  String get timetableNewClass => 'Klasse anlegen';
+
+  @override
+  String get timetableNewClassHint => 'Eigener Stundenplan für diese Klasse';
+
+  @override
+  String get timetableCopyPlan => 'Aktuellen Plan kopieren';
+
+  @override
+  String get timetableDeleteClass => 'Stundenplan dieser Klasse löschen';
+
+  @override
+  String timetableDeleteClassConfirm(String className) {
+    return 'Der Stundenplan für $className wird gelöscht. Andere Klassen bleiben erhalten.';
+  }
+
+  @override
+  String get timetableGeneralPlan => 'Allgemein';
+
+  @override
+  String get timetableOpenGradebook => 'Notenspiegel dieser Klasse';
+
+  @override
   String get color => 'Farbe';
 
   @override
@@ -2401,6 +2432,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get teacherWorkspace => 'Lehrerbereich';
 
   @override
+  String get teacherHomeHint => 'Tafel, Klassen, Aufgaben';
+
+  @override
   String get teacherOverview => 'Übersicht';
 
   @override
@@ -2409,7 +2443,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get teacherOverviewHint =>
-      'Live-Sessions, Aufgaben, Stundenkalender, Materialien und Audio-Erklärungen an einem Ort.';
+      'Live-Sessions, Notenspiegel, Stundenpläne pro Klasse, Aufgaben und Materialien an einem Ort.';
 
   @override
   String get teacherLiveClass => 'Live-Unterricht';
@@ -2549,7 +2583,215 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get teacherGradeReportHint =>
-      'Aus eingetragenen Noten werden Anzahl, Durchschnitt und Verteilung automatisch berechnet.';
+      'Notenspiegel und Leistungsentwicklung pro Klasse, Schuljahr und Themengebiet.';
+
+  @override
+  String get teacherGradeReportOverviewHint =>
+      'Trage Noten schnell ein. Der Spiegel zeigt die Verteilung, die Entwicklung im Schuljahr und die Leistung pro Thema.';
+
+  @override
+  String get teacherGradeTopic => 'Themengebiet';
+
+  @override
+  String get teacherGradeNewTopic => 'Thema anlegen';
+
+  @override
+  String get teacherGradeTopicHint => 'z. B. Brüche, Grammatik';
+
+  @override
+  String get teacherGradeAllTopics => 'Alle Themen';
+
+  @override
+  String get teacherGradeNewAssessment => 'Leistung eintragen';
+
+  @override
+  String get teacherGradeAssessmentTitle => 'Bezeichnung';
+
+  @override
+  String get teacherGradeAssessmentHint => 'z. B. KA 1, Test, mündlich';
+
+  @override
+  String get teacherGradeDate => 'Datum';
+
+  @override
+  String get teacherGradeEnterGrades => 'Noten eintragen';
+
+  @override
+  String get teacherGradeEntryHint =>
+      'Tippe 1–6. Ohne Auswahl bleibt die Note offen.';
+
+  @override
+  String get teacherGradeShowMirror => 'Notenspiegel anzeigen';
+
+  @override
+  String teacherGradeCount(int count) {
+    return '$count Noten';
+  }
+
+  @override
+  String teacherGradeAverageValue(String value) {
+    return 'Ø $value';
+  }
+
+  @override
+  String get teacherGradeTrend => 'Leistungsentwicklung';
+
+  @override
+  String get teacherGradeTrendHint =>
+      'Klassendurchschnitt der Arbeiten im gewählten Schuljahr und Thema.';
+
+  @override
+  String get teacherGradeTopicAverages => 'Leistung pro Thema';
+
+  @override
+  String get teacherGradeTopicAveragesHint =>
+      'Gesamtüberblick über die Themengebiete dieser Klasse.';
+
+  @override
+  String get teacherGradeRoster => 'Klassenliste';
+
+  @override
+  String get teacherGradeRosterEmpty =>
+      'Noch keine Schüler in der Liste. Namen reichen für den Notenspiegel.';
+
+  @override
+  String get teacherGradeAddStudent => 'Schüler hinzufügen';
+
+  @override
+  String get teacherGradeStudentHint => 'Vor- und Nachname';
+
+  @override
+  String get teacherGradeNoClass =>
+      'Lege zuerst eine Klasse an, dann kannst du den Notenspiegel führen.';
+
+  @override
+  String get teacherNoAssessments => 'Noch keine Leistungen in diesem Filter.';
+
+  @override
+  String get teacherPickerTitle => 'Zufallsgenerator';
+
+  @override
+  String get teacherPickerHint =>
+      'Zieht eine Person oder eine Gruppe. Verbundene Geräte sehen das Ergebnis – die gezogene Person besonders deutlich.';
+
+  @override
+  String get teacherPickerDrawPerson => 'Person ziehen';
+
+  @override
+  String get teacherPickerDrawGroup => 'Gruppe ziehen';
+
+  @override
+  String get teacherPickerWholeClass => 'Ganze Klasse';
+
+  @override
+  String get teacherPickerConnectedOnly => 'Nur Verbundene';
+
+  @override
+  String get teacherPickerNoRepeat => 'Ohne Wiederholung';
+
+  @override
+  String get teacherPickerEmpty => 'Niemand in der Auswahl.';
+
+  @override
+  String get teacherPickerGroups => 'Gruppen';
+
+  @override
+  String get teacherPickerNewGroup => 'Gruppe anlegen';
+
+  @override
+  String get teacherPickerGroupName => 'z. B. Gruppe A';
+
+  @override
+  String get teacherPickerNoGroups =>
+      'Noch keine Gruppen. Lege welche an und wähle die Mitglieder.';
+
+  @override
+  String teacherPickerGroupCount(int count) {
+    return '$count Mitglieder';
+  }
+
+  @override
+  String get teacherPickerYouAreUp => 'Du bist dran!';
+
+  @override
+  String teacherPickerSomeoneUp(String name) {
+    return '$name ist dran';
+  }
+
+  @override
+  String get teacherPickerYourGroup => 'Eure Gruppe ist dran!';
+
+  @override
+  String teacherPickerGroupUp(String name) {
+    return 'Gruppe $name ist dran';
+  }
+
+  @override
+  String get teacherPickerShownOnDevice => 'Wird auf dem Gerät angezeigt';
+
+  @override
+  String get teacherPickerNotConnected => 'Nicht verbunden — nur hier sichtbar';
+
+  @override
+  String get teacherPickerClear => 'Auswahl aufheben';
+
+  @override
+  String teacherPickerConnectedCount(int connected, int total) {
+    return '$connected von $total verbunden';
+  }
+
+  @override
+  String get teacherPickerNew => 'Generator anlegen';
+
+  @override
+  String get teacherPickerName => 'Name';
+
+  @override
+  String get teacherPickerNameHint => 'z. B. Wiederholend 8a';
+
+  @override
+  String get teacherPickerKindDatacheck => 'Wiederholend';
+
+  @override
+  String get teacherPickerKindFlash => 'Kurz';
+
+  @override
+  String get teacherPickerKindDatacheckHint =>
+      'Ohne Wiederholung durch die Klasse. Die Person bleibt sichtbar, bis du die nächste ziehst.';
+
+  @override
+  String get teacherPickerKindFlashHint =>
+      'Einmal kurz eine Person zeigen – auf den Geräten nur für ein paar Sekunden.';
+
+  @override
+  String get teacherPickerSavedHint =>
+      'Jeder Generator hat einen Namen und läuft unabhängig. Wiederholend merkt den Stand, Kurz zeigt nur kurz.';
+
+  @override
+  String get teacherPickerNone =>
+      'Noch kein Generator. Lege einen mit Namen an – Wiederholend oder Kurz.';
+
+  @override
+  String get teacherPickerNext => 'Nächste Person';
+
+  @override
+  String get teacherPickerResetRound => 'Runde zurücksetzen';
+
+  @override
+  String teacherPickerProgress(int done, int total) {
+    return '$done von $total schon dran';
+  }
+
+  @override
+  String get teacherPickerRoundDone =>
+      'Alle waren dran. Setze die Runde zurück, um neu zu beginnen.';
+
+  @override
+  String get teacherPickerDelete => 'Generator löschen';
+
+  @override
+  String get teacherPickerDatacheckStay =>
+      'Bleibt sichtbar, bis die nächste Person kommt';
 
   @override
   String get teacherGradedCount => 'Bewertete Arbeiten';

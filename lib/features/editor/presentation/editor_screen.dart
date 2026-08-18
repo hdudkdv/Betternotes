@@ -24,6 +24,7 @@ import '../../lan_sync/lan_sync_controller.dart';
 import '../../lan_sync/lan_sync_protocol.dart';
 import '../../lan_sync/classroom_auto_connect.dart';
 import '../../teacher/catalog/assignment_session.dart';
+import '../../teacher/picker/classroom_pick_overlay.dart';
 import '../../teacher/teacher_models.dart';
 import '../../timetable/timetable_model.dart';
 import '../../library/providers/library_providers.dart';
@@ -1767,6 +1768,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   int _handledLanEventSeq = 0;
   int _lastClassroomProgress = -1;
   bool _autoConnectPromptScheduled = false;
+  String? _dismissedPickKey;
   bool _toolWheelOpen = false;
   InkTool _previousTool = InkTool.pen;
   StreamSubscription<PencilHardwareEvent>? _pencilSub;
@@ -2885,6 +2887,29 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     ),
                   ),
                 ),
+              ),
+            ),
+          if (lan.classroomMode &&
+              lan.classroomPick != null &&
+              '${lan.classroomPick!.kind}|${lan.classroomPick!.name}|${lan.classroomPick!.members.join(',')}' !=
+                  _dismissedPickKey)
+            Positioned.fill(
+              child: ClassroomPickOverlay(
+                pick: lan.classroomPick!,
+                you: lan.classroomPick!.concernsYou(
+                  deviceId: lan.deviceId,
+                  deviceName: lan.deviceName,
+                ),
+                onDismiss: () {
+                  if (lan.role == LanSyncRole.host) {
+                    unawaited(lan.clearClassroomPick());
+                    return;
+                  }
+                  setState(() {
+                    _dismissedPickKey =
+                        '${lan.classroomPick!.kind}|${lan.classroomPick!.name}|${lan.classroomPick!.members.join(',')}';
+                  });
+                },
               ),
             ),
         ],

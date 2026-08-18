@@ -891,6 +891,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomHint => 'e.g. R204';
 
   @override
+  String get timetableClassHint => 'e.g. 8a';
+
+  @override
+  String timetableClassPlan(String className) {
+    return '$className timetable';
+  }
+
+  @override
+  String get timetableNewClass => 'Add class';
+
+  @override
+  String get timetableNewClassHint => 'A separate timetable for this class';
+
+  @override
+  String get timetableCopyPlan => 'Copy the current plan';
+
+  @override
+  String get timetableDeleteClass => 'Delete this class timetable';
+
+  @override
+  String timetableDeleteClassConfirm(String className) {
+    return 'The timetable for $className will be deleted. Other classes stay as they are.';
+  }
+
+  @override
+  String get timetableGeneralPlan => 'General';
+
+  @override
+  String get timetableOpenGradebook => 'Grade report for this class';
+
+  @override
   String get color => 'Color';
 
   @override
@@ -2392,6 +2423,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get teacherWorkspace => 'Teacher workspace';
 
   @override
+  String get teacherHomeHint => 'Board, classes, assignments';
+
+  @override
   String get teacherOverview => 'Overview';
 
   @override
@@ -2399,7 +2433,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teacherOverviewHint =>
-      'Live sessions, assignments, lesson calendar, materials, and audio explanations in one place.';
+      'Live sessions, grade reports, per-class timetables, assignments, and materials in one place.';
 
   @override
   String get teacherLiveClass => 'Live class';
@@ -2539,7 +2573,215 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teacherGradeReportHint =>
-      'Entered grades automatically produce a count, average, and distribution.';
+      'Grade distribution and progress per class, school year, and topic.';
+
+  @override
+  String get teacherGradeReportOverviewHint =>
+      'Enter grades quickly. The report tracks distribution, development over the school year, and performance per topic.';
+
+  @override
+  String get teacherGradeTopic => 'Topic';
+
+  @override
+  String get teacherGradeNewTopic => 'Add topic';
+
+  @override
+  String get teacherGradeTopicHint => 'e.g. Fractions, Grammar';
+
+  @override
+  String get teacherGradeAllTopics => 'All topics';
+
+  @override
+  String get teacherGradeNewAssessment => 'Add graded work';
+
+  @override
+  String get teacherGradeAssessmentTitle => 'Title';
+
+  @override
+  String get teacherGradeAssessmentHint => 'e.g. Test 1, oral';
+
+  @override
+  String get teacherGradeDate => 'Date';
+
+  @override
+  String get teacherGradeEnterGrades => 'Enter grades';
+
+  @override
+  String get teacherGradeEntryHint =>
+      'Tap 1–6. Leave unselected to skip a student.';
+
+  @override
+  String get teacherGradeShowMirror => 'Show grade report';
+
+  @override
+  String teacherGradeCount(int count) {
+    return '$count grades';
+  }
+
+  @override
+  String teacherGradeAverageValue(String value) {
+    return 'Avg $value';
+  }
+
+  @override
+  String get teacherGradeTrend => 'Performance over time';
+
+  @override
+  String get teacherGradeTrendHint =>
+      'Class average for graded work in the selected year and topic.';
+
+  @override
+  String get teacherGradeTopicAverages => 'Performance by topic';
+
+  @override
+  String get teacherGradeTopicAveragesHint =>
+      'Overall view of this class across topics.';
+
+  @override
+  String get teacherGradeRoster => 'Class roster';
+
+  @override
+  String get teacherGradeRosterEmpty =>
+      'No students yet. Names are enough for the grade report.';
+
+  @override
+  String get teacherGradeAddStudent => 'Add student';
+
+  @override
+  String get teacherGradeStudentHint => 'First and last name';
+
+  @override
+  String get teacherGradeNoClass =>
+      'Add a class first, then you can keep a grade report.';
+
+  @override
+  String get teacherNoAssessments => 'No graded work in this filter yet.';
+
+  @override
+  String get teacherPickerTitle => 'Random picker';
+
+  @override
+  String get teacherPickerHint =>
+      'Picks a person or a group. Connected devices see the result — the chosen person most clearly.';
+
+  @override
+  String get teacherPickerDrawPerson => 'Pick a person';
+
+  @override
+  String get teacherPickerDrawGroup => 'Pick a group';
+
+  @override
+  String get teacherPickerWholeClass => 'Whole class';
+
+  @override
+  String get teacherPickerConnectedOnly => 'Connected only';
+
+  @override
+  String get teacherPickerNoRepeat => 'No repeats';
+
+  @override
+  String get teacherPickerEmpty => 'Nobody in this selection.';
+
+  @override
+  String get teacherPickerGroups => 'Groups';
+
+  @override
+  String get teacherPickerNewGroup => 'Add group';
+
+  @override
+  String get teacherPickerGroupName => 'e.g. Group A';
+
+  @override
+  String get teacherPickerNoGroups =>
+      'No groups yet. Create some and choose the members.';
+
+  @override
+  String teacherPickerGroupCount(int count) {
+    return '$count members';
+  }
+
+  @override
+  String get teacherPickerYouAreUp => 'You\'re up!';
+
+  @override
+  String teacherPickerSomeoneUp(String name) {
+    return '$name is up';
+  }
+
+  @override
+  String get teacherPickerYourGroup => 'Your group is up!';
+
+  @override
+  String teacherPickerGroupUp(String name) {
+    return 'Group $name is up';
+  }
+
+  @override
+  String get teacherPickerShownOnDevice => 'Shown on their device';
+
+  @override
+  String get teacherPickerNotConnected => 'Not connected — only visible here';
+
+  @override
+  String get teacherPickerClear => 'Clear pick';
+
+  @override
+  String teacherPickerConnectedCount(int connected, int total) {
+    return '$connected of $total connected';
+  }
+
+  @override
+  String get teacherPickerNew => 'New picker';
+
+  @override
+  String get teacherPickerName => 'Name';
+
+  @override
+  String get teacherPickerNameHint => 'e.g. Repeating 8a';
+
+  @override
+  String get teacherPickerKindDatacheck => 'Repeating';
+
+  @override
+  String get teacherPickerKindFlash => 'Quick';
+
+  @override
+  String get teacherPickerKindDatacheckHint =>
+      'Work through the class without repeats. The person stays visible until you pick the next one.';
+
+  @override
+  String get teacherPickerKindFlashHint =>
+      'Briefly show one person — only a few seconds on connected devices.';
+
+  @override
+  String get teacherPickerSavedHint =>
+      'Each named picker runs independently. Repeating remembers progress; quick only flashes a name.';
+
+  @override
+  String get teacherPickerNone =>
+      'No picker yet. Create one with a name — repeating or quick.';
+
+  @override
+  String get teacherPickerNext => 'Next person';
+
+  @override
+  String get teacherPickerResetRound => 'Reset round';
+
+  @override
+  String teacherPickerProgress(int done, int total) {
+    return '$done of $total already called';
+  }
+
+  @override
+  String get teacherPickerRoundDone =>
+      'Everyone has been called. Reset the round to start again.';
+
+  @override
+  String get teacherPickerDelete => 'Delete picker';
+
+  @override
+  String get teacherPickerDatacheckStay =>
+      'Stays visible until the next person is picked';
 
   @override
   String get teacherGradedCount => 'Graded work';

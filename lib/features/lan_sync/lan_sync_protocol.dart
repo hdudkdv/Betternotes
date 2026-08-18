@@ -122,6 +122,14 @@ abstract final class LanSyncMessage {
     bool? focusCheckEnabled,
     String? materialUrl,
     String? materialTitle,
+    String? pickKind,
+    String? pickName,
+    String? pickGroupName,
+    String? pickDeviceId,
+    List<String>? pickMembers,
+    List<String>? pickMemberDeviceIds,
+    bool? pickSticky,
+    int? pickHoldMs,
   }) => {
     'type': 'classroom_command',
     'targetDeviceId': targetDeviceId,
@@ -130,6 +138,14 @@ abstract final class LanSyncMessage {
     if (focusCheckEnabled != null) 'focusCheckEnabled': focusCheckEnabled,
     if (materialUrl != null) 'materialUrl': materialUrl,
     if (materialTitle != null) 'materialTitle': materialTitle,
+    if (pickKind != null) 'pickKind': pickKind,
+    if (pickName != null) 'pickName': pickName,
+    if (pickGroupName != null) 'pickGroupName': pickGroupName,
+    if (pickDeviceId != null) 'pickDeviceId': pickDeviceId,
+    if (pickMembers != null) 'pickMembers': pickMembers,
+    if (pickMemberDeviceIds != null) 'pickMemberDeviceIds': pickMemberDeviceIds,
+    if (pickSticky != null) 'pickSticky': pickSticky,
+    if (pickHoldMs != null) 'pickHoldMs': pickHoldMs,
   };
 
   static Map<String, dynamic> assignmentStart(Map<String, dynamic> payload) => {

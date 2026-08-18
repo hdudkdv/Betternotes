@@ -23,6 +23,7 @@ import 'catalog/assignment_session.dart';
 import 'catalog/assignments_page.dart';
 import 'catalog/catalog_models.dart';
 import 'catalog/catalog_store.dart';
+import 'picker/random_picker_panel.dart';
 import 'teacher_models.dart';
 
 Future<void> saveWhiteboardToCurrentLesson(
@@ -258,6 +259,11 @@ class _TeacherScreenState extends ConsumerState<TeacherScreen> {
         title: Text(l10n.teacherWorkspace),
         actions: [
           IconButton(
+            tooltip: l10n.teacherGradeReport,
+            onPressed: () => context.push('/teacher/grades'),
+            icon: const Icon(Icons.bar_chart_rounded),
+          ),
+          IconButton(
             tooltip: l10n.teacherAudio,
             onPressed: () => context.push('/teacher/audio'),
             icon: const Icon(Icons.mic_none_rounded),
@@ -330,6 +336,12 @@ class _Overview extends ConsumerWidget {
           spacing: 14,
           runSpacing: 14,
           children: [
+            _FeatureCard(
+              icon: Icons.bar_chart_rounded,
+              title: l10n.teacherGradeReport,
+              subtitle: l10n.teacherGradeReportHint,
+              onTap: () => context.push('/teacher/grades'),
+            ),
             _FeatureCard(
               icon: Icons.cast_for_education_rounded,
               title: l10n.teacherLiveClass,
@@ -712,6 +724,10 @@ class _ClassroomPage extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 14),
+        RandomPickerPanel(
+          initialClassName: session.subject,
         ),
         const AssignmentLivePanel(),
         const SizedBox(height: 14),

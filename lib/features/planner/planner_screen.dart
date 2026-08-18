@@ -52,11 +52,15 @@ class LibrarySchoolRow extends ConsumerWidget {
     required this.onTimetable,
     required this.onGrades,
     required this.onCalendar,
+    this.onTeacher,
+    this.teacherCellKey,
   });
 
   final VoidCallback onTimetable;
   final VoidCallback onGrades;
   final VoidCallback onCalendar;
+  final VoidCallback? onTeacher;
+  final Key? teacherCellKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,6 +112,7 @@ class LibrarySchoolRow extends ConsumerWidget {
               ? upcoming.first.displaySubject
               : upcoming.first.title);
 
+    final isTeacher = settings.isTeacher;
     return Row(
       children: [
         Expanded(
@@ -122,14 +127,25 @@ class LibrarySchoolRow extends ConsumerWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _HomeCell(
-            title: l10n.grades,
-            subtitle: gradesSub,
-            icon: Icons.grade_rounded,
-            color: const Color(0xFF8B5E3C),
-            soft: AppTheme.accentSoft,
-            onTap: onGrades,
-          ),
+          child: isTeacher
+              ? _HomeCell(
+                  key: teacherCellKey,
+                  title: l10n.teacherWorkspace,
+                  subtitle: l10n.teacherHomeHint,
+                  icon: Icons.co_present_outlined,
+                  color: AppTheme.accent,
+                  soft: AppTheme.accentSoft,
+                  emphasized: true,
+                  onTap: onTeacher ?? onGrades,
+                )
+              : _HomeCell(
+                  title: l10n.grades,
+                  subtitle: gradesSub,
+                  icon: Icons.grade_rounded,
+                  color: const Color(0xFF8B5E3C),
+                  soft: AppTheme.accentSoft,
+                  onTap: onGrades,
+                ),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -149,12 +165,14 @@ class LibrarySchoolRow extends ConsumerWidget {
 
 class _HomeCell extends StatelessWidget {
   const _HomeCell({
+    super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.color,
     required this.soft,
     required this.onTap,
+    this.emphasized = false,
   });
 
   final String title;
@@ -163,11 +181,12 @@ class _HomeCell extends StatelessWidget {
   final Color color;
   final Color soft;
   final VoidCallback onTap;
+  final bool emphasized;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppTheme.card,
+      color: emphasized ? AppTheme.accentSoft : AppTheme.card,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -181,10 +200,14 @@ class _HomeCell extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: soft,
+                  color: emphasized ? AppTheme.accent : soft,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: color, size: 18),
+                child: Icon(
+                  icon,
+                  color: emphasized ? AppTheme.onAccent : color,
+                  size: 18,
+                ),
               ),
               const SizedBox(height: 8),
               Text(

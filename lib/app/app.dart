@@ -35,6 +35,7 @@ import '../features/teacher/catalog/assignment_results_page.dart';
 import '../features/teacher/catalog/assignment_session.dart';
 import '../features/teacher/teacher_audio_screen.dart';
 import '../features/teacher/teacher_screen.dart';
+import '../features/teacher/gradebook/gradebook_screen.dart';
 import '../features/timetable/timetable_screen.dart';
 import '../l10n/app_localizations.dart';
 import 'theme.dart';
@@ -93,6 +94,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (loc.startsWith('/teacher') && role != AppUserRole.teacher) {
         return '/';
+      }
+      if (loc.startsWith('/grades') && role == AppUserRole.teacher) {
+        return '/teacher';
       }
       return null;
     },
@@ -211,6 +215,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/teacher',
         name: 'teacher',
         builder: (context, state) => const TeacherScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/grades',
+        name: 'teacherGrades',
+        builder: (context, state) => GradebookScreen(
+          initialClass: state.uri.queryParameters['class'],
+        ),
       ),
       GoRoute(
         path: '/teacher/audio',

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -10,6 +11,7 @@ import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../import_export/subject_notebook_link.dart';
 import '../library/providers/library_providers.dart';
+import '../teacher/gradebook/gradebook_store.dart';
 import 'timetable_model.dart';
 
 class TimetableScreen extends ConsumerWidget {
@@ -50,6 +52,8 @@ class TimetableScreen extends ConsumerWidget {
         period: table.periods[period],
         initial: existing,
         folders: folders,
+        showClassField: ref.read(settingsProvider).isTeacher && !table.hasClass,
+        defaultSchoolClass: table.schoolClass,
       ),
     );
     if (result == null) return;
@@ -98,13 +102,19 @@ class TimetableScreen extends ConsumerWidget {
     final folders = await ref.read(allFoldersProvider.future);
     final existing = folderMatchingSubject(folders, name);
     if (existing != null) {
-      return lessonFromFolder(existing).copyWith(room: lesson.room);
+      return lessonFromFolder(existing).copyWith(
+        room: lesson.room,
+        schoolClass: lesson.schoolClass,
+      );
     }
     final created = await ref
         .read(notebookRepositoryProvider)
         .createFolder(name: name, colorValue: colorForSubject(name));
     refreshLibraryLists(ref);
-    return lessonFromFolder(created).copyWith(room: lesson.room);
+    return lessonFromFolder(created).copyWith(
+      room: lesson.room,
+      schoolClass: lesson.schoolClass,
+    );
   }
 
   Future<void> _editPeriod(
@@ -184,6 +194,90 @@ class TimetableScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _addClassPlan(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    var copySlots = false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocal) => AlertDialog(
+          title: Text(l10n.timetableNewClass),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: l10n.schoolClass,
+                  hintText: l10n.timetableClassHint,
+                ),
+                textCapitalization: TextCapitalization.sentences,
+                onSubmitted: (_) => Navigator.pop(context, true),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.timetableNewClassHint,
+                style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: copySlots,
+                onChanged: (value) =>
+                    setLocal(() => copySlots = value ?? false),
+                title: Text(l10n.timetableCopyPlan),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+    final name = controller.text.trim();
+    controller.dispose();
+    if (ok != true || name.isEmpty) return;
+    await ref
+        .read(timetableProvider.notifier)
+        .addClassPlan(name, copySlots: copySlots);
+    await ref.read(gradebookProvider.notifier).ensureClass(name);
+  }
+
+  Future<void> _deleteClassPlan(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final table = ref.read(timetableProvider);
+    final label = table.hasClass ? table.classLabel : table.title;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.timetableDeleteClass),
+        content: Text(l10n.timetableDeleteClassConfirm(label)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ref.read(timetableProvider.notifier).deleteClassPlan(table.id);
+    }
+  }
+
   static pw.Widget _pdfCell(
     String text, {
     bool bold = false,
@@ -203,26 +297,42 @@ class TimetableScreen extends ConsumerWidget {
 
   static String _slotPdfText(TimetableSlot? slot) {
     if (slot == null || slot.isEmpty) return '';
-    if (!slot.split) {
-      final room = slot.first.room;
-      return room.isEmpty ? slot.first.subject : '${slot.first.subject}\n$room';
+    String line(TimetableLesson lesson) {
+      final extra = [
+        if (lesson.schoolClass.trim().isNotEmpty) lesson.schoolClass.trim(),
+        if (lesson.room.isNotEmpty) lesson.room,
+      ].join(' · ');
+      return extra.isEmpty ? lesson.subject : '${lesson.subject}\n$extra';
     }
-    final a = slot.first.subject;
-    final b = slot.second.subject;
-    return '$a\n/\n$b';
+
+    if (!slot.split) return line(slot.first);
+    return '${line(slot.first)}\n/\n${line(slot.second)}';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final table = ref.watch(timetableProvider);
+    final catalog = ref.watch(timetableCatalogProvider);
     final now = ref.watch(nowLessonProvider);
+    final isTeacher = ref.watch(settingsProvider).isTeacher;
+    final title = isTeacher && table.hasClass
+        ? l10n.timetableClassPlan(table.classLabel)
+        : l10n.timetable;
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
       appBar: AppBar(
-        title: Text(l10n.timetable, style: AppTheme.headline()),
+        title: Text(title, style: AppTheme.headline()),
         actions: [
+          if (isTeacher && table.hasClass)
+            IconButton(
+              tooltip: l10n.timetableOpenGradebook,
+              onPressed: () => context.push(
+                '/teacher/grades?class=${Uri.encodeQueryComponent(table.classLabel)}',
+              ),
+              icon: const Icon(Icons.bar_chart_rounded),
+            ),
           IconButton(
             tooltip: l10n.shareExport,
             onPressed: () => _share(context, ref),
@@ -235,6 +345,16 @@ class TimetableScreen extends ConsumerWidget {
                   await ref.read(timetableProvider.notifier).addPeriod();
                 case 'remove':
                   await ref.read(timetableProvider.notifier).removeLastPeriod();
+                case 'class':
+                  await _addClassPlan(context, ref);
+                case 'deleteClass':
+                  await _deleteClassPlan(context, ref);
+                case 'grades':
+                  context.push(
+                    table.hasClass
+                        ? '/teacher/grades?class=${Uri.encodeQueryComponent(table.classLabel)}'
+                        : '/teacher/grades',
+                  );
                 case 'rename':
                   final c = TextEditingController(text: table.title);
                   final ok = await showDialog<bool>(
@@ -265,6 +385,21 @@ class TimetableScreen extends ConsumerWidget {
               PopupMenuItem(value: 'rename', child: Text(l10n.rename)),
               PopupMenuItem(value: 'add', child: Text(l10n.addPeriod)),
               PopupMenuItem(value: 'remove', child: Text(l10n.removePeriod)),
+              if (isTeacher) ...[
+                PopupMenuItem(
+                  value: 'class',
+                  child: Text(l10n.timetableNewClass),
+                ),
+                if (catalog.length > 1)
+                  PopupMenuItem(
+                    value: 'deleteClass',
+                    child: Text(l10n.timetableDeleteClass),
+                  ),
+                PopupMenuItem(
+                  value: 'grades',
+                  child: Text(l10n.teacherGradeReport),
+                ),
+              ],
             ],
           ),
         ],
@@ -274,6 +409,14 @@ class TimetableScreen extends ConsumerWidget {
         children: [
           if (now != null)
             _NowBanner(now: now, dayLabel: _dayLabel(l10n, now.day)),
+          if (isTeacher)
+            _ClassPlanBar(
+              tables: catalog,
+              activeId: table.id,
+              onSelect: (id) =>
+                  ref.read(timetableProvider.notifier).selectTable(id),
+              onAdd: () => _addClassPlan(context, ref),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
             child: Text(
@@ -302,6 +445,53 @@ class TimetableScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ClassPlanBar extends StatelessWidget {
+  const _ClassPlanBar({
+    required this.tables,
+    required this.activeId,
+    required this.onSelect,
+    required this.onAdd,
+  });
+
+  final List<Timetable> tables;
+  final String activeId;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: SizedBox(
+        height: 40,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            for (final table in tables) ...[
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  selected: table.id == activeId,
+                  label: Text(
+                    table.hasClass ? table.classLabel : l10n.timetableGeneralPlan,
+                  ),
+                  onSelected: (_) => onSelect(table.id),
+                ),
+              ),
+            ],
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 18),
+              label: Text(l10n.timetableNewClass),
+              onPressed: onAdd,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -596,12 +786,16 @@ class _SlotEditorDialog extends StatefulWidget {
     required this.period,
     required this.initial,
     required this.folders,
+    this.showClassField = false,
+    this.defaultSchoolClass = '',
   });
 
   final String dayLabel;
   final TimetablePeriod period;
   final TimetableSlot initial;
   final List<LibraryFolder> folders;
+  final bool showClassField;
+  final String defaultSchoolClass;
 
   @override
   State<_SlotEditorDialog> createState() => _SlotEditorDialogState();
@@ -613,6 +807,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
   late TimetableLesson _second;
   late TextEditingController _room1;
   late TextEditingController _room2;
+  late TextEditingController _class1;
+  late TextEditingController _class2;
   late TextEditingController _subject1;
   late TextEditingController _subject2;
   late bool _createFolder1;
@@ -626,6 +822,16 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     _second = widget.initial.second;
     _room1 = TextEditingController(text: _first.room);
     _room2 = TextEditingController(text: _second.room);
+    _class1 = TextEditingController(
+      text: _first.schoolClass.trim().isNotEmpty
+          ? _first.schoolClass
+          : widget.defaultSchoolClass,
+    );
+    _class2 = TextEditingController(
+      text: _second.schoolClass.trim().isNotEmpty
+          ? _second.schoolClass
+          : widget.defaultSchoolClass,
+    );
     _subject1 = TextEditingController(text: _first.subject);
     _subject2 = TextEditingController(text: _second.subject);
     _createFolder1 = _first.folderId == null;
@@ -636,6 +842,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
   void dispose() {
     _room1.dispose();
     _room2.dispose();
+    _class1.dispose();
+    _class2.dispose();
     _subject1.dispose();
     _subject2.dispose();
     super.dispose();
@@ -655,7 +863,10 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       }
       final lesson = lessonFromFolder(
         folder,
-      ).copyWith(room: firstHalf ? _room1.text : _room2.text);
+      ).copyWith(
+        room: firstHalf ? _room1.text : _room2.text,
+        schoolClass: firstHalf ? _class1.text : _class2.text,
+      );
       if (firstHalf) {
         _first = lesson;
         _subject1.text = folder.name;
@@ -672,6 +883,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     var first = _first.copyWith(
       subject: _subject1.text.trim(),
       room: _room1.text.trim(),
+      schoolClass: _class1.text.trim(),
       colorValue: _first.folderId == null
           ? colorForSubject(_subject1.text)
           : _first.colorValue,
@@ -679,6 +891,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     var second = _second.copyWith(
       subject: _subject2.text.trim(),
       room: _room2.text.trim(),
+      schoolClass: _class2.text.trim(),
       colorValue: _second.folderId == null
           ? colorForSubject(_subject2.text)
           : _second.colorValue,
@@ -750,6 +963,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                 title: _split ? l10n.firstHalf : l10n.subject,
                 subjectCtrl: _subject1,
                 roomCtrl: _room1,
+                classCtrl: _class1,
                 lesson: _first,
                 createFolder: _createFolder1,
                 onCreateFolder: (v) => setState(() => _createFolder1 = v),
@@ -768,6 +982,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                   title: l10n.secondHalf,
                   subjectCtrl: _subject2,
                   roomCtrl: _room2,
+                  classCtrl: _class2,
                   lesson: _second,
                   createFolder: _createFolder2,
                   onCreateFolder: (v) => setState(() => _createFolder2 = v),
@@ -825,6 +1040,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     required String title,
     required TextEditingController subjectCtrl,
     required TextEditingController roomCtrl,
+    required TextEditingController classCtrl,
     required TimetableLesson lesson,
     required bool createFolder,
     required ValueChanged<bool> onCreateFolder,
@@ -940,6 +1156,16 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
             hintText: l10n.roomHint,
           ),
         ),
+        if (widget.showClassField) ...[
+          const SizedBox(height: 10),
+          TextField(
+            controller: classCtrl,
+            decoration: InputDecoration(
+              labelText: l10n.schoolClass,
+              hintText: l10n.timetableClassHint,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1125,9 +1351,13 @@ class _TimetableGrid extends StatelessWidget {
               height: 1.1,
             ),
           ),
-          if (lesson.room.isNotEmpty)
+          if (lesson.schoolClass.trim().isNotEmpty || lesson.room.isNotEmpty)
             Text(
-              lesson.room,
+              [
+                if (lesson.schoolClass.trim().isNotEmpty)
+                  lesson.schoolClass.trim(),
+                if (lesson.room.isNotEmpty) lesson.room,
+              ].join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTheme.body(
@@ -1153,6 +1383,7 @@ class TimetableHomeCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final table = ref.watch(timetableProvider);
     final now = ref.watch(nowLessonProvider);
+    final isTeacher = ref.watch(settingsProvider).isTeacher;
     final today = (DateTime.now().weekday - 1).clamp(0, 4);
     final todaySlots = [
       for (var p = 0; p < table.periods.length; p++)
@@ -1160,6 +1391,9 @@ class TimetableHomeCard extends ConsumerWidget {
           table.slotAt(today, p)!,
     ];
 
+    final heading = isTeacher && table.hasClass
+        ? l10n.timetableClassPlan(table.classLabel)
+        : l10n.timetable;
     final subtitle = now != null
         ? l10n.nowLessonShort(now.lesson.subject)
         : todaySlots.isEmpty
@@ -1202,7 +1436,7 @@ class TimetableHomeCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l10n.timetable,
+                      heading,
                       style: AppTheme.headline(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,

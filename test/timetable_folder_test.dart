@@ -13,4 +13,21 @@ void main() {
     expect(folderMatchingSubject(folders, 'Sport'), isNull);
     expect(folderMatchingSubject(folders, ''), isNull);
   });
+
+  test('timetable lesson keeps school class through json', () {
+    const lesson = TimetableLesson(
+      subject: 'Mathe',
+      room: 'R204',
+      schoolClass: '8a',
+    );
+    final roundTrip = TimetableLesson.fromJson(lesson.toJson());
+    expect(roundTrip.schoolClass, '8a');
+    expect(roundTrip.room, 'R204');
+
+    final legacy = TimetableLesson.fromJson({
+      'subject': 'Englisch',
+      'room': 'A1',
+    });
+    expect(legacy.schoolClass, isEmpty);
+  });
 }

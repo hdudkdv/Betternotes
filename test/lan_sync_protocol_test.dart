@@ -88,4 +88,23 @@ void main() {
     expect(hello['expectedSubject'], 'Mathe');
     expect(hello['expectedRoom'], 'B12');
   });
+
+  test('classroom command carries a random pick for connected students', () {
+    final command = LanSyncMessage.classroomCommand(
+      targetDeviceId: '*',
+      pickKind: 'student',
+      pickName: 'Alex',
+      pickDeviceId: 'd-alex',
+      pickMembers: const ['Alex'],
+      pickMemberDeviceIds: const ['d-alex'],
+      pickSticky: false,
+      pickHoldMs: 3000,
+    );
+    expect(command['type'], 'classroom_command');
+    expect(command['pickKind'], 'student');
+    expect(command['pickName'], 'Alex');
+    expect(command['pickDeviceId'], 'd-alex');
+    expect(command['pickSticky'], isFalse);
+    expect(command['pickHoldMs'], 3000);
+  });
 }

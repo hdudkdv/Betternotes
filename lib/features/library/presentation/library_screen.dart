@@ -579,7 +579,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               actions: [
                 if (appSettings.isTeacher)
                   IconButton(
-                    key: _teacherButtonKey,
                     tooltip: l10n.teacherWorkspace,
                     onPressed: () => context.push('/teacher'),
                     icon: const Icon(Icons.co_present_outlined),
@@ -698,6 +697,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       onTimetable: () => context.push('/timetable'),
                       onGrades: () => context.push('/grades'),
                       onCalendar: () => context.push('/calendar'),
+                      onTeacher: () => context.push('/teacher'),
+                      teacherCellKey: _teacherButtonKey,
                     ),
                   ),
                 ),

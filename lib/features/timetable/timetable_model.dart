@@ -62,12 +62,14 @@ class TimetableLesson extends Equatable {
   const TimetableLesson({
     this.subject = '',
     this.room = '',
+    this.schoolClass = '',
     this.folderId,
     this.colorValue = kDefaultLessonColor,
   });
 
   final String subject;
   final String room;
+  final String schoolClass;
   final String? folderId;
   final int colorValue;
 
@@ -76,6 +78,7 @@ class TimetableLesson extends Equatable {
   TimetableLesson copyWith({
     String? subject,
     String? room,
+    String? schoolClass,
     String? folderId,
     int? colorValue,
     bool clearFolder = false,
@@ -83,6 +86,7 @@ class TimetableLesson extends Equatable {
     return TimetableLesson(
       subject: subject ?? this.subject,
       room: room ?? this.room,
+      schoolClass: schoolClass ?? this.schoolClass,
       folderId: clearFolder ? null : (folderId ?? this.folderId),
       colorValue: colorValue ?? this.colorValue,
     );
@@ -91,6 +95,7 @@ class TimetableLesson extends Equatable {
   Map<String, dynamic> toJson() => {
     'subject': subject,
     'room': room,
+    'schoolClass': schoolClass,
     'folderId': folderId,
     'color': colorValue,
   };
@@ -99,13 +104,14 @@ class TimetableLesson extends Equatable {
     return TimetableLesson(
       subject: json['subject'] as String? ?? '',
       room: json['room'] as String? ?? '',
+      schoolClass: json['schoolClass'] as String? ?? '',
       folderId: json['folderId'] as String?,
       colorValue: json['color'] as int? ?? kDefaultLessonColor,
     );
   }
 
   @override
-  List<Object?> get props => [subject, room, folderId, colorValue];
+  List<Object?> get props => [subject, room, schoolClass, folderId, colorValue];
 }
 
 /// Cell for one day × block. Can be a single lesson or a split 45/45 block.
@@ -292,6 +298,7 @@ class Timetable extends Equatable {
   const Timetable({
     required this.id,
     required this.title,
+    this.schoolClass = '',
     required this.periods,
     required this.slots,
     required this.updatedAt,
@@ -299,9 +306,15 @@ class Timetable extends Equatable {
 
   final String id;
   final String title;
+
+  /// Named class this plan belongs to (teachers). Empty for a shared/student plan.
+  final String schoolClass;
   final List<TimetablePeriod> periods;
   final List<TimetableSlot> slots;
   final DateTime updatedAt;
+
+  String get classLabel => schoolClass.trim();
+  bool get hasClass => classLabel.isNotEmpty;
 
   static const dayCount = 5;
 
@@ -399,6 +412,7 @@ class Timetable extends Equatable {
 
   Timetable copyWith({
     String? title,
+    String? schoolClass,
     List<TimetablePeriod>? periods,
     List<TimetableSlot>? slots,
     DateTime? updatedAt,
@@ -406,6 +420,7 @@ class Timetable extends Equatable {
     return Timetable(
       id: id,
       title: title ?? this.title,
+      schoolClass: schoolClass ?? this.schoolClass,
       periods: periods ?? this.periods,
       slots: slots ?? this.slots,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -415,6 +430,7 @@ class Timetable extends Equatable {
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
+    'schoolClass': schoolClass,
     'version': 2,
     'periods': periods.map((p) => p.toJson()).toList(),
     'slots': slots.map((s) => s.toJson()).toList(),
@@ -425,6 +441,7 @@ class Timetable extends Equatable {
     return Timetable(
       id: json['id'] as String? ?? const Uuid().v4(),
       title: json['title'] as String? ?? 'Stundenplan',
+      schoolClass: json['schoolClass'] as String? ?? '',
       periods: [
         for (final p in (json['periods'] as List? ?? const []))
           TimetablePeriod.fromJson(Map<String, dynamic>.from(p as Map)),
@@ -440,11 +457,17 @@ class Timetable extends Equatable {
   }
 
   /// Default school day as 90-minute blocks.
-  factory Timetable.empty({String title = 'Stundenplan'}) {
+  factory Timetable.empty({
+    String title = 'Stundenplan',
+    String schoolClass = '',
+    List<TimetablePeriod>? periods,
+  }) {
     return Timetable(
       id: const Uuid().v4(),
       title: title,
-      periods: const [
+      schoolClass: schoolClass,
+      periods: periods ??
+          const [
         TimetablePeriod(
           label: '1',
           startMinutes: 7 * 60 + 30,
@@ -476,8 +499,114 @@ class Timetable extends Equatable {
     );
   }
 
+  Timetable stampedWithClass() {
+    final cls = classLabel;
+    if (cls.isEmpty) return this;
+    return copyWith(
+      slots: [
+        for (final slot in slots) stampSlotWithClass(slot, cls),
+      ],
+    );
+  }
+
   @override
-  List<Object?> get props => [id, title, periods, slots, updatedAt];
+  List<Object?> get props => [id, title, schoolClass, periods, slots, updatedAt];
+}
+
+TimetableSlot stampSlotWithClass(TimetableSlot slot, String schoolClass) {
+  final cls = schoolClass.trim();
+  if (cls.isEmpty) return slot;
+  TimetableLesson stamp(TimetableLesson lesson) {
+    if (lesson.isEmpty) return lesson;
+    return lesson.copyWith(schoolClass: cls);
+  }
+
+  return slot.copyWith(first: stamp(slot.first), second: stamp(slot.second));
+}
+
+TimetableSlot? slotForSchoolClass(TimetableSlot slot, String schoolClass) {
+  final key = schoolClass.trim().toLowerCase();
+  if (key.isEmpty) return slot;
+  bool matches(TimetableLesson lesson) =>
+      lesson.schoolClass.trim().toLowerCase() == key;
+
+  final firstMatch = matches(slot.first);
+  final secondMatch = slot.split && matches(slot.second);
+  if (!firstMatch && !secondMatch) return null;
+  if (firstMatch && (!slot.split || secondMatch)) {
+    return secondMatch ? slot : slot.copyWith(split: false, second: const TimetableLesson());
+  }
+  if (firstMatch) {
+    return slot.copyWith(split: false, second: const TimetableLesson());
+  }
+  return TimetableSlot(
+    day: slot.day,
+    period: slot.period,
+    first: slot.second,
+  );
+}
+
+/// Split a mixed teacher grid into one timetable per class name on the cells.
+List<Timetable> splitTimetableBySchoolClass(Timetable table) {
+  final names = <String>{};
+  void consider(TimetableLesson lesson) {
+    final name = lesson.schoolClass.trim();
+    if (name.isNotEmpty) names.add(name);
+  }
+
+  for (final slot in table.slots) {
+    consider(slot.first);
+    if (slot.split) consider(slot.second);
+  }
+
+  if (names.isEmpty) {
+    return [table];
+  }
+  if (names.length == 1 && table.classLabel.isEmpty) {
+    final only = names.first;
+    return [
+      table.copyWith(schoolClass: only, title: only).stampedWithClass(),
+    ];
+  }
+  if (names.length == 1) {
+    return [table.stampedWithClass()];
+  }
+
+  final out = <Timetable>[
+    for (final name in names)
+      Timetable(
+        id: const Uuid().v4(),
+        title: name,
+        schoolClass: name,
+        periods: table.periods,
+        slots: [
+          for (final slot in table.slots)
+            if (slotForSchoolClass(slot, name) != null)
+              stampSlotWithClass(slotForSchoolClass(slot, name)!, name),
+        ],
+        updatedAt: table.updatedAt,
+      ),
+  ];
+  final unlabeled = [
+    for (final slot in table.slots)
+      if (slot.first.schoolClass.trim().isEmpty &&
+          (!slot.split || slot.second.schoolClass.trim().isEmpty) &&
+          !slot.isEmpty)
+        slot,
+  ];
+  if (unlabeled.isNotEmpty && table.classLabel.isEmpty) {
+    out.insert(
+      0,
+      Timetable(
+        id: table.id,
+        title: table.title,
+        periods: table.periods,
+        slots: unlabeled,
+        updatedAt: table.updatedAt,
+      ),
+    );
+  }
+  return out;
 }
 
 class TimetableNotifier extends StateNotifier<Timetable> {
@@ -489,39 +618,174 @@ class TimetableNotifier extends StateNotifier<Timetable> {
   static const _key = 'timetableV2';
   static const _legacyKey = 'timetableV1';
 
+  List<Timetable> _tables = [];
+
+  List<Timetable> get allTables => List.unmodifiable(_tables);
+
+  List<Timetable> get classPlans {
+    final named = [
+      for (final table in _tables)
+        if (table.hasClass) table,
+    ];
+    named.sort(
+      (a, b) => a.classLabel.toLowerCase().compareTo(b.classLabel.toLowerCase()),
+    );
+    return named;
+  }
+
+  Timetable? tableForClass(String schoolClass) {
+    final key = schoolClass.trim().toLowerCase();
+    if (key.isEmpty) return null;
+    for (final table in _tables) {
+      if (table.classLabel.toLowerCase() == key) return table;
+    }
+    return null;
+  }
+
   void _load() {
     try {
       final raw = _prefs.getString(_key) ?? _prefs.getString(_legacyKey);
-      if (raw == null || raw.isEmpty) return;
-      state = Timetable.fromJson(
-        Map<String, dynamic>.from(jsonDecode(raw) as Map),
-      );
-    } catch (_) {}
+      if (raw == null || raw.isEmpty) {
+        _tables = [state];
+        return;
+      }
+      final json = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      final tablesJson = json['tables'];
+      if (tablesJson is List && tablesJson.isNotEmpty) {
+        _tables = [
+          for (final item in tablesJson)
+            Timetable.fromJson(Map<String, dynamic>.from(item as Map)),
+        ];
+        final activeId = json['activeId'] as String?;
+        state = _tables.firstWhere(
+          (table) => table.id == activeId,
+          orElse: () => _tables.first,
+        );
+        return;
+      }
+      final loaded = Timetable.fromJson(json);
+      _tables = splitTimetableBySchoolClass(loaded);
+      state = _tables.first;
+    } catch (_) {
+      _tables = [state];
+    }
   }
 
   Future<void> _save() async {
-    await _prefs.setString(_key, jsonEncode(state.toJson()));
+    _syncActiveIntoTables(state);
+    if (_tables.length <= 1) {
+      await _prefs.setString(_key, jsonEncode(state.toJson()));
+      return;
+    }
+    await _prefs.setString(
+      _key,
+      jsonEncode({
+        'version': 3,
+        'activeId': state.id,
+        'tables': [for (final table in _tables) table.toJson()],
+      }),
+    );
+  }
+
+  void _syncActiveIntoTables(Timetable next) {
+    var found = false;
+    final nextTables = <Timetable>[];
+    for (final table in _tables) {
+      if (table.id == next.id) {
+        nextTables.add(next);
+        found = true;
+      } else {
+        nextTables.add(table);
+      }
+    }
+    if (!found) nextTables.add(next);
+    _tables = nextTables;
+  }
+
+  Future<void> _commit(Timetable next) async {
+    _syncActiveIntoTables(next);
+    state = next;
+    await _save();
+  }
+
+  Future<void> selectTable(String id) async {
+    for (final table in _tables) {
+      if (table.id == id) {
+        state = table;
+        await _save();
+        return;
+      }
+    }
+  }
+
+  Future<void> addClassPlan(
+    String className, {
+    bool copySlots = false,
+  }) async {
+    final name = className.trim();
+    if (name.isEmpty) return;
+    final existing = tableForClass(name);
+    if (existing != null) {
+      await selectTable(existing.id);
+      return;
+    }
+    if (_tables.length == 1 && !state.hasClass) {
+      await _commit(
+        state.copyWith(
+          schoolClass: name,
+          title: name,
+          updatedAt: DateTime.now(),
+        ).stampedWithClass(),
+      );
+      return;
+    }
+    final created = Timetable.empty(
+      title: name,
+      schoolClass: name,
+      periods: state.periods,
+    ).copyWith(
+      slots: copySlots
+          ? [
+              for (final slot in state.slots)
+                stampSlotWithClass(slot, name),
+            ]
+          : const [],
+      updatedAt: DateTime.now(),
+    );
+    _tables = [..._tables, created];
+    state = created;
+    await _save();
+  }
+
+  Future<void> deleteClassPlan(String id) async {
+    if (_tables.length <= 1) return;
+    _tables = [for (final table in _tables) if (table.id != id) table];
+    if (state.id == id) {
+      state = _tables.first;
+    } else {
+      state = state.copyWith(updatedAt: DateTime.now());
+    }
+    await _save();
   }
 
   Future<void> setTitle(String title) async {
-    state = state.copyWith(title: title, updatedAt: DateTime.now());
-    await _save();
+    await _commit(state.copyWith(title: title, updatedAt: DateTime.now()));
   }
 
   Future<void> setSlot(TimetableSlot slot) async {
-    state = state.upsertSlot(slot);
-    await _save();
+    await _commit(state.upsertSlot(stampSlotWithClass(slot, state.schoolClass)));
   }
 
   Future<void> clearSlot(int day, int period) async {
-    state = state.copyWith(
-      slots: [
-        for (final s in state.slots)
-          if (!(s.day == day && s.period == period)) s,
-      ],
-      updatedAt: DateTime.now(),
+    await _commit(
+      state.copyWith(
+        slots: [
+          for (final s in state.slots)
+            if (!(s.day == day && s.period == period)) s,
+        ],
+        updatedAt: DateTime.now(),
+      ),
     );
-    await _save();
   }
 
   Future<void> setPeriod(int index, TimetablePeriod period) async {
@@ -531,8 +795,7 @@ class TimetableNotifier extends StateNotifier<Timetable> {
     if (end <= start) end = start + 90;
     final next = [...state.periods];
     next[index] = period.copyWith(startMinutes: start, endMinutes: end);
-    state = state.copyWith(periods: next, updatedAt: DateTime.now());
-    await _save();
+    await _commit(state.copyWith(periods: next, updatedAt: DateTime.now()));
   }
 
   Future<void> addPeriod({int durationMinutes = 90}) async {
@@ -540,32 +803,34 @@ class TimetableNotifier extends StateNotifier<Timetable> {
     final lastEnd = state.periods.isEmpty
         ? 7 * 60 + 30
         : state.periods.last.endMinutes + 15;
-    state = state.copyWith(
-      periods: [
-        ...state.periods,
-        TimetablePeriod(
-          label: '$n',
-          startMinutes: lastEnd,
-          endMinutes: lastEnd + durationMinutes,
-        ),
-      ],
-      updatedAt: DateTime.now(),
+    await _commit(
+      state.copyWith(
+        periods: [
+          ...state.periods,
+          TimetablePeriod(
+            label: '$n',
+            startMinutes: lastEnd,
+            endMinutes: lastEnd + durationMinutes,
+          ),
+        ],
+        updatedAt: DateTime.now(),
+      ),
     );
-    await _save();
   }
 
   Future<void> removeLastPeriod() async {
     if (state.periods.length <= 1) return;
     final last = state.periods.length - 1;
-    state = state.copyWith(
-      periods: state.periods.sublist(0, last),
-      slots: [
-        for (final s in state.slots)
-          if (s.period < last) s,
-      ],
-      updatedAt: DateTime.now(),
+    await _commit(
+      state.copyWith(
+        periods: state.periods.sublist(0, last),
+        slots: [
+          for (final s in state.slots)
+            if (s.period < last) s,
+        ],
+        updatedAt: DateTime.now(),
+      ),
     );
-    await _save();
   }
 }
 
@@ -573,6 +838,11 @@ final timetableProvider = StateNotifierProvider<TimetableNotifier, Timetable>((
   ref,
 ) {
   return TimetableNotifier(ref.watch(sharedPreferencesProvider));
+});
+
+final timetableCatalogProvider = Provider<List<Timetable>>((ref) {
+  ref.watch(timetableProvider);
+  return ref.read(timetableProvider.notifier).allTables;
 });
 
 /// Ticks every minute so the "now" banner stays accurate.
@@ -583,9 +853,31 @@ final _clockTickProvider = StreamProvider<DateTime>((ref) {
   ).asBroadcastStream();
 });
 
+NowLesson? lessonNowAcrossTables(
+  List<Timetable> tables,
+  DateTime now, {
+  String? preferId,
+}) {
+  NowLesson? preferred;
+  NowLesson? any;
+  for (final table in tables) {
+    final lesson = table.lessonAt(now);
+    if (lesson == null) continue;
+    any ??= lesson;
+    if (table.id == preferId) preferred = lesson;
+  }
+  return preferred ?? any;
+}
+
 final nowLessonProvider = Provider<NowLesson?>((ref) {
   ref.watch(_clockTickProvider);
-  return ref.watch(timetableProvider).lessonAt(DateTime.now());
+  final active = ref.watch(timetableProvider);
+  final tables = ref.read(timetableProvider.notifier).allTables;
+  return lessonNowAcrossTables(
+    tables.isEmpty ? [active] : tables,
+    DateTime.now(),
+    preferId: active.id,
+  );
 });
 
 TimetableLesson lessonFromFolder(LibraryFolder folder) {

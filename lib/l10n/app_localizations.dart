@@ -1778,6 +1778,60 @@ abstract class AppLocalizations {
   /// **'e.g. R204'**
   String get roomHint;
 
+  /// No description provided for @timetableClassHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 8a'**
+  String get timetableClassHint;
+
+  /// No description provided for @timetableClassPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'{className} timetable'**
+  String timetableClassPlan(String className);
+
+  /// No description provided for @timetableNewClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Add class'**
+  String get timetableNewClass;
+
+  /// No description provided for @timetableNewClassHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A separate timetable for this class'**
+  String get timetableNewClassHint;
+
+  /// No description provided for @timetableCopyPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the current plan'**
+  String get timetableCopyPlan;
+
+  /// No description provided for @timetableDeleteClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this class timetable'**
+  String get timetableDeleteClass;
+
+  /// No description provided for @timetableDeleteClassConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'The timetable for {className} will be deleted. Other classes stay as they are.'**
+  String timetableDeleteClassConfirm(String className);
+
+  /// No description provided for @timetableGeneralPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get timetableGeneralPlan;
+
+  /// No description provided for @timetableOpenGradebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade report for this class'**
+  String get timetableOpenGradebook;
+
   /// No description provided for @color.
   ///
   /// In en, this message translates to:
@@ -4502,6 +4556,12 @@ abstract class AppLocalizations {
   /// **'Teacher workspace'**
   String get teacherWorkspace;
 
+  /// No description provided for @teacherHomeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Board, classes, assignments'**
+  String get teacherHomeHint;
+
   /// No description provided for @teacherOverview.
   ///
   /// In en, this message translates to:
@@ -4517,7 +4577,7 @@ abstract class AppLocalizations {
   /// No description provided for @teacherOverviewHint.
   ///
   /// In en, this message translates to:
-  /// **'Live sessions, assignments, lesson calendar, materials, and audio explanations in one place.'**
+  /// **'Live sessions, grade reports, per-class timetables, assignments, and materials in one place.'**
   String get teacherOverviewHint;
 
   /// No description provided for @teacherLiveClass.
@@ -4763,8 +4823,368 @@ abstract class AppLocalizations {
   /// No description provided for @teacherGradeReportHint.
   ///
   /// In en, this message translates to:
-  /// **'Entered grades automatically produce a count, average, and distribution.'**
+  /// **'Grade distribution and progress per class, school year, and topic.'**
   String get teacherGradeReportHint;
+
+  /// No description provided for @teacherGradeReportOverviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter grades quickly. The report tracks distribution, development over the school year, and performance per topic.'**
+  String get teacherGradeReportOverviewHint;
+
+  /// No description provided for @teacherGradeTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic'**
+  String get teacherGradeTopic;
+
+  /// No description provided for @teacherGradeNewTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Add topic'**
+  String get teacherGradeNewTopic;
+
+  /// No description provided for @teacherGradeTopicHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Fractions, Grammar'**
+  String get teacherGradeTopicHint;
+
+  /// No description provided for @teacherGradeAllTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'All topics'**
+  String get teacherGradeAllTopics;
+
+  /// No description provided for @teacherGradeNewAssessment.
+  ///
+  /// In en, this message translates to:
+  /// **'Add graded work'**
+  String get teacherGradeNewAssessment;
+
+  /// No description provided for @teacherGradeAssessmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get teacherGradeAssessmentTitle;
+
+  /// No description provided for @teacherGradeAssessmentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Test 1, oral'**
+  String get teacherGradeAssessmentHint;
+
+  /// No description provided for @teacherGradeDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get teacherGradeDate;
+
+  /// No description provided for @teacherGradeEnterGrades.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter grades'**
+  String get teacherGradeEnterGrades;
+
+  /// No description provided for @teacherGradeEntryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap 1–6. Leave unselected to skip a student.'**
+  String get teacherGradeEntryHint;
+
+  /// No description provided for @teacherGradeShowMirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Show grade report'**
+  String get teacherGradeShowMirror;
+
+  /// No description provided for @teacherGradeCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} grades'**
+  String teacherGradeCount(int count);
+
+  /// No description provided for @teacherGradeAverageValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg {value}'**
+  String teacherGradeAverageValue(String value);
+
+  /// No description provided for @teacherGradeTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance over time'**
+  String get teacherGradeTrend;
+
+  /// No description provided for @teacherGradeTrendHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Class average for graded work in the selected year and topic.'**
+  String get teacherGradeTrendHint;
+
+  /// No description provided for @teacherGradeTopicAverages.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance by topic'**
+  String get teacherGradeTopicAverages;
+
+  /// No description provided for @teacherGradeTopicAveragesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall view of this class across topics.'**
+  String get teacherGradeTopicAveragesHint;
+
+  /// No description provided for @teacherGradeRoster.
+  ///
+  /// In en, this message translates to:
+  /// **'Class roster'**
+  String get teacherGradeRoster;
+
+  /// No description provided for @teacherGradeRosterEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No students yet. Names are enough for the grade report.'**
+  String get teacherGradeRosterEmpty;
+
+  /// No description provided for @teacherGradeAddStudent.
+  ///
+  /// In en, this message translates to:
+  /// **'Add student'**
+  String get teacherGradeAddStudent;
+
+  /// No description provided for @teacherGradeStudentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'First and last name'**
+  String get teacherGradeStudentHint;
+
+  /// No description provided for @teacherGradeNoClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a class first, then you can keep a grade report.'**
+  String get teacherGradeNoClass;
+
+  /// No description provided for @teacherNoAssessments.
+  ///
+  /// In en, this message translates to:
+  /// **'No graded work in this filter yet.'**
+  String get teacherNoAssessments;
+
+  /// No description provided for @teacherPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Random picker'**
+  String get teacherPickerTitle;
+
+  /// No description provided for @teacherPickerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Picks a person or a group. Connected devices see the result — the chosen person most clearly.'**
+  String get teacherPickerHint;
+
+  /// No description provided for @teacherPickerDrawPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a person'**
+  String get teacherPickerDrawPerson;
+
+  /// No description provided for @teacherPickerDrawGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a group'**
+  String get teacherPickerDrawGroup;
+
+  /// No description provided for @teacherPickerWholeClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole class'**
+  String get teacherPickerWholeClass;
+
+  /// No description provided for @teacherPickerConnectedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected only'**
+  String get teacherPickerConnectedOnly;
+
+  /// No description provided for @teacherPickerNoRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'No repeats'**
+  String get teacherPickerNoRepeat;
+
+  /// No description provided for @teacherPickerEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody in this selection.'**
+  String get teacherPickerEmpty;
+
+  /// No description provided for @teacherPickerGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get teacherPickerGroups;
+
+  /// No description provided for @teacherPickerNewGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Add group'**
+  String get teacherPickerNewGroup;
+
+  /// No description provided for @teacherPickerGroupName.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Group A'**
+  String get teacherPickerGroupName;
+
+  /// No description provided for @teacherPickerNoGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'No groups yet. Create some and choose the members.'**
+  String get teacherPickerNoGroups;
+
+  /// No description provided for @teacherPickerGroupCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} members'**
+  String teacherPickerGroupCount(int count);
+
+  /// No description provided for @teacherPickerYouAreUp.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re up!'**
+  String get teacherPickerYouAreUp;
+
+  /// No description provided for @teacherPickerSomeoneUp.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is up'**
+  String teacherPickerSomeoneUp(String name);
+
+  /// No description provided for @teacherPickerYourGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Your group is up!'**
+  String get teacherPickerYourGroup;
+
+  /// No description provided for @teacherPickerGroupUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Group {name} is up'**
+  String teacherPickerGroupUp(String name);
+
+  /// No description provided for @teacherPickerShownOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown on their device'**
+  String get teacherPickerShownOnDevice;
+
+  /// No description provided for @teacherPickerNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected — only visible here'**
+  String get teacherPickerNotConnected;
+
+  /// No description provided for @teacherPickerClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear pick'**
+  String get teacherPickerClear;
+
+  /// No description provided for @teacherPickerConnectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{connected} of {total} connected'**
+  String teacherPickerConnectedCount(int connected, int total);
+
+  /// No description provided for @teacherPickerNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New picker'**
+  String get teacherPickerNew;
+
+  /// No description provided for @teacherPickerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get teacherPickerName;
+
+  /// No description provided for @teacherPickerNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Repeating 8a'**
+  String get teacherPickerNameHint;
+
+  /// No description provided for @teacherPickerKindDatacheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeating'**
+  String get teacherPickerKindDatacheck;
+
+  /// No description provided for @teacherPickerKindFlash.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick'**
+  String get teacherPickerKindFlash;
+
+  /// No description provided for @teacherPickerKindDatacheckHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Work through the class without repeats. The person stays visible until you pick the next one.'**
+  String get teacherPickerKindDatacheckHint;
+
+  /// No description provided for @teacherPickerKindFlashHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Briefly show one person — only a few seconds on connected devices.'**
+  String get teacherPickerKindFlashHint;
+
+  /// No description provided for @teacherPickerSavedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each named picker runs independently. Repeating remembers progress; quick only flashes a name.'**
+  String get teacherPickerSavedHint;
+
+  /// No description provided for @teacherPickerNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No picker yet. Create one with a name — repeating or quick.'**
+  String get teacherPickerNone;
+
+  /// No description provided for @teacherPickerNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next person'**
+  String get teacherPickerNext;
+
+  /// No description provided for @teacherPickerResetRound.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset round'**
+  String get teacherPickerResetRound;
+
+  /// No description provided for @teacherPickerProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} already called'**
+  String teacherPickerProgress(int done, int total);
+
+  /// No description provided for @teacherPickerRoundDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone has been called. Reset the round to start again.'**
+  String get teacherPickerRoundDone;
+
+  /// No description provided for @teacherPickerDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete picker'**
+  String get teacherPickerDelete;
+
+  /// No description provided for @teacherPickerDatacheckStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Stays visible until the next person is picked'**
+  String get teacherPickerDatacheckStay;
 
   /// No description provided for @teacherGradedCount.
   ///

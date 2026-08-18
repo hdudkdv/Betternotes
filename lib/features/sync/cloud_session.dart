@@ -9,6 +9,7 @@ import '../library/account_handover_sheet.dart';
 import '../library/account_library_service.dart';
 import '../library/providers/library_providers.dart';
 import '../planner/planner_model.dart';
+import '../teacher/gradebook/gradebook_store.dart';
 import '../timetable/timetable_model.dart';
 import 'sync_engine.dart';
 
@@ -23,6 +24,7 @@ Future<void> loadCloudNotebooks(
   ref.read(settingsProvider.notifier).reloadFromPrefs();
   ref.invalidate(plannerProvider);
   ref.invalidate(timetableProvider);
+  ref.invalidate(gradebookProvider);
   refreshLibraryLists(ref);
 }
 

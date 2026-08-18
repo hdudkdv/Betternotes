@@ -322,6 +322,25 @@
   "subjectHint": "z. B. Englisch",
   "room": "Raum",
   "roomHint": "z. B. R204",
+  "timetableClassHint": "z. B. 8a",
+  "timetableClassPlan": "Stundenplan {className}",
+  "@timetableClassPlan": {
+    "placeholders": {
+      "className": {"type": "String"}
+    }
+  },
+  "timetableNewClass": "Klasse anlegen",
+  "timetableNewClassHint": "Eigener Stundenplan für diese Klasse",
+  "timetableCopyPlan": "Aktuellen Plan kopieren",
+  "timetableDeleteClass": "Stundenplan dieser Klasse löschen",
+  "timetableDeleteClassConfirm": "Der Stundenplan für {className} wird gelöscht. Andere Klassen bleiben erhalten.",
+  "@timetableDeleteClassConfirm": {
+    "placeholders": {
+      "className": {"type": "String"}
+    }
+  },
+  "timetableGeneralPlan": "Allgemein",
+  "timetableOpenGradebook": "Notenspiegel dieser Klasse",
   "color": "Farbe",
   "clear": "Leeren",
   "editPeriod": "Stunde anpassen",
@@ -1007,9 +1026,10 @@
   "roleSection": "Rolle",
   "roleSectionHint": "Die Rolle bestimmt, welche Arbeitsbereiche und Optionen angezeigt werden.",
   "teacherWorkspace": "Lehrerbereich",
+  "teacherHomeHint": "Tafel, Klassen, Aufgaben",
   "teacherOverview": "Übersicht",
   "teacherOverviewTitle": "Unterricht effizient vorbereiten und steuern",
-  "teacherOverviewHint": "Live-Sessions, Aufgaben, Stundenkalender, Materialien und Audio-Erklärungen an einem Ort.",
+  "teacherOverviewHint": "Live-Sessions, Notenspiegel, Stundenpläne pro Klasse, Aufgaben und Materialien an einem Ort.",
   "teacherLiveClass": "Live-Unterricht",
   "teacherLiveClassHint": "Starte eine host-gesteuerte Session und verwalte Schreibrechte, Hände, Fokus und Fortschritt.",
   "teacherLessonJournal": "Stundentagebuch",
@@ -1054,7 +1074,104 @@
   "teacherNoMaterials": "Noch keine Materialien. Füge PDF-, Office- oder Bilddateien hinzu.",
   "teacherDistribute": "An Klasse verteilen",
   "teacherDistributionQueued": "Verteilung vorgemerkt. Für Cloud-Downloadbefehle muss ein Backend konfiguriert sein.",
-  "teacherGradeReportHint": "Aus eingetragenen Noten werden Anzahl, Durchschnitt und Verteilung automatisch berechnet.",
+  "teacherGradeReportHint": "Notenspiegel und Leistungsentwicklung pro Klasse, Schuljahr und Themengebiet.",
+  "teacherGradeReportOverviewHint": "Trage Noten schnell ein. Der Spiegel zeigt die Verteilung, die Entwicklung im Schuljahr und die Leistung pro Thema.",
+  "teacherGradeTopic": "Themengebiet",
+  "teacherGradeNewTopic": "Thema anlegen",
+  "teacherGradeTopicHint": "z. B. Brüche, Grammatik",
+  "teacherGradeAllTopics": "Alle Themen",
+  "teacherGradeNewAssessment": "Leistung eintragen",
+  "teacherGradeAssessmentTitle": "Bezeichnung",
+  "teacherGradeAssessmentHint": "z. B. KA 1, Test, mündlich",
+  "teacherGradeDate": "Datum",
+  "teacherGradeEnterGrades": "Noten eintragen",
+  "teacherGradeEntryHint": "Tippe 1–6. Ohne Auswahl bleibt die Note offen.",
+  "teacherGradeShowMirror": "Notenspiegel anzeigen",
+  "teacherGradeCount": "{count} Noten",
+  "@teacherGradeCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "teacherGradeAverageValue": "Ø {value}",
+  "@teacherGradeAverageValue": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "teacherGradeTrend": "Leistungsentwicklung",
+  "teacherGradeTrendHint": "Klassendurchschnitt der Arbeiten im gewählten Schuljahr und Thema.",
+  "teacherGradeTopicAverages": "Leistung pro Thema",
+  "teacherGradeTopicAveragesHint": "Gesamtüberblick über die Themengebiete dieser Klasse.",
+  "teacherGradeRoster": "Klassenliste",
+  "teacherGradeRosterEmpty": "Noch keine Schüler in der Liste. Namen reichen für den Notenspiegel.",
+  "teacherGradeAddStudent": "Schüler hinzufügen",
+  "teacherGradeStudentHint": "Vor- und Nachname",
+  "teacherGradeNoClass": "Lege zuerst eine Klasse an, dann kannst du den Notenspiegel führen.",
+  "teacherNoAssessments": "Noch keine Leistungen in diesem Filter.",
+  "teacherPickerTitle": "Zufallsgenerator",
+  "teacherPickerHint": "Zieht eine Person oder eine Gruppe. Verbundene Geräte sehen das Ergebnis – die gezogene Person besonders deutlich.",
+  "teacherPickerDrawPerson": "Person ziehen",
+  "teacherPickerDrawGroup": "Gruppe ziehen",
+  "teacherPickerWholeClass": "Ganze Klasse",
+  "teacherPickerConnectedOnly": "Nur Verbundene",
+  "teacherPickerNoRepeat": "Ohne Wiederholung",
+  "teacherPickerEmpty": "Niemand in der Auswahl.",
+  "teacherPickerGroups": "Gruppen",
+  "teacherPickerNewGroup": "Gruppe anlegen",
+  "teacherPickerGroupName": "z. B. Gruppe A",
+  "teacherPickerNoGroups": "Noch keine Gruppen. Lege welche an und wähle die Mitglieder.",
+  "teacherPickerGroupCount": "{count} Mitglieder",
+  "@teacherPickerGroupCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "teacherPickerYouAreUp": "Du bist dran!",
+  "teacherPickerSomeoneUp": "{name} ist dran",
+  "@teacherPickerSomeoneUp": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "teacherPickerYourGroup": "Eure Gruppe ist dran!",
+  "teacherPickerGroupUp": "Gruppe {name} ist dran",
+  "@teacherPickerGroupUp": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "teacherPickerShownOnDevice": "Wird auf dem Gerät angezeigt",
+  "teacherPickerNotConnected": "Nicht verbunden — nur hier sichtbar",
+  "teacherPickerClear": "Auswahl aufheben",
+  "teacherPickerConnectedCount": "{connected} von {total} verbunden",
+  "@teacherPickerConnectedCount": {
+    "placeholders": {
+      "connected": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "teacherPickerNew": "Generator anlegen",
+  "teacherPickerName": "Name",
+  "teacherPickerNameHint": "z. B. Wiederholend 8a",
+  "teacherPickerKindDatacheck": "Wiederholend",
+  "teacherPickerKindFlash": "Kurz",
+  "teacherPickerKindDatacheckHint": "Ohne Wiederholung durch die Klasse. Die Person bleibt sichtbar, bis du die nächste ziehst.",
+  "teacherPickerKindFlashHint": "Einmal kurz eine Person zeigen – auf den Geräten nur für ein paar Sekunden.",
+  "teacherPickerSavedHint": "Jeder Generator hat einen Namen und läuft unabhängig. Wiederholend merkt den Stand, Kurz zeigt nur kurz.",
+  "teacherPickerNone": "Noch kein Generator. Lege einen mit Namen an – Wiederholend oder Kurz.",
+  "teacherPickerNext": "Nächste Person",
+  "teacherPickerResetRound": "Runde zurücksetzen",
+  "teacherPickerProgress": "{done} von {total} schon dran",
+  "@teacherPickerProgress": {
+    "placeholders": {
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "teacherPickerRoundDone": "Alle waren dran. Setze die Runde zurück, um neu zu beginnen.",
+  "teacherPickerDelete": "Generator löschen",
+  "teacherPickerDatacheckStay": "Bleibt sichtbar, bis die nächste Person kommt",
   "teacherGradedCount": "Bewertete Arbeiten",
   "teacherClassAverage": "Klassendurchschnitt",
   "teacherNoGrades": "Noch keine bewerteten Arbeiten vorhanden.",
