@@ -168,8 +168,7 @@ jobs:
           mkdir -p build/ios/archive build/ios/ipa
           # Keep products in one DerivedData tree (helps ML Kit / CocoaPods resources).
           # DEVELOPMENT_TEAM satisfies SPM packages; Runner signs via Release.xcconfig.
-          set +e
-          xcodebuild \
+          if ! xcodebuild \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -179,28 +178,12 @@ jobs:
             -resultBundlePath "$PWD/build/ios/archive-result.xcresult" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             archive
-          ARCHIVE_STATUS=$?
-          set -e
-          if [ "$ARCHIVE_STATUS" -ne 0 ]; then
-            echo "xcodebuild archive failed with status $ARCHIVE_STATUS"
+          then
+            echo "xcodebuild archive failed"
             if [ -d build/ios/archive-result.xcresult ]; then
-              xcrun xcresulttool get test-results summary --path build/ios/archive-result.xcresult 2>/dev/null || true
-              # Dump human-readable build issues when available.
-              xcrun xcresulttool get --legacy --path build/ios/archive-result.xcresult --format json 2>/dev/null \
-                | python3 -c 'import json,sys
-try:
-  data=json.load(sys.stdin)
-except Exception:
-  raise SystemExit(0)
-issues=data.get("issues",{})
-for key in ("errorSummaries","warningSummaries"):
-  for item in issues.get(key,[]) or []:
-    msg=item.get("message",{})
-    text=msg.get("_value") if isinstance(msg,dict) else msg
-    if text: print(f"{key}: {text}")
-' || true
+              xcrun xcresulttool get test-results summary --path build/ios/archive-result.xcresult || true
             fi
-            exit "$ARCHIVE_STATUS"
+            exit 1
           fi
           xcodebuild -exportArchive \
             -archivePath "$PWD/build/ios/archive/Runner.xcarchive" \
