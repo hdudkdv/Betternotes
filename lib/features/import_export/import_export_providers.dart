@@ -35,7 +35,3 @@ final shareIntakeProvider = Provider<ShareIntake>((ref) {
   ref.onDispose(() => intake.dispose());
   return intake;
 });
-
-final allNotebooksProvider = FutureProvider.autoDispose((ref) async {
-  return ref.watch(notebookRepositoryProvider).getNotebooks();
-});
