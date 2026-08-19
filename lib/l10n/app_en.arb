@@ -337,6 +337,7 @@
   "templateSaved": "Template saved",
   "timetable": "Timetable",
   "timetableHint": "Tap a cell to fill lessons. Tap times on the left (scroll wheels). Blocks can be full or split. Link subjects to folders.",
+  "timetableTeacherHint": "One timetable: put the class you teach in each period. When that period starts, the class is selected automatically in the gradebook, picker, and live class.",
   "timetableEmptyToday": "Nothing for today yet — tap to fill in",
   "timetableTodayPreview": "Today: {preview}",
   "@timetableTodayPreview": {
@@ -356,7 +357,7 @@
     }
   },
   "timetableNewClass": "Add class",
-  "timetableNewClassHint": "A separate timetable for this class",
+  "timetableNewClassHint": "Class for the gradebook, picker, and live lesson",
   "timetableCopyPlan": "Copy the current plan",
   "timetableDeleteClass": "Delete this class timetable",
   "timetableDeleteClassConfirm": "The timetable for {className} will be deleted. Other classes stay as they are.",
@@ -422,9 +423,24 @@
       "when": {"type": "String"}
     }
   },
+  "nowLessonWithClass": "Now: {className} · {subject} ({when})",
+  "@nowLessonWithClass": {
+    "placeholders": {
+      "className": {"type": "String"},
+      "subject": {"type": "String"},
+      "when": {"type": "String"}
+    }
+  },
   "nowLessonShort": "Now: {subject}",
   "@nowLessonShort": {
     "placeholders": {
+      "subject": {"type": "String"}
+    }
+  },
+  "nowLessonShortWithClass": "Now: {className} · {subject}",
+  "@nowLessonShortWithClass": {
+    "placeholders": {
+      "className": {"type": "String"},
       "subject": {"type": "String"}
     }
   },
@@ -1101,6 +1117,13 @@
   "teacherDistribute": "Distribute to class",
   "teacherDistributionQueued": "Distribution queued. Cloud download commands require a configured backend.",
   "teacherGradeReportHint": "Grade distribution and progress per class, school year, and topic.",
+  "teacherActiveClassFromTimetable": "Current period: {className}",
+  "@teacherActiveClassFromTimetable": {
+    "placeholders": {
+      "className": {"type": "String"}
+    }
+  },
+  "teacherActiveClassFromTimetableHint": "Taken from the timetable. You can still switch class by hand.",
   "teacherGradeReportOverviewHint": "Enter grades quickly. The report tracks distribution, development over the school year, and performance per topic.",
   "teacherGradeTopic": "Topic",
   "teacherGradeNewTopic": "Add topic",

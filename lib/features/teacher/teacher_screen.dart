@@ -450,9 +450,15 @@ class _ClassroomPage extends ConsumerWidget {
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
-    final title = TextEditingController(text: l10n.teacherNewLesson);
-    final subject = TextEditingController();
-    final room = TextEditingController();
+    final now = ref.read(nowLessonProvider);
+    final className = now?.lesson.schoolClass.trim() ?? '';
+    final title = TextEditingController(
+      text: className.isEmpty
+          ? l10n.teacherNewLesson
+          : '$className · ${now!.lesson.subject}',
+    );
+    final subject = TextEditingController(text: now?.lesson.subject ?? '');
+    final room = TextEditingController(text: now?.lesson.room ?? '');
     final notebooks = await ref.read(notebookRepositoryProvider).getNotebooks();
     if (!context.mounted) return;
     String? notebookId;
@@ -599,6 +605,8 @@ class _ClassroomPage extends ConsumerWidget {
       },
     );
     final session = ref.watch(teacherProvider).session;
+    final now = ref.watch(nowLessonProvider);
+    final liveClass = now?.lesson.schoolClass.trim() ?? '';
     if (session == null || !session.active) {
       return Center(
         child: Padding(
@@ -614,7 +622,9 @@ class _ClassroomPage extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                l10n.teacherLiveClassHint,
+                liveClass.isEmpty
+                    ? l10n.teacherLiveClassHint
+                    : l10n.teacherActiveClassFromTimetable(liveClass),
                 textAlign: TextAlign.center,
                 style: AppTheme.body(color: AppTheme.inkMuted),
               ),

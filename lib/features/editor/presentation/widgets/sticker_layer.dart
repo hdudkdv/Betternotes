@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/content_models.dart';
 import '../../domain/sticker_catalog.dart';
 import '../editor_chrome.dart';
+import 'overlay_hit_stack.dart';
 
 class StickerLayer extends StatelessWidget {
   const StickerLayer({
@@ -24,7 +25,7 @@ class StickerLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final layer = Stack(
+    final layer = OverlayHitStack(
       children: [
         for (final sticker in stickers)
           Positioned(
@@ -32,6 +33,7 @@ class StickerLayer extends StatelessWidget {
             top: sticker.y,
             child: GestureDetector(
               onTap: editable ? () => onSelect(sticker.id) : null,
+              onSecondaryTap: editable ? () => onSelect(sticker.id) : null,
               onPanUpdate: editable && selectedId == sticker.id
                   ? (d) => onChanged(
                       sticker.copyWith(

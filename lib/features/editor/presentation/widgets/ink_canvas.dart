@@ -31,6 +31,7 @@ class InkCanvas extends StatefulWidget {
     required this.onPointerDown,
     required this.onPointerMove,
     required this.onPointerUp,
+    this.onTrySelect,
     this.backgroundImage,
     this.paper,
     this.canvasMode = CanvasMode.page,
@@ -91,6 +92,15 @@ class InkCanvas extends StatefulWidget {
   final void Function(Offset pagePoint, {double pressure}) onPointerMove;
   final VoidCallback onPointerUp;
 
+  /// Hit-tests page objects. When this returns true the pointer is tracked as
+  /// a selection/move instead of ink or page-swipe.
+  final bool Function(
+    Offset pagePoint, {
+    required bool beginMove,
+    bool onlyExisting,
+  })?
+  onTrySelect;
+
   @override
   State<InkCanvas> createState() => InkCanvasState();
 }
@@ -102,6 +112,8 @@ class InkCanvasState extends State<InkCanvas>
   int? _drawPointer;
   bool _drawing = false;
   bool _drawIsStylus = false;
+  Offset? _downGlobal;
+  Offset? _downLocal;
   /// Right-mouse pointers that should pan like a finger.
   final Set<int> _fingerMice = {};
   Offset? _panLastFocal;
@@ -722,17 +734,24 @@ class InkCanvasState extends State<InkCanvas>
     return slop.distance >= 36 && _isPageSwipeAxis(slop);
   }
 
-  void _beginStroke(
-    int pointer,
-    Offset local, {
+  void _armPointerTracking(
+    int pointer, {
     required bool isStylus,
-    required double pressure,
   }) {
     _drawPointer = pointer;
     _drawing = true;
     _drawIsStylus = isStylus;
     _clearDrawPending();
     _updateScrollLock();
+  }
+
+  void _beginStroke(
+    int pointer,
+    Offset local, {
+    required bool isStylus,
+    required double pressure,
+  }) {
+    _armPointerTracking(pointer, isStylus: isStylus);
     widget.onPointerDown(
       _toPageLocal(local),
       isStylus: isStylus,
@@ -758,9 +777,6 @@ class InkCanvasState extends State<InkCanvas>
     // Palm rejection: ignore touch / right-mouse while a stylus stroke is active.
     if (_drawing && _drawIsStylus && (_isTouch(event) || rightMouse)) {
       return;
-    }
-    if (rightMouse) {
-      _fingerMice.add(event.pointer);
     }
 
     _pointerGlobal[event.pointer] = event.position;
@@ -794,6 +810,36 @@ class InkCanvasState extends State<InkCanvas>
     _multiMaxPointers = 1;
     _multiTravel = 0;
     _threeFingerStart = null;
+    _downGlobal = event.position;
+    _downLocal = event.localPosition;
+
+    if (!widget.readOnly &&
+        widget.engine.tool != InkTool.eraser &&
+        widget.onTrySelect != null) {
+      final pagePoint = _toPageLocal(event.localPosition);
+      final immediate =
+          PointerRouting.drawsLikeStylus(event) ||
+          rightMouse ||
+          _canDrawWith(event);
+      final selected = widget.onTrySelect!(
+        pagePoint,
+        beginMove: true,
+        onlyExisting: !immediate,
+      );
+      if (selected) {
+        setState(() {});
+        _armPointerTracking(
+          event.pointer,
+          isStylus: PointerRouting.drawsLikeStylus(event),
+        );
+        return;
+      }
+    }
+
+    if (rightMouse) {
+      _fingerMice.add(event.pointer);
+    }
+
     if (_canDrawWith(event)) {
       if (_shouldDeferDraw(event)) {
         _drawPending = true;
@@ -910,8 +956,11 @@ class InkCanvasState extends State<InkCanvas>
     final maxPointers = _multiMaxPointers;
     final travel = _multiTravel;
     final wasBrowse = _browseActive;
+    final downGlobal = _downGlobal;
+    final downLocal = _downLocal;
     _pointerGlobal.remove(event.pointer);
 
+    var consumedAsDraw = false;
     if (_drawPending && event.pointer == _pendingPointer) {
       final startGlobal = _pendingGlobal ?? event.position;
       final slop = event.position - startGlobal;
@@ -933,13 +982,29 @@ class InkCanvasState extends State<InkCanvas>
           );
         }
         _stopDrawing(commit: true);
+        consumedAsDraw = true;
         setState(() {});
       }
     }
 
     if (event.pointer == _drawPointer) {
       _stopDrawing(commit: true);
+      consumedAsDraw = true;
       setState(() {});
+    }
+
+    if (!wasMulti &&
+        !consumedAsDraw &&
+        !widget.readOnly &&
+        widget.engine.tool != InkTool.eraser &&
+        widget.onTrySelect != null &&
+        downGlobal != null &&
+        downLocal != null &&
+        (event.position - downGlobal).distance < 12) {
+      widget.onTrySelect!(
+        _toPageLocal(downLocal),
+        beginMove: false,
+      );
     }
 
     if (wasMulti && _pointerGlobal.length < 2) {
@@ -959,6 +1024,8 @@ class InkCanvasState extends State<InkCanvas>
         _browseActive = false;
       }
       _panLastFocal = null;
+      _downGlobal = null;
+      _downLocal = null;
       _multiMaxPointers = 0;
       _multiTravel = 0;
       _snapToFitIfNeeded();

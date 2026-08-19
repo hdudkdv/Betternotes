@@ -3,6 +3,7 @@ import 'package:betternotes/features/editor/domain/ink_models.dart';
 import 'package:betternotes/features/editor/domain/pointer_routing.dart';
 import 'package:betternotes/features/editor/presentation/widgets/ink_painter.dart';
 import 'package:betternotes/features/editor/presentation/widgets/page_background_painter.dart';
+import 'package:betternotes/features/editor/presentation/widgets/overlay_hit_stack.dart';
 import 'package:betternotes/features/editor/presentation/widgets/shape_painter.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -88,6 +89,57 @@ void main() {
 
     await tester.tapAt(const Offset(200, 300));
     expect(downs, 1);
+  });
+
+  testWidgets('overlay hit stack empty space does not steal canvas taps', (
+    tester,
+  ) async {
+    var canvasDowns = 0;
+    var childTaps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 600,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Listener(
+                    behavior: HitTestBehavior.opaque,
+                    onPointerDown: (_) => canvasDowns++,
+                    child: const ColoredBox(color: Color(0xFFFFFFFF)),
+                  ),
+                ),
+                Positioned.fill(
+                  child: OverlayHitStack(
+                    children: [
+                      Positioned(
+                        left: 10,
+                        top: 10,
+                        width: 40,
+                        height: 40,
+                        child: GestureDetector(
+                          onTap: () => childTaps++,
+                          child: const ColoredBox(color: Color(0xFF000000)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tapAt(const Offset(200, 300));
+    expect(canvasDowns, 1);
+    expect(childTaps, 0);
+
+    await tester.tapAt(const Offset(30, 30));
+    expect(childTaps, 1);
   });
 
   test('left mouse draws like a stylus, right mouse browses like a finger', () {

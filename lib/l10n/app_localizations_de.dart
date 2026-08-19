@@ -873,6 +873,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tippe eine Zelle zum Eintragen. Zeiten links tippen (Scroll-Räder). Blöcke können ganz oder geteilt sein. Fächer mit Ordnern verknüpfen.';
 
   @override
+  String get timetableTeacherHint =>
+      'Ein Stundenplan: in jeder Stunde die Klasse eintragen, mit der du dann unterrichtest. Zur Unterrichtszeit wird diese Klasse automatisch im Notenspiegel, in der Auslosung und in der Live-Klasse aktiv.';
+
+  @override
   String get timetableEmptyToday =>
       'Noch nichts für heute — tippen zum Eintragen';
 
@@ -905,7 +909,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get timetableNewClass => 'Klasse anlegen';
 
   @override
-  String get timetableNewClassHint => 'Eigener Stundenplan für diese Klasse';
+  String get timetableNewClassHint =>
+      'Klasse für Notenspiegel, Auslosung und Live-Unterricht';
 
   @override
   String get timetableCopyPlan => 'Aktuellen Plan kopieren';
@@ -1020,8 +1025,18 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String nowLessonWithClass(String className, String subject, String when) {
+    return 'Jetzt: $className · $subject ($when)';
+  }
+
+  @override
   String nowLessonShort(String subject) {
     return 'Jetzt: $subject';
+  }
+
+  @override
+  String nowLessonShortWithClass(String className, String subject) {
+    return 'Jetzt: $className · $subject';
   }
 
   @override
@@ -2584,6 +2599,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get teacherGradeReportHint =>
       'Notenspiegel und Leistungsentwicklung pro Klasse, Schuljahr und Themengebiet.';
+
+  @override
+  String teacherActiveClassFromTimetable(String className) {
+    return 'Aktuelle Stunde: $className';
+  }
+
+  @override
+  String get teacherActiveClassFromTimetableHint =>
+      'Übernommen aus dem Stundenplan. Du kannst die Klasse trotzdem wechseln.';
 
   @override
   String get teacherGradeReportOverviewHint =>

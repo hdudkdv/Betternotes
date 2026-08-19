@@ -14,76 +14,95 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  test('mixed class cells split into per-class timetables', () {
-    final table = Timetable.empty().copyWith(
+  test('one teacher timetable keeps different classes on the grid', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final notifier = TimetableNotifier(prefs);
+    await notifier.setSlot(
+      const TimetableSlot(
+        day: 0,
+        period: 0,
+        first: TimetableLesson(subject: 'Mathe', schoolClass: '8a'),
+      ),
+    );
+    await notifier.setSlot(
+      const TimetableSlot(
+        day: 0,
+        period: 1,
+        first: TimetableLesson(subject: 'Englisch', schoolClass: '9b'),
+      ),
+    );
+
+    expect(notifier.allTables, hasLength(1));
+    expect(notifier.state.schoolClass, isEmpty);
+    expect(notifier.state.slotAt(0, 0)?.first.schoolClass, '8a');
+    expect(notifier.state.slotAt(0, 1)?.first.schoolClass, '9b');
+    expect(notifier.state.distinctClassNames(), ['8a', '9b']);
+
+    final reloaded = TimetableNotifier(prefs);
+    expect(reloaded.allTables, hasLength(1));
+    expect(reloaded.state.slotAt(0, 0)?.first.subject, 'Mathe');
+    expect(reloaded.state.slotAt(0, 1)?.first.subject, 'Englisch');
+  });
+
+  test('legacy per-class plans merge into one grid', () {
+    final eight = Timetable.empty(schoolClass: '8a', title: '8a').copyWith(
       slots: [
-        TimetableSlot(
+        const TimetableSlot(
           day: 0,
           period: 0,
-          first: const TimetableLesson(subject: 'Mathe', schoolClass: '8a'),
+          first: TimetableLesson(subject: 'Mathe'),
         ),
-        TimetableSlot(
+      ],
+    );
+    final nine = Timetable.empty(schoolClass: '9b', title: '9b').copyWith(
+      slots: [
+        const TimetableSlot(
           day: 0,
           period: 1,
-          first: const TimetableLesson(subject: 'Englisch', schoolClass: '9b'),
+          first: TimetableLesson(subject: 'Englisch'),
         ),
         const TimetableSlot(
           day: 1,
           period: 0,
           split: true,
-          first: TimetableLesson(subject: 'Sport', schoolClass: '8a'),
-          second: TimetableLesson(subject: 'Kunst', schoolClass: '9b'),
+          first: TimetableLesson(subject: 'Sport'),
+          second: TimetableLesson(subject: 'Kunst'),
         ),
       ],
     );
 
-    final tables = splitTimetableBySchoolClass(table);
-    expect(tables, hasLength(2));
-    final eight = tables.firstWhere((t) => t.schoolClass == '8a');
-    final nine = tables.firstWhere((t) => t.schoolClass == '9b');
-    expect(eight.slotAt(0, 0)?.first.subject, 'Mathe');
-    expect(eight.slotAt(0, 1), isNull);
-    expect(eight.slotAt(1, 0)?.first.subject, 'Sport');
-    expect(eight.slotAt(1, 0)?.split, isFalse);
-    expect(nine.slotAt(0, 1)?.first.subject, 'Englisch');
-    expect(nine.slotAt(1, 0)?.first.subject, 'Kunst');
+    final merged = mergeClassPlans([eight, nine]);
+    expect(merged.schoolClass, isEmpty);
+    expect(merged.slotAt(0, 0)?.first.subject, 'Mathe');
+    expect(merged.slotAt(0, 0)?.first.schoolClass, '8a');
+    expect(merged.slotAt(0, 1)?.first.subject, 'Englisch');
+    expect(merged.slotAt(0, 1)?.first.schoolClass, '9b');
+    expect(merged.slotAt(1, 0)?.first.subject, 'Sport');
+    expect(merged.slotAt(1, 0)?.first.schoolClass, '9b');
   });
 
-  test('teacher can store a separate timetable per class', () async {
-    final prefs = await SharedPreferences.getInstance();
-    final notifier = TimetableNotifier(prefs);
-    await notifier.addClassPlan('8a');
-    await notifier.setSlot(
-      const TimetableSlot(
-        day: 0,
-        period: 0,
-        first: TimetableLesson(subject: 'Mathe'),
-      ),
+  test('current lesson exposes the class taught in that period', () {
+    final table = Timetable.empty().copyWith(
+      periods: const [
+        TimetablePeriod(
+          label: '1',
+          startMinutes: 8 * 60,
+          endMinutes: 9 * 60,
+        ),
+      ],
+      slots: const [
+        TimetableSlot(
+          day: 0,
+          period: 0,
+          first: TimetableLesson(subject: 'Mathe', schoolClass: '8a', room: '204'),
+        ),
+      ],
     );
-    await notifier.addClassPlan('9b');
-    await notifier.setSlot(
-      const TimetableSlot(
-        day: 0,
-        period: 0,
-        first: TimetableLesson(subject: 'Englisch'),
-      ),
-    );
-
-    expect(notifier.allTables, hasLength(2));
-    expect(notifier.state.schoolClass, '9b');
-    expect(notifier.state.slotAt(0, 0)?.first.subject, 'Englisch');
-    expect(notifier.state.slotAt(0, 0)?.first.schoolClass, '9b');
-
-    await notifier.selectTable(notifier.tableForClass('8a')!.id);
-    expect(notifier.state.slotAt(0, 0)?.first.subject, 'Mathe');
-    expect(notifier.state.slotAt(0, 0)?.first.schoolClass, '8a');
-
-    final reloaded = TimetableNotifier(prefs);
-    expect(reloaded.allTables, hasLength(2));
-    expect(
-      reloaded.allTables.map((t) => t.schoolClass).toSet(),
-      {'8a', '9b'},
-    );
+    final now = DateTime(2026, 8, 17, 8, 30); // Monday
+    final lesson = table.lessonAt(now);
+    expect(lesson, isNotNull);
+    expect(lesson!.lesson.schoolClass, '8a');
+    expect(lesson.lesson.subject, 'Mathe');
   });
 
   test('notenspiegel tracks year and topic averages plus trend', () async {

@@ -311,6 +311,7 @@
   "templateSaved": "Vorlage gespeichert",
   "timetable": "Stundenplan",
   "timetableHint": "Tippe eine Zelle zum Eintragen. Zeiten links tippen (Scroll-Räder). Blöcke können ganz oder geteilt sein. Fächer mit Ordnern verknüpfen.",
+  "timetableTeacherHint": "Ein Stundenplan: in jeder Stunde die Klasse eintragen, mit der du dann unterrichtest. Zur Unterrichtszeit wird diese Klasse automatisch im Notenspiegel, in der Auslosung und in der Live-Klasse aktiv.",
   "timetableEmptyToday": "Noch nichts für heute — tippen zum Eintragen",
   "timetableTodayPreview": "Heute: {preview}",
   "@timetableTodayPreview": {
@@ -330,7 +331,7 @@
     }
   },
   "timetableNewClass": "Klasse anlegen",
-  "timetableNewClassHint": "Eigener Stundenplan für diese Klasse",
+  "timetableNewClassHint": "Klasse für Notenspiegel, Auslosung und Live-Unterricht",
   "timetableCopyPlan": "Aktuellen Plan kopieren",
   "timetableDeleteClass": "Stundenplan dieser Klasse löschen",
   "timetableDeleteClassConfirm": "Der Stundenplan für {className} wird gelöscht. Andere Klassen bleiben erhalten.",
@@ -396,9 +397,24 @@
       "when": {"type": "String"}
     }
   },
+  "nowLessonWithClass": "Jetzt: {className} · {subject} ({when})",
+  "@nowLessonWithClass": {
+    "placeholders": {
+      "className": {"type": "String"},
+      "subject": {"type": "String"},
+      "when": {"type": "String"}
+    }
+  },
   "nowLessonShort": "Jetzt: {subject}",
   "@nowLessonShort": {
     "placeholders": {
+      "subject": {"type": "String"}
+    }
+  },
+  "nowLessonShortWithClass": "Jetzt: {className} · {subject}",
+  "@nowLessonShortWithClass": {
+    "placeholders": {
+      "className": {"type": "String"},
       "subject": {"type": "String"}
     }
   },
@@ -1075,6 +1091,13 @@
   "teacherDistribute": "An Klasse verteilen",
   "teacherDistributionQueued": "Verteilung vorgemerkt. Für Cloud-Downloadbefehle muss ein Backend konfiguriert sein.",
   "teacherGradeReportHint": "Notenspiegel und Leistungsentwicklung pro Klasse, Schuljahr und Themengebiet.",
+  "teacherActiveClassFromTimetable": "Aktuelle Stunde: {className}",
+  "@teacherActiveClassFromTimetable": {
+    "placeholders": {
+      "className": {"type": "String"}
+    }
+  },
+  "teacherActiveClassFromTimetableHint": "Übernommen aus dem Stundenplan. Du kannst die Klasse trotzdem wechseln.",
   "teacherGradeReportOverviewHint": "Trage Noten schnell ein. Der Spiegel zeigt die Verteilung, die Entwicklung im Schuljahr und die Leistung pro Thema.",
   "teacherGradeTopic": "Themengebiet",
   "teacherGradeNewTopic": "Thema anlegen",

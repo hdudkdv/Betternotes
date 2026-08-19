@@ -33,6 +33,8 @@ class ToolOptionsBar extends ConsumerWidget {
     this.hasSelectedSticker = false,
     this.onDeleteSelection,
     this.hasLassoSelection = false,
+    this.selectionCanRecolor = false,
+    this.onPickColor,
     this.onToggleRuler,
     this.onToggleCompass,
     this.rulerActive = false,
@@ -55,6 +57,8 @@ class ToolOptionsBar extends ConsumerWidget {
   final VoidCallback? onDeleteSticker;
   final VoidCallback? onDeleteSelection;
   final bool hasLassoSelection;
+  final bool selectionCanRecolor;
+  final ValueChanged<int>? onPickColor;
   final bool hasSelectedImage;
   final bool hasSelectedSticker;
   final VoidCallback? onToggleRuler;
@@ -75,12 +79,16 @@ class ToolOptionsBar extends ConsumerWidget {
     return AnimatedBuilder(
       animation: Listenable.merge([engine, presets]),
       builder: (context, _) {
-        final options = _optionsFor(context, l10n, presets);
+        final options = _decorateSelection(
+          context,
+          l10n,
+          presets,
+          _optionsFor(context, l10n, presets),
+        );
         final formatBlock = this.formatBlock;
         final formatController = this.formatController;
         final onFormatBlockChanged = this.onFormatBlockChanged;
         final showFormat =
-            engine.tool == InkTool.text &&
             formatBlock != null &&
             formatController != null &&
             onFormatBlockChanged != null;
@@ -197,6 +205,56 @@ class ToolOptionsBar extends ConsumerWidget {
   bool _sameKinds(Set<ContentKind> a, Set<ContentKind> b) =>
       a.length == b.length && a.containsAll(b);
 
+  void _applyColor(int value) {
+    if (onPickColor != null) {
+      onPickColor!(value);
+    } else {
+      engine.setColor(value);
+    }
+  }
+
+  List<Widget> _decorateSelection(
+    BuildContext context,
+    AppLocalizations l10n,
+    ToolPresets presets,
+    List<Widget> options,
+  ) {
+    final showDelete =
+        hasLassoSelection &&
+        engine.tool != InkTool.lasso &&
+        engine.tool != InkTool.image &&
+        engine.tool != InkTool.sticker;
+    final toolHasColors = switch (engine.tool) {
+      InkTool.pen ||
+      InkTool.fountain ||
+      InkTool.pencil ||
+      InkTool.marker ||
+      InkTool.shape ||
+      InkTool.ruler ||
+      InkTool.compass => true,
+      _ => false,
+    };
+    final showColors =
+        hasLassoSelection &&
+        selectionCanRecolor &&
+        !toolHasColors &&
+        engine.tool != InkTool.eraser &&
+        engine.tool != InkTool.lasso;
+    if (!showDelete && !showColors) return options;
+    return [
+      if (showDelete)
+        _pillAction(
+          icon: Icons.delete_outline_rounded,
+          label: l10n.deleteSelection,
+          onTap: onDeleteSelection ?? engine.deleteSelected,
+        ),
+      if (showDelete && showColors) _divider(),
+      if (showColors) ..._colorDots(context, l10n, presets),
+      if (options.isNotEmpty && (showDelete || showColors)) _divider(),
+      ...options,
+    ];
+  }
+
   List<Widget> _optionsFor(
     BuildContext context,
     AppLocalizations l10n,
@@ -286,6 +344,10 @@ class ToolOptionsBar extends ConsumerWidget {
               label: l10n.deleteSelection,
               onTap: onDeleteSelection ?? engine.deleteSelected,
             ),
+          if (hasLassoSelection && selectionCanRecolor) ...[
+            _divider(),
+            ..._colorDots(context, l10n, presets),
+          ],
         ];
       case InkTool.text:
         return [
@@ -552,7 +614,7 @@ class ToolOptionsBar extends ConsumerWidget {
         value: value,
         selected: engine.colorValue == value,
         tooltip: l10n.editColorHint,
-        onTap: () => engine.setColor(value),
+        onTap: () => _applyColor(value),
         onLongPress: () => _editColor(context, l10n, presets, value),
       ),
     Padding(
@@ -885,7 +947,7 @@ class ToolOptionsBar extends ConsumerWidget {
     );
     if (picked == null || picked == value) return;
     presets.replaceColor(value, picked);
-    engine.setColor(picked);
+    _applyColor(picked);
   }
 
   Future<void> _pickNewColor(
@@ -901,7 +963,7 @@ class ToolOptionsBar extends ConsumerWidget {
     );
     if (picked == null) return;
     presets.addColor(picked);
-    engine.setColor(picked);
+    _applyColor(picked);
   }
 }
 

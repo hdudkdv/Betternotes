@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/content_models.dart';
 import '../../../../shared/widgets/local_file_image.dart';
 import '../editor_chrome.dart';
+import 'overlay_hit_stack.dart';
 
 class ImageElementsLayer extends StatelessWidget {
   const ImageElementsLayer({
@@ -24,7 +25,7 @@ class ImageElementsLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final layer = Stack(
+    final layer = OverlayHitStack(
       children: [
         for (final image in images)
           Positioned(
@@ -32,6 +33,7 @@ class ImageElementsLayer extends StatelessWidget {
             top: image.y,
             child: GestureDetector(
               onTap: editable ? () => onSelect(image.id) : null,
+              onSecondaryTap: editable ? () => onSelect(image.id) : null,
               onPanUpdate: editable && selectedId == image.id
                   ? (d) => onChanged(
                       image.copyWith(

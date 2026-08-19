@@ -122,4 +122,68 @@ void main() {
 
     expect(engine.selectedIds, {'marker'});
   });
+
+  test('strokeAt returns the topmost stroke under a point', () {
+    final engine = InkEngine(
+      initial: [
+        InkStroke(
+          id: 'back',
+          tool: InkTool.pen,
+          colorValue: 0xFF000000,
+          width: 4,
+          points: const [StrokePoint(x: 0, y: 0), StrokePoint(x: 40, y: 0)],
+        ),
+        InkStroke(
+          id: 'front',
+          tool: InkTool.pen,
+          colorValue: 0xFFFF0000,
+          width: 4,
+          points: const [StrokePoint(x: 0, y: 0), StrokePoint(x: 40, y: 0)],
+        ),
+      ],
+    );
+
+    expect(engine.strokeAt(const Offset(20, 0))?.id, 'front');
+    expect(engine.strokeAt(const Offset(20, 40)), isNull);
+  });
+
+  test('selectIds and recolorSelected update the chosen strokes', () {
+    final engine = InkEngine(
+      initial: [
+        InkStroke(
+          id: 'a',
+          tool: InkTool.pen,
+          colorValue: 0xFF000000,
+          width: 3,
+          points: const [StrokePoint(x: 0, y: 0), StrokePoint(x: 10, y: 0)],
+        ),
+        InkStroke(
+          id: 'b',
+          tool: InkTool.pen,
+          colorValue: 0xFF000000,
+          width: 3,
+          points: const [StrokePoint(x: 0, y: 20), StrokePoint(x: 10, y: 20)],
+        ),
+      ],
+    );
+
+    engine.selectIds({'a'});
+    expect(engine.selectedIds, {'a'});
+
+    engine.recolorSelected(0xFF00AA00);
+    expect(
+      engine.strokes.firstWhere((s) => s.id == 'a').colorValue,
+      0xFF00AA00,
+    );
+    expect(
+      engine.strokes.firstWhere((s) => s.id == 'b').colorValue,
+      0xFF000000,
+    );
+
+    engine.undo();
+    expect(
+      engine.strokes.firstWhere((s) => s.id == 'a').colorValue,
+      0xFF000000,
+    );
+  });
 }

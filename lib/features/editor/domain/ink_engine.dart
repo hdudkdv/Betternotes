@@ -166,6 +166,46 @@ class InkEngine extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Selects strokes without switching tools. Empty [ids] clears the set.
+  void selectIds(Set<String> ids) {
+    if (setEquals(selectedIds, ids) &&
+        _lassoPoints.isEmpty &&
+        _closedLasso.isEmpty) {
+      return;
+    }
+    selectedIds = Set<String>.of(ids);
+    _lassoPoints = [];
+    _closedLasso = [];
+    notifyListeners();
+  }
+
+  /// Topmost stroke under [point], or null.
+  InkStroke? strokeAt(Offset point, {double tolerance = 10}) {
+    for (final stroke in _strokes.reversed) {
+      if (stroke.hitsPoint(point, tolerance: tolerance)) return stroke;
+    }
+    return null;
+  }
+
+  void recolorSelected(int value) {
+    if (selectedIds.isEmpty) return;
+    var changed = false;
+    final next = <InkStroke>[];
+    for (final stroke in _strokes) {
+      if (selectedIds.contains(stroke.id) && stroke.colorValue != value) {
+        changed = true;
+        next.add(stroke.copyWith(colorValue: value));
+      } else {
+        next.add(stroke);
+      }
+    }
+    if (!changed) return;
+    _pushUndo(_HistoryEntry.replace(List.of(_strokes)));
+    _strokes = next;
+    _redo.clear();
+    notifyListeners();
+  }
+
   void setWidth(double value) {
     width = value;
     notifyListeners();

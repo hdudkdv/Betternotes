@@ -34,10 +34,9 @@ class _GradebookScreenState extends ConsumerState<GradebookScreen> {
   }
 
   Future<void> _syncClasses() async {
-    final tables = ref.read(timetableCatalogProvider);
+    final table = ref.read(timetableProvider);
     final names = {
-      for (final table in tables)
-        if (table.hasClass) table.classLabel,
+      ...table.distinctClassNames(),
       if ((widget.initialClass ?? '').trim().isNotEmpty)
         widget.initialClass!.trim(),
     };
@@ -46,7 +45,8 @@ class _GradebookScreenState extends ConsumerState<GradebookScreen> {
     }
     if (!mounted) return;
     final updated = ref.read(gradebookProvider);
-    final wanted = (widget.initialClass ?? '').trim();
+    final live = ref.read(currentLessonClassProvider);
+    final wanted = (live ?? widget.initialClass ?? '').trim();
     setState(() {
       _classId =
           updated.classByName(wanted)?.id ??
@@ -56,10 +56,29 @@ class _GradebookScreenState extends ConsumerState<GradebookScreen> {
     });
   }
 
+  Future<void> _activateClass(String name) async {
+    final roster = await ref.read(gradebookProvider.notifier).ensureClass(name);
+    if (!mounted) return;
+    final book = ref.read(gradebookProvider);
+    final matching = book.pickers.where((item) => item.classId == roster.id);
+    if (matching.isNotEmpty) {
+      await ref.read(gradebookProvider.notifier).selectPicker(matching.first.id);
+    }
+    setState(() {
+      _classId = roster.id;
+      _topicId = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final book = ref.watch(gradebookProvider);
+    final liveClass = ref.watch(currentLessonClassProvider);
+    ref.listen<String?>(currentLessonClassProvider, (previous, next) {
+      if (next == null || next == previous) return;
+      _activateClass(next);
+    });
 
     final roster = _classId == null ? null : book.classById(_classId!);
     final topics = [
@@ -125,6 +144,18 @@ class _GradebookScreenState extends ConsumerState<GradebookScreen> {
             style: AppTheme.body(color: AppTheme.inkMuted, height: 1.35),
           ),
           const SizedBox(height: 16),
+          if (liveClass != null) ...[
+            Card(
+              color: AppTheme.accentSoft,
+              elevation: 0,
+              child: ListTile(
+                leading: const Icon(Icons.schedule_rounded),
+                title: Text(l10n.teacherActiveClassFromTimetable(liveClass)),
+                subtitle: Text(l10n.teacherActiveClassFromTimetableHint),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           _FilterBar(
             book: book,
             classId: _classId,
@@ -212,7 +243,6 @@ class _GradebookScreenState extends ConsumerState<GradebookScreen> {
       hint: l10n.timetableClassHint,
     );
     if (name == null || name.trim().isEmpty) return;
-    await ref.read(timetableProvider.notifier).addClassPlan(name);
     final roster = await ref.read(gradebookProvider.notifier).ensureClass(name);
     if (!mounted) return;
     setState(() {

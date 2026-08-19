@@ -283,12 +283,14 @@ class InkStroke extends Equatable {
     List<StrokePoint>? points,
     String? id,
     StrokeStyle? style,
+    int? colorValue,
+    double? width,
   }) {
     return InkStroke(
       id: id ?? this.id,
       tool: tool,
-      colorValue: colorValue,
-      width: width,
+      colorValue: colorValue ?? this.colorValue,
+      width: width ?? this.width,
       style: style ?? this.style,
       points: points ?? this.points,
     );

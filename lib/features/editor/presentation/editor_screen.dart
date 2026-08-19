@@ -170,6 +170,7 @@ class EditorController extends ChangeNotifier {
   Set<String> selectedShapeIds = {};
   Set<String> selectedImageIds = {};
   Set<String> selectedTextIds = {};
+  Set<String> selectedStickerIds = {};
   ShapeKind shapeKind = ShapeKind.rect;
   ShapeElement? draftShape;
   final TextBlockRegistry textRegistry = TextBlockRegistry();
@@ -314,6 +315,7 @@ class EditorController extends ChangeNotifier {
     selectedShapeIds = {};
     selectedImageIds = {};
     selectedTextIds = {};
+    selectedStickerIds = {};
     draftShape = null;
     _shapeStart = null;
     unawaited(lastPageStore.write(notebookId, page.id));
@@ -367,9 +369,8 @@ class EditorController extends ChangeNotifier {
   void _onInkChanged() {
     // The canvas repaints itself from the engine, so while a stroke is still
     // being drawn the surrounding chrome does not have to rebuild with it.
-    if (ink.tool != InkTool.lasso) {
-      _clearLassoObjects(notify: false);
-    }
+    // Object selection stays until the user taps empty paper or deletes it —
+    // switching pens must not drop a selected sticky / stroke.
     if (ink.activeStroke == null) notifyListeners();
     _scheduleSave();
   }
@@ -378,22 +379,34 @@ class EditorController extends ChangeNotifier {
       ink.selectedIds.isNotEmpty ||
       selectedShapeIds.isNotEmpty ||
       selectedImageIds.isNotEmpty ||
-      selectedTextIds.isNotEmpty;
+      selectedTextIds.isNotEmpty ||
+      selectedStickerIds.isNotEmpty;
+
+  bool get selectionCanRecolor =>
+      ink.selectedIds.isNotEmpty ||
+      selectedShapeIds.isNotEmpty ||
+      textBlocks.any((b) => selectedTextIds.contains(b.id) && b.isSticky);
 
   void _clearLassoObjects({bool notify = true}) {
     if (selectedShapeIds.isEmpty &&
         selectedImageIds.isEmpty &&
-        selectedTextIds.isEmpty) {
+        selectedTextIds.isEmpty &&
+        selectedStickerIds.isEmpty) {
       return;
     }
     selectedShapeIds = {};
     selectedImageIds = {};
     selectedTextIds = {};
+    selectedStickerIds = {};
     if (notify) notifyListeners();
   }
 
   void clearLassoSelection() {
     ink.clearSelection();
+    selectedTextId = null;
+    editingTextId = null;
+    selectedImageId = null;
+    selectedStickerId = null;
     _clearLassoObjects();
   }
 
@@ -433,6 +446,18 @@ class EditorController extends ChangeNotifier {
       textRegistry.retainOnly({for (final b in textBlocks) b.id});
       changed = true;
     }
+    if (selectedStickerIds.isNotEmpty) {
+      stickers = [
+        for (final s in stickers)
+          if (!selectedStickerIds.contains(s.id)) s,
+      ];
+      if (selectedStickerId != null &&
+          selectedStickerIds.contains(selectedStickerId)) {
+        selectedStickerId = null;
+      }
+      selectedStickerIds = {};
+      changed = true;
+    }
     if (changed) {
       notifyListeners();
       _scheduleSave();
@@ -464,6 +489,12 @@ class EditorController extends ChangeNotifier {
         ).inflate(8).contains(pagePoint)) {
           return true;
         }
+      }
+    }
+    for (final sticker in stickers) {
+      if (selectedStickerIds.contains(sticker.id) &&
+          sticker.bounds.inflate(8).contains(pagePoint)) {
+        return true;
       }
     }
     return false;
@@ -506,6 +537,16 @@ class EditorController extends ChangeNotifier {
       ];
       changed = true;
     }
+    if (selectedStickerIds.isNotEmpty) {
+      stickers = [
+        for (final s in stickers)
+          if (selectedStickerIds.contains(s.id))
+            s.copyWith(x: s.x + delta.dx, y: s.y + delta.dy)
+          else
+            s,
+      ];
+      changed = true;
+    }
     if (changed) notifyListeners();
   }
 
@@ -518,6 +559,7 @@ class EditorController extends ChangeNotifier {
     final nextShapes = <String>{};
     final nextImages = <String>{};
     final nextText = <String>{};
+    final nextStickers = <String>{};
     if (targets.contains(ContentKind.shapes)) {
       for (final shape in shapes) {
         if (rectIntersectsPolygon(shape.bounds, polygon)) {
@@ -529,6 +571,11 @@ class EditorController extends ChangeNotifier {
       for (final image in images) {
         if (rectIntersectsPolygon(image.bounds, polygon)) {
           nextImages.add(image.id);
+        }
+      }
+      for (final sticker in stickers) {
+        if (rectIntersectsPolygon(sticker.bounds, polygon)) {
+          nextStickers.add(sticker.id);
         }
       }
     }
@@ -549,6 +596,15 @@ class EditorController extends ChangeNotifier {
     selectedShapeIds = nextShapes;
     selectedImageIds = nextImages;
     selectedTextIds = nextText;
+    selectedStickerIds = nextStickers;
+    selectedImageId = nextImages.length == 1 ? nextImages.first : null;
+    selectedStickerId = nextStickers.length == 1 ? nextStickers.first : null;
+    if (nextText.length == 1) {
+      selectedTextId = nextText.first;
+    } else if (selectedTextId != null && !nextText.contains(selectedTextId)) {
+      selectedTextId = null;
+      editingTextId = null;
+    }
     notifyListeners();
   }
 
@@ -1093,6 +1149,13 @@ class EditorController extends ChangeNotifier {
     selectedTextId = block.id;
     // A fresh block goes straight to the keyboard so typing needs no extra tap.
     editingTextId = block.id;
+    selectedTextIds = {block.id};
+    selectedImageId = null;
+    selectedStickerId = null;
+    selectedImageIds = {};
+    selectedStickerIds = {};
+    selectedShapeIds = {};
+    ink.selectIds({});
     ink.setTool(InkTool.text);
     notifyListeners();
     _scheduleSave();
@@ -1154,6 +1217,12 @@ class EditorController extends ChangeNotifier {
     selectedTextId = id;
     if (editingTextId != id) editingTextId = null;
     selectedImageId = null;
+    selectedStickerId = null;
+    selectedImageIds = {};
+    selectedStickerIds = {};
+    selectedShapeIds = {};
+    selectedTextIds = id == null ? {} : {id};
+    ink.selectIds({});
     notifyListeners();
   }
 
@@ -1162,6 +1231,12 @@ class EditorController extends ChangeNotifier {
     selectedTextId = id;
     editingTextId = id;
     selectedImageId = null;
+    selectedStickerId = null;
+    selectedImageIds = {};
+    selectedStickerIds = {};
+    selectedShapeIds = {};
+    selectedTextIds = {id};
+    ink.selectIds({});
     notifyListeners();
   }
 
@@ -1172,6 +1247,10 @@ class EditorController extends ChangeNotifier {
     ];
     if (selectedTextId == block.id) selectedTextId = null;
     if (editingTextId == block.id) editingTextId = null;
+    selectedTextIds = {
+      for (final id in selectedTextIds)
+        if (id != block.id) id,
+    };
     textRegistry.retainOnly({for (final b in textBlocks) b.id});
     notifyListeners();
     _scheduleSave();
@@ -1189,6 +1268,13 @@ class EditorController extends ChangeNotifier {
   void selectImage(String? id) {
     selectedImageId = id;
     selectedTextId = null;
+    editingTextId = null;
+    selectedStickerId = null;
+    selectedTextIds = {};
+    selectedStickerIds = {};
+    selectedShapeIds = {};
+    selectedImageIds = id == null ? {} : {id};
+    ink.selectIds({});
     notifyListeners();
   }
 
@@ -1198,6 +1284,10 @@ class EditorController extends ChangeNotifier {
         if (i.id != id) i,
     ];
     if (selectedImageId == id) selectedImageId = null;
+    selectedImageIds = {
+      for (final item in selectedImageIds)
+        if (item != id) item,
+    };
     notifyListeners();
     _scheduleSave();
   }
@@ -1233,6 +1323,14 @@ class EditorController extends ChangeNotifier {
     );
     images = [...images, element];
     selectedImageId = element.id;
+    selectedImageIds = {element.id};
+    selectedTextId = null;
+    editingTextId = null;
+    selectedStickerId = null;
+    selectedTextIds = {};
+    selectedStickerIds = {};
+    selectedShapeIds = {};
+    ink.selectIds({});
     ink.setTool(InkTool.image);
     notifyListeners();
     _scheduleSave();
@@ -1258,6 +1356,14 @@ class EditorController extends ChangeNotifier {
     );
     images = [...images, element];
     selectedImageId = element.id;
+    selectedImageIds = {element.id};
+    selectedTextId = null;
+    editingTextId = null;
+    selectedStickerId = null;
+    selectedTextIds = {};
+    selectedStickerIds = {};
+    selectedShapeIds = {};
+    ink.selectIds({});
     ink.setTool(InkTool.image);
     notifyListeners();
     _scheduleSave();
@@ -1274,7 +1380,14 @@ class EditorController extends ChangeNotifier {
     );
     stickers = [...stickers, element];
     selectedStickerId = element.id;
+    selectedStickerIds = {element.id};
     selectedImageId = null;
+    selectedTextId = null;
+    editingTextId = null;
+    selectedImageIds = {};
+    selectedTextIds = {};
+    selectedShapeIds = {};
+    ink.selectIds({});
     ink.setTool(InkTool.sticker);
     notifyListeners();
     _scheduleSave();
@@ -1293,6 +1406,12 @@ class EditorController extends ChangeNotifier {
     selectedStickerId = id;
     selectedImageId = null;
     selectedTextId = null;
+    editingTextId = null;
+    selectedImageIds = {};
+    selectedTextIds = {};
+    selectedShapeIds = {};
+    selectedStickerIds = id == null ? {} : {id};
+    ink.selectIds({});
     notifyListeners();
   }
 
@@ -1302,6 +1421,10 @@ class EditorController extends ChangeNotifier {
         if (s.id != id) s,
     ];
     if (selectedStickerId == id) selectedStickerId = null;
+    selectedStickerIds = {
+      for (final item in selectedStickerIds)
+        if (item != id) item,
+    };
     notifyListeners();
     _scheduleSave();
   }
@@ -1509,12 +1632,138 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _startSelectionMove(Offset pagePoint) {
+    _lassoDragStart = pagePoint;
+    _lassoAccum = Offset.zero;
+    _lassoBeforeMove = List.of(ink.strokes);
+  }
+
+  void applyColorToSelection(int value) {
+    ink.setColor(value);
+    var changed = false;
+    if (ink.selectedIds.isNotEmpty) {
+      ink.recolorSelected(value);
+      changed = true;
+    }
+    if (selectedShapeIds.isNotEmpty) {
+      shapes = [
+        for (final s in shapes)
+          if (selectedShapeIds.contains(s.id))
+            s.copyWith(colorValue: value)
+          else
+            s,
+      ];
+      changed = true;
+    }
+    if (selectedTextIds.isNotEmpty) {
+      textBlocks = [
+        for (final b in textBlocks)
+          if (selectedTextIds.contains(b.id) && b.isSticky)
+            b.copyWith(fillColor: value)
+          else
+            b,
+      ];
+      changed = true;
+    }
+    if (changed) {
+      notifyListeners();
+      _scheduleSave();
+    }
+  }
+
+  /// Tap / right-click hit test used even when the lasso tool is not active.
+  ///
+  /// Overlay widgets (stickies, images, stickers) usually consume the pointer
+  /// first; this path covers strokes and shapes, and is a fallback for overlays.
+  bool trySelectAt(
+    Offset pagePoint, {
+    required bool beginMove,
+    bool onlyExisting = false,
+  }) {
+    if (interactionMode == InteractionMode.read) return false;
+
+    if (hasLassoSelection && _lassoSelectionContains(pagePoint)) {
+      if (beginMove) _startSelectionMove(pagePoint);
+      return true;
+    }
+    if (onlyExisting) return false;
+
+    for (final block in textBlocks.reversed) {
+      if (block.layoutMode == TextLayoutMode.lineBound) continue;
+      final page = currentPage;
+      if (page == null) break;
+      final bounds = textBlockBounds(
+        block: block,
+        metrics: _metricsForPage(page),
+      );
+      if (bounds.inflate(14).contains(pagePoint)) {
+        selectText(block.id);
+        if (beginMove) _startSelectionMove(pagePoint);
+        return true;
+      }
+    }
+    for (final sticker in stickers.reversed) {
+      if (sticker.bounds.inflate(8).contains(pagePoint)) {
+        selectSticker(sticker.id);
+        if (beginMove) _startSelectionMove(pagePoint);
+        return true;
+      }
+    }
+    for (final image in images.reversed) {
+      if (image.bounds.inflate(8).contains(pagePoint)) {
+        selectImage(image.id);
+        if (beginMove) _startSelectionMove(pagePoint);
+        return true;
+      }
+    }
+    for (final shape in shapes.reversed) {
+      if (_shapeHits(shape, pagePoint, 10)) {
+        selectedTextId = null;
+        editingTextId = null;
+        selectedImageId = null;
+        selectedStickerId = null;
+        selectedTextIds = {};
+        selectedImageIds = {};
+        selectedStickerIds = {};
+        selectedShapeIds = {shape.id};
+        ink.selectIds({});
+        if (beginMove) _startSelectionMove(pagePoint);
+        notifyListeners();
+        return true;
+      }
+    }
+    final stroke = ink.strokeAt(pagePoint);
+    if (stroke != null) {
+      selectedTextId = null;
+      editingTextId = null;
+      selectedImageId = null;
+      selectedStickerId = null;
+      selectedTextIds = {};
+      selectedImageIds = {};
+      selectedStickerIds = {};
+      selectedShapeIds = {};
+      ink.selectIds({stroke.id});
+      if (beginMove) _startSelectionMove(pagePoint);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
   void onPointerDown(
     Offset pagePoint, {
     required bool isStylus,
     double pressure = 0.5,
   }) {
     if (interactionMode == InteractionMode.read) return;
+
+    // A miss: drop the current object selection, then start the active tool.
+    if (hasLassoSelection ||
+        selectedTextId != null ||
+        selectedImageId != null ||
+        selectedStickerId != null) {
+      clearLassoSelection();
+    }
 
     if (ink.tool == InkTool.text) {
       if (textLayoutMode == TextLayoutMode.lineBound) {
@@ -1552,21 +1801,8 @@ class EditorController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if (ink.tool == InkTool.lasso && hasLassoSelection) {
-      if (_lassoSelectionContains(pagePoint)) {
-        _lassoDragStart = pagePoint;
-        _lassoAccum = Offset.zero;
-        _lassoBeforeMove = List.of(ink.strokes);
-        return;
-      }
-      clearLassoSelection();
-      return;
-    }
     _shapeHoldTimer?.cancel();
     _convertedByHold = false;
-    if (ink.tool == InkTool.lasso) {
-      _clearLassoObjects(notify: false);
-    }
     ink.beginStroke(pagePoint, pressure: pressure);
     if (ink.tool == InkTool.eraser) {
       _erasePageObjects(pagePoint);
@@ -1711,8 +1947,10 @@ class EditorController extends ChangeNotifier {
       return;
     }
     if (_lassoDragStart != null) {
-      if (_lassoBeforeMove != null && _lassoAccum != Offset.zero) {
-        ink.commitSelectionMove(_lassoBeforeMove!);
+      if (_lassoAccum != Offset.zero) {
+        if (_lassoBeforeMove != null && ink.selectedIds.isNotEmpty) {
+          ink.commitSelectionMove(_lassoBeforeMove!);
+        }
         _scheduleSave();
       }
       _lassoDragStart = null;
@@ -2312,7 +2550,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         !readOnly &&
         !presenting &&
         !studying &&
-        controller.ink.tool == InkTool.text;
+        controller.selectedTextId != null;
     TextBlock? textFormatTarget;
     if (editingText && controller.selectedTextId != null) {
       for (final block in controller.textBlocks) {
@@ -2415,6 +2653,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                     .threeFingerSwipeRightAction,
                         ),
                       ),
+                      onTrySelect: (point, {required beginMove, onlyExisting = false}) {
+                        _dismissUnpinnedTools();
+                        return controller.trySelectAt(
+                          point,
+                          beginMove: beginMove,
+                          onlyExisting: onlyExisting,
+                        );
+                      },
                       onPointerDown:
                           (point, {required isStylus, pressure = 0.5}) {
                             _dismissUnpinnedTools();
@@ -2466,6 +2712,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                             metrics: metrics,
                                           ),
                                     ],
+                                    stickers: [
+                                      for (final s in controller.stickers)
+                                        if (controller.selectedStickerIds
+                                            .contains(s.id))
+                                          s.bounds,
+                                    ],
                                   ),
                                 ),
                               ),
@@ -2501,49 +2753,40 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                             ),
                           ),
                           IgnorePointer(
-                            ignoring: controller.ink.tool != InkTool.image,
+                            ignoring: readOnly || presenting,
                             child: ImageElementsLayer(
                               images: controller.images,
                               selectedId: controller.selectedImageId,
-                              editable:
-                                  !readOnly &&
-                                  !presenting &&
-                                  controller.ink.tool == InkTool.image,
+                              editable: !readOnly && !presenting,
                               onSelect: controller.selectImage,
                               onChanged: controller.updateImage,
                               onDelete: controller.deleteImage,
                             ),
                           ),
                           IgnorePointer(
-                            ignoring: controller.ink.tool != InkTool.sticker,
+                            ignoring: readOnly || presenting,
                             child: StickerLayer(
                               stickers: controller.stickers,
                               selectedId: controller.selectedStickerId,
-                              editable:
-                                  !readOnly &&
-                                  !presenting &&
-                                  controller.ink.tool == InkTool.sticker,
+                              editable: !readOnly && !presenting,
                               onSelect: controller.selectSticker,
                               onChanged: controller.updateSticker,
                               onDelete: controller.deleteSticker,
                             ),
                           ),
                           IgnorePointer(
-                            ignoring:
-                                readOnly ||
-                                presenting ||
-                                controller.ink.tool != InkTool.text,
+                            ignoring: readOnly || presenting,
                             child: TextBlockLayer(
                               blocks: controller.textBlocks,
                               selectedId: controller.selectedTextId,
                               editingId: controller.editingTextId,
-                              editable:
+                              editable: !readOnly && !presenting,
+                              pageTextEnabled:
                                   !readOnly &&
                                   !presenting &&
-                                  controller.ink.tool == InkTool.text,
-                              pageTextEnabled:
+                                  controller.ink.tool == InkTool.text &&
                                   controller.textLayoutMode ==
-                                  TextLayoutMode.lineBound,
+                                      TextLayoutMode.lineBound,
                               metrics: metrics,
                               registry: controller.textRegistry,
                               onSelect: controller.selectText,
@@ -2606,7 +2849,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                           controller.selectedStickerId!,
                         ),
                   hasLassoSelection: controller.hasLassoSelection,
+                  selectionCanRecolor: controller.selectionCanRecolor,
                   onDeleteSelection: controller.deleteLassoSelection,
+                  onPickColor: controller.applyColorToSelection,
                   hasSelectedImage: controller.selectedImageId != null,
                   onDeleteImage: controller.selectedImageId == null
                       ? null
@@ -3449,11 +3694,13 @@ class _LassoObjectHighlightPainter extends CustomPainter {
     required this.shapes,
     required this.images,
     required this.texts,
+    this.stickers = const [],
   });
 
   final List<Rect> shapes;
   final List<Rect> images;
   final List<Rect> texts;
+  final List<Rect> stickers;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -3461,7 +3708,7 @@ class _LassoObjectHighlightPainter extends CustomPainter {
       ..color = const Color(0xFF2F6FED)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6;
-    for (final rect in [...shapes, ...images, ...texts]) {
+    for (final rect in [...shapes, ...images, ...texts, ...stickers]) {
       canvas.drawRect(rect.inflate(3), paint);
     }
   }
@@ -3470,6 +3717,7 @@ class _LassoObjectHighlightPainter extends CustomPainter {
   bool shouldRepaint(covariant _LassoObjectHighlightPainter oldDelegate) {
     return oldDelegate.shapes != shapes ||
         oldDelegate.images != images ||
-        oldDelegate.texts != texts;
+        oldDelegate.texts != texts ||
+        oldDelegate.stickers != stickers;
   }
 }

@@ -316,6 +316,23 @@ class Timetable extends Equatable {
   String get classLabel => schoolClass.trim();
   bool get hasClass => classLabel.isNotEmpty;
 
+  /// Class names written on lesson cells (teacher grid).
+  List<String> distinctClassNames() {
+    final names = <String>{};
+    void consider(TimetableLesson lesson) {
+      final name = lesson.schoolClass.trim();
+      if (name.isNotEmpty) names.add(name);
+    }
+
+    for (final slot in slots) {
+      consider(slot.first);
+      if (slot.split) consider(slot.second);
+    }
+    final out = names.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return out;
+  }
+
   static const dayCount = 5;
 
   TimetableSlot? slotAt(int day, int period) {
@@ -524,89 +541,72 @@ TimetableSlot stampSlotWithClass(TimetableSlot slot, String schoolClass) {
   return slot.copyWith(first: stamp(slot.first), second: stamp(slot.second));
 }
 
-TimetableSlot? slotForSchoolClass(TimetableSlot slot, String schoolClass) {
-  final key = schoolClass.trim().toLowerCase();
-  if (key.isEmpty) return slot;
-  bool matches(TimetableLesson lesson) =>
-      lesson.schoolClass.trim().toLowerCase() == key;
-
-  final firstMatch = matches(slot.first);
-  final secondMatch = slot.split && matches(slot.second);
-  if (!firstMatch && !secondMatch) return null;
-  if (firstMatch && (!slot.split || secondMatch)) {
-    return secondMatch ? slot : slot.copyWith(split: false, second: const TimetableLesson());
+TimetableSlot mergeLessonSlots(TimetableSlot a, TimetableSlot b) {
+  final lessons = <TimetableLesson>[];
+  void add(TimetableLesson lesson) {
+    if (lesson.isEmpty) return;
+    final key =
+        '${lesson.schoolClass.trim().toLowerCase()}|${lesson.subject.trim().toLowerCase()}';
+    if (lessons.any(
+      (item) =>
+          '${item.schoolClass.trim().toLowerCase()}|${item.subject.trim().toLowerCase()}' ==
+          key,
+    )) {
+      return;
+    }
+    lessons.add(lesson);
   }
-  if (firstMatch) {
-    return slot.copyWith(split: false, second: const TimetableLesson());
+
+  add(a.first);
+  if (a.split) add(a.second);
+  add(b.first);
+  if (b.split) add(b.second);
+  if (lessons.isEmpty) {
+    return TimetableSlot(day: a.day, period: a.period);
+  }
+  if (lessons.length == 1) {
+    return TimetableSlot(day: a.day, period: a.period, first: lessons.first);
   }
   return TimetableSlot(
-    day: slot.day,
-    period: slot.period,
-    first: slot.second,
+    day: a.day,
+    period: a.period,
+    split: true,
+    first: lessons[0],
+    second: lessons[1],
   );
 }
 
-/// Split a mixed teacher grid into one timetable per class name on the cells.
-List<Timetable> splitTimetableBySchoolClass(Timetable table) {
-  final names = <String>{};
-  void consider(TimetableLesson lesson) {
-    final name = lesson.schoolClass.trim();
-    if (name.isNotEmpty) names.add(name);
+/// One teacher grid: class lives on the lesson cell, not as a separate plan.
+Timetable mergeClassPlans(List<Timetable> tables) {
+  if (tables.isEmpty) return Timetable.empty();
+  var periods = tables.first.periods;
+  for (final table in tables) {
+    if (table.periods.length > periods.length) periods = table.periods;
   }
-
-  for (final slot in table.slots) {
-    consider(slot.first);
-    if (slot.split) consider(slot.second);
+  final slots = <String, TimetableSlot>{};
+  for (final table in tables) {
+    for (final raw in table.slots) {
+      if (raw.isEmpty) continue;
+      final slot = table.hasClass
+          ? stampSlotWithClass(raw, table.classLabel)
+          : raw;
+      final key = '${slot.day}-${slot.period}';
+      final existing = slots[key];
+      slots[key] = existing == null ? slot : mergeLessonSlots(existing, slot);
+    }
   }
-
-  if (names.isEmpty) {
-    return [table];
-  }
-  if (names.length == 1 && table.classLabel.isEmpty) {
-    final only = names.first;
-    return [
-      table.copyWith(schoolClass: only, title: only).stampedWithClass(),
-    ];
-  }
-  if (names.length == 1) {
-    return [table.stampedWithClass()];
-  }
-
-  final out = <Timetable>[
-    for (final name in names)
-      Timetable(
-        id: const Uuid().v4(),
-        title: name,
-        schoolClass: name,
-        periods: table.periods,
-        slots: [
-          for (final slot in table.slots)
-            if (slotForSchoolClass(slot, name) != null)
-              stampSlotWithClass(slotForSchoolClass(slot, name)!, name),
-        ],
-        updatedAt: table.updatedAt,
-      ),
-  ];
-  final unlabeled = [
-    for (final slot in table.slots)
-      if (slot.first.schoolClass.trim().isEmpty &&
-          (!slot.split || slot.second.schoolClass.trim().isEmpty) &&
-          !slot.isEmpty)
-        slot,
-  ];
-  if (unlabeled.isNotEmpty && table.classLabel.isEmpty) {
-    out.insert(
-      0,
-      Timetable(
-        id: table.id,
-        title: table.title,
-        periods: table.periods,
-        slots: unlabeled,
-        updatedAt: table.updatedAt,
-      ),
-    );
-  }
-  return out;
+  final first = tables.first;
+  final title = tables.length == 1 &&
+          !(first.hasClass && first.title.trim() == first.classLabel)
+      ? first.title
+      : 'Stundenplan';
+  return Timetable(
+    id: first.id,
+    title: title,
+    periods: periods,
+    slots: slots.values.toList(),
+    updatedAt: first.updatedAt,
+  );
 }
 
 class TimetableNotifier extends StateNotifier<Timetable> {
@@ -651,21 +651,22 @@ class TimetableNotifier extends StateNotifier<Timetable> {
       }
       final json = Map<String, dynamic>.from(jsonDecode(raw) as Map);
       final tablesJson = json['tables'];
+      final loaded = <Timetable>[];
       if (tablesJson is List && tablesJson.isNotEmpty) {
-        _tables = [
-          for (final item in tablesJson)
+        for (final item in tablesJson) {
+          loaded.add(
             Timetable.fromJson(Map<String, dynamic>.from(item as Map)),
-        ];
-        final activeId = json['activeId'] as String?;
-        state = _tables.firstWhere(
-          (table) => table.id == activeId,
-          orElse: () => _tables.first,
-        );
-        return;
+          );
+        }
+      } else {
+        loaded.add(Timetable.fromJson(json));
       }
-      final loaded = Timetable.fromJson(json);
-      _tables = splitTimetableBySchoolClass(loaded);
-      state = _tables.first;
+      final merged = mergeClassPlans(loaded);
+      _tables = [merged];
+      state = merged;
+      if (loaded.length > 1 || loaded.any((table) => table.hasClass)) {
+        _save();
+      }
     } catch (_) {
       _tables = [state];
     }
@@ -773,7 +774,7 @@ class TimetableNotifier extends StateNotifier<Timetable> {
   }
 
   Future<void> setSlot(TimetableSlot slot) async {
-    await _commit(state.upsertSlot(stampSlotWithClass(slot, state.schoolClass)));
+    await _commit(state.upsertSlot(slot));
   }
 
   Future<void> clearSlot(int day, int period) async {
@@ -853,31 +854,16 @@ final _clockTickProvider = StreamProvider<DateTime>((ref) {
   ).asBroadcastStream();
 });
 
-NowLesson? lessonNowAcrossTables(
-  List<Timetable> tables,
-  DateTime now, {
-  String? preferId,
-}) {
-  NowLesson? preferred;
-  NowLesson? any;
-  for (final table in tables) {
-    final lesson = table.lessonAt(now);
-    if (lesson == null) continue;
-    any ??= lesson;
-    if (table.id == preferId) preferred = lesson;
-  }
-  return preferred ?? any;
-}
-
 final nowLessonProvider = Provider<NowLesson?>((ref) {
   ref.watch(_clockTickProvider);
-  final active = ref.watch(timetableProvider);
-  final tables = ref.read(timetableProvider.notifier).allTables;
-  return lessonNowAcrossTables(
-    tables.isEmpty ? [active] : tables,
-    DateTime.now(),
-    preferId: active.id,
-  );
+  return ref.watch(timetableProvider).lessonAt(DateTime.now());
+});
+
+/// Class taught in the current period, or null between lessons / weekends.
+final currentLessonClassProvider = Provider<String?>((ref) {
+  final name = ref.watch(nowLessonProvider)?.lesson.schoolClass.trim();
+  if (name == null || name.isEmpty) return null;
+  return name;
 });
 
 TimetableLesson lessonFromFolder(LibraryFolder folder) {

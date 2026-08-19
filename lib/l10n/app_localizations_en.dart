@@ -871,6 +871,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tap a cell to fill lessons. Tap times on the left (scroll wheels). Blocks can be full or split. Link subjects to folders.';
 
   @override
+  String get timetableTeacherHint =>
+      'One timetable: put the class you teach in each period. When that period starts, the class is selected automatically in the gradebook, picker, and live class.';
+
+  @override
   String get timetableEmptyToday => 'Nothing for today yet — tap to fill in';
 
   @override
@@ -902,7 +906,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timetableNewClass => 'Add class';
 
   @override
-  String get timetableNewClassHint => 'A separate timetable for this class';
+  String get timetableNewClassHint =>
+      'Class for the gradebook, picker, and live lesson';
 
   @override
   String get timetableCopyPlan => 'Copy the current plan';
@@ -1017,8 +1022,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String nowLessonWithClass(String className, String subject, String when) {
+    return 'Now: $className · $subject ($when)';
+  }
+
+  @override
   String nowLessonShort(String subject) {
     return 'Now: $subject';
+  }
+
+  @override
+  String nowLessonShortWithClass(String className, String subject) {
+    return 'Now: $className · $subject';
   }
 
   @override
@@ -2574,6 +2589,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get teacherGradeReportHint =>
       'Grade distribution and progress per class, school year, and topic.';
+
+  @override
+  String teacherActiveClassFromTimetable(String className) {
+    return 'Current period: $className';
+  }
+
+  @override
+  String get teacherActiveClassFromTimetableHint =>
+      'Taken from the timetable. You can still switch class by hand.';
 
   @override
   String get teacherGradeReportOverviewHint =>

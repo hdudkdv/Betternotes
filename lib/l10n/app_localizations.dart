@@ -1742,6 +1742,12 @@ abstract class AppLocalizations {
   /// **'Tap a cell to fill lessons. Tap times on the left (scroll wheels). Blocks can be full or split. Link subjects to folders.'**
   String get timetableHint;
 
+  /// No description provided for @timetableTeacherHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One timetable: put the class you teach in each period. When that period starts, the class is selected automatically in the gradebook, picker, and live class.'**
+  String get timetableTeacherHint;
+
   /// No description provided for @timetableEmptyToday.
   ///
   /// In en, this message translates to:
@@ -1799,7 +1805,7 @@ abstract class AppLocalizations {
   /// No description provided for @timetableNewClassHint.
   ///
   /// In en, this message translates to:
-  /// **'A separate timetable for this class'**
+  /// **'Class for the gradebook, picker, and live lesson'**
   String get timetableNewClassHint;
 
   /// No description provided for @timetableCopyPlan.
@@ -2000,11 +2006,23 @@ abstract class AppLocalizations {
   /// **'Now: {subject} ({when})'**
   String nowLesson(String subject, String when);
 
+  /// No description provided for @nowLessonWithClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Now: {className} · {subject} ({when})'**
+  String nowLessonWithClass(String className, String subject, String when);
+
   /// No description provided for @nowLessonShort.
   ///
   /// In en, this message translates to:
   /// **'Now: {subject}'**
   String nowLessonShort(String subject);
+
+  /// No description provided for @nowLessonShortWithClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Now: {className} · {subject}'**
+  String nowLessonShortWithClass(String className, String subject);
 
   /// No description provided for @newInfiniteDocument.
   ///
@@ -4825,6 +4843,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Grade distribution and progress per class, school year, and topic.'**
   String get teacherGradeReportHint;
+
+  /// No description provided for @teacherActiveClassFromTimetable.
+  ///
+  /// In en, this message translates to:
+  /// **'Current period: {className}'**
+  String teacherActiveClassFromTimetable(String className);
+
+  /// No description provided for @teacherActiveClassFromTimetableHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken from the timetable. You can still switch class by hand.'**
+  String get teacherActiveClassFromTimetableHint;
 
   /// No description provided for @teacherGradeReportOverviewHint.
   ///

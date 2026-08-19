@@ -9,6 +9,7 @@ import '../../domain/paper_line_metrics.dart';
 import '../../domain/rich_text_controller.dart';
 import '../../domain/text_block_registry.dart';
 import '../editor_chrome.dart';
+import 'overlay_hit_stack.dart';
 
 /// Padding between a free block's frame and its text, and the width of the
 /// band that stays grabbable while the caret is active.
@@ -191,29 +192,30 @@ class TextBlockLayer extends StatelessWidget {
     // The page is a fixed-size document, so the system font scale must not
     // stretch line heights away from the ruled lines. The transparent Material
     // makes the text fields work wherever the canvas is embedded.
+    // Material sits on each block so empty page area does not swallow ink.
     return MediaQuery.withNoTextScaling(
-      child: Material(
-        type: MaterialType.transparency,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            for (final block in blocks)
-              Positioned(
-                left: block.layoutMode == TextLayoutMode.lineBound
-                    ? metrics.marginLeft
-                    : block.x,
-                top: block.layoutMode == TextLayoutMode.lineBound
-                    ? block.y - baselineOffset
-                    : block.y,
-                width: block.layoutMode == TextLayoutMode.lineBound
-                    ? metrics.contentWidth
-                    : block.width,
-                height: block.layoutMode == TextLayoutMode.lineBound
-                    ? math.max(
-                        metrics.lineSpacing,
-                        metrics.pageHeight - (block.y - baselineOffset) - 16,
-                      )
-                    : null,
+      child: OverlayHitStack(
+        clipBehavior: Clip.none,
+        children: [
+          for (final block in blocks)
+            Positioned(
+              left: block.layoutMode == TextLayoutMode.lineBound
+                  ? metrics.marginLeft
+                  : block.x,
+              top: block.layoutMode == TextLayoutMode.lineBound
+                  ? block.y - baselineOffset
+                  : block.y,
+              width: block.layoutMode == TextLayoutMode.lineBound
+                  ? metrics.contentWidth
+                  : block.width,
+              height: block.layoutMode == TextLayoutMode.lineBound
+                  ? math.max(
+                      metrics.lineSpacing,
+                      metrics.pageHeight - (block.y - baselineOffset) - 16,
+                    )
+                  : null,
+              child: Material(
+                type: MaterialType.transparency,
                 child: _TextBlockWidget(
                   key: ValueKey(block.id),
                   block: block,
@@ -230,8 +232,8 @@ class TextBlockLayer extends StatelessWidget {
                   onCaretPagePoint: onCaretPagePoint,
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -446,6 +448,10 @@ class _TextBlockWidgetState extends State<_TextBlockWidget> {
     if (!widget.editable) {
       return IgnorePointer(child: content);
     }
+    // Page-wide writing column only owns hits while the page-text tool is on.
+    if (_lineBound && !widget.pageTextEnabled) {
+      return IgnorePointer(child: content);
+    }
     // Page text is a word processor: tap for a caret, select to format, no
     // frame and no dragging.
     if (_lineBound) return content;
@@ -464,6 +470,9 @@ class _TextBlockWidgetState extends State<_TextBlockWidget> {
               // the finger by the slop distance.
               dragStartBehavior: DragStartBehavior.down,
               onTap: _handleTap,
+              onSecondaryTap: () {
+                if (!widget.selected) widget.onSelect();
+              },
               onPanStart: (_) => _beginDrag(),
               onPanUpdate: (d) => _updateDrag(d.delta),
               onPanEnd: (_) => _endDrag(),
