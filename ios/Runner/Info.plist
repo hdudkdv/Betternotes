@@ -263,7 +263,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Notis importiert geteilte Fotos in Notizbücher.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Notis nutzt die Kamera, um Arbeitsblätter und Klausuren als Seiten einzuscannen.</string>
+	<string>Notis nutzt die Kamera, um Arbeitsblätter einzuscannen und den QR-Code für den Nahe-Sync zu lesen.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Notis nimmt Lehrer-Erklärungen nur auf, wenn du eine Aufnahme startest.</string>
 	<key>CFBundleDisplayName</key>
@@ -329,7 +329,7 @@
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN oder Hotspot.</string>
+	<string>Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN, Hotspot oder ein eigenes Gerät-zu-Gerät-Netz — auch ohne Internet.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Notis nutzt den Standort nur, um Geräte in der Nähe im lokalen Netz zu finden. Es wird keine Karte angezeigt.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

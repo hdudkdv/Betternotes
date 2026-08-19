@@ -343,6 +343,8 @@ IconData folderIconFor(String key) {
       return Icons.menu_book_rounded;
     case 'star':
       return Icons.star_rounded;
+    case 'live':
+      return Icons.sensors_rounded;
     case 'code':
       return Icons.code_rounded;
     case 'computer':
@@ -414,4 +416,5 @@ const folderIconKeys = <String>[
   'heart',
   'flag',
   'star',
+  'live',
 ];

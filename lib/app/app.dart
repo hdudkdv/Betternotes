@@ -140,6 +140,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             CollaborationScreen(notebookId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/nearby',
+        name: 'nearbyJoin',
+        builder: (context, state) => const NearbySyncScreen(),
+      ),
+      GoRoute(
         path: '/nearby-sync/:id',
         name: 'nearbySync',
         builder: (context, state) =>

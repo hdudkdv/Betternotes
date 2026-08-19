@@ -51,7 +51,7 @@ class LegalDocumentScreen extends StatelessWidget {
 const _privacyDe = '''
 Datenschutzerklärung – Notis
 
-Stand: Juli 2026
+Stand: August 2026
 
 1. Verantwortlicher
 Marwin Maschke, Antonstraße 18, 01809 Dohna, Deutschland.
@@ -91,7 +91,9 @@ Lehrerfunktionen:
 Je nach Funktion: Art. 6 Abs. 1 lit. b DSGVO (Vertrag/Nutzung), lit. a (Einwilligung, z. B. Tracking/Werbung), lit. f (berechtigtes Interesse an stabiler, sicherer App) sowie ggf. lit. c (rechtliche Verpflichtung).
 
 5. Speicherdauer
-Lokale Daten bleiben, bis du sie löschst oder die App deinstallierst. Cloud-Daten bleiben, bis du sie löschst, das Konto entfernst oder die Sync-Funktion beendest – vorbehaltlich gesetzlicher Aufbewahrungsfristen und Backup-Zyklen der Anbieter.
+Lokale Daten bleiben, bis du sie löschst oder die App deinstallierst. Cloud-Daten bleiben, bis du sie löschst oder dein Konto löschst – vorbehaltlich gesetzlicher Aufbewahrungsfristen und Backup-Zyklen der Anbieter.
+
+Du kannst dein Konto jederzeit in der App löschen: Einstellungen → Cloud-Konto → Konto löschen. Das entfernt die Anmeldung (Google oder Apple) und die zugehörigen Cloud-Daten unwiderruflich. Notizbücher, die nur lokal auf dem Gerät liegen, bleiben erhalten, bis du sie selbst löschst oder die App deinstallierst. App-Store-Abos kündigst du separat in den Apple-ID-Einstellungen.
 
 6. Empfänger / Auftragsverarbeiter
 Je nach Nutzung u. a.:
@@ -102,7 +104,7 @@ Je nach Nutzung u. a.:
 Diese Anbieter können Daten außerhalb der EU verarbeiten; es gelten deren Datenschutzinformationen und ggf. geeignete Garantien (z. B. Standardvertragsklauseln).
 
 7. Deine Rechte
-Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch sowie das Recht, eine Einwilligung zu widerrufen. Außerdem kannst du dich bei einer Aufsichtsbehörde beschweren.
+Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch sowie das Recht, eine Einwilligung zu widerrufen. Die Kontolöschung startest du in der App unter Einstellungen → Konto löschen. Außerdem kannst du dich bei einer Aufsichtsbehörde beschweren.
 
 8. Kinder
 Notis richtet sich an Schüler:innen und Studierende. Wenn du unter 16 bist (bzw. unter dem in deinem Land geltenden Alter), nutze die App bitte nur mit Zustimmung einer erziehungsberechtigten Person, soweit erforderlich.
@@ -117,7 +119,7 @@ Siehe Impressum unter https://notis-notizbuecher.web.app/impressum oder in den E
 const _privacyEn = '''
 Privacy Policy – Notis
 
-Last updated: July 2026
+Last updated: August 2026
 
 1. Controller
 Marwin Maschke, Antonstraße 18, 01809 Dohna, Germany.
@@ -157,13 +159,15 @@ Teacher features:
 Depending on the feature: Art. 6(1)(b) (contract/use), (a) consent (e.g. ads/tracking), (f) legitimate interest in a stable secure app, and (c) legal obligation where applicable.
 
 5. Retention
-Local data remains until you delete it or uninstall the app. Cloud data remains until you delete it, remove the account, or stop syncing — subject to legal retention and provider backup cycles.
+Local data remains until you delete it or uninstall the app. Cloud data remains until you delete it or delete your account — subject to legal retention and provider backup cycles.
+
+You can delete your account at any time in the app: Settings → Cloud account → Delete account. That permanently removes your sign-in (Google or Apple) and associated cloud data. Notebooks that exist only on this device stay until you delete them or uninstall the app. App Store subscriptions are cancelled separately in Apple ID settings.
 
 6. Recipients / processors
 Depending on use, may include Firebase/Google (auth, Firestore, Storage), Apple/Google (sign-in, purchases), RevenueCat, and Google AdMob. Providers may process data outside the EU under their policies and appropriate safeguards.
 
 7. Your rights
-You may request access, rectification, erasure, restriction, portability and objection, and withdraw consent. You may lodge a complaint with a supervisory authority.
+You may request access, rectification, erasure, restriction, portability and objection, and withdraw consent. Start account deletion in the app under Settings → Delete account. You may lodge a complaint with a supervisory authority.
 
 8. Children
 Notis is aimed at students. If you are under 16 (or the applicable age in your country), use the app only with guardian consent where required.
@@ -178,7 +182,7 @@ See the Legal notice at https://notis-notizbuecher.web.app/impressum or in Setti
 const _termsDe = '''
 Allgemeine Nutzungsbedingungen (AGB) – Notis
 
-Stand: Juli 2026
+Stand: August 2026
 
 1. Geltungsbereich
 Diese Bedingungen gelten für die Nutzung der App Notis („App“) auf unterstützten Geräten.
@@ -206,7 +210,7 @@ Wir bemühen uns um einen stabilen Betrieb, übernehmen aber keine Garantie für
 Soweit gesetzlich zulässig, haften wir nicht für leichte Fahrlässigkeit, außer bei Verletzung wesentlicher Vertragspflichten, Schäden aus der Verletzung des Lebens, des Körpers oder der Gesundheit sowie nach dem Produkthaftungsgesetz. Die Haftung für Vorsatz und grobe Fahrlässigkeit bleibt unberührt.
 
 8. Beendigung
-Du kannst die Nutzung jederzeit einstellen und die App deinstallieren. Wir können den Zugang bei schwerwiegenden Verstößen gegen diese Bedingungen einschränken oder beenden.
+Du kannst die Nutzung jederzeit einstellen, die App deinstallieren oder dein Konto in den Einstellungen unter „Konto löschen“ unwiderruflich löschen. Wir können den Zugang bei schwerwiegenden Verstößen gegen diese Bedingungen einschränken oder beenden.
 
 9. Änderungen
 Wir können die AGB anpassen. Wesentliche Änderungen werden in der App oder auf der Projektseite kommuniziert. Die fortgesetzte Nutzung nach Wirksamwerden gilt – soweit zulässig – als Zustimmung.
@@ -221,7 +225,7 @@ Marwin Maschke, valpulse.official@gmail.com — siehe Impressum.
 const _termsEn = '''
 Terms of Use – Notis
 
-Last updated: July 2026
+Last updated: August 2026
 
 1. Scope
 These terms govern use of the Notis app (“App”) on supported devices.
@@ -249,7 +253,7 @@ We aim for a stable service but do not guarantee uninterrupted availability. Kee
 To the extent permitted by law, we are not liable for slight negligence, except for breach of essential duties, injury to life/body/health, and product liability. Liability for intent and gross negligence remains unaffected. Mandatory consumer rights remain intact.
 
 8. Termination
-You may stop using the App and uninstall at any time. We may restrict or end access for serious breaches of these terms.
+You may stop using the App, uninstall it, or permanently delete your account in Settings under “Delete account”. We may restrict or end access for serious breaches of these terms.
 
 9. Changes
 We may update these terms. Material changes will be communicated in the App or project channels. Continued use after they take effect may constitute acceptance where allowed.

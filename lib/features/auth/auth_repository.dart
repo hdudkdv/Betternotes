@@ -10,6 +10,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../sync/firebase_bootstrap.dart';
+import 'account_deletion.dart';
 
 class AuthFailure implements Exception {
   const AuthFailure(this.message, {this.cancelled = false});
@@ -87,6 +88,13 @@ class AuthFailure implements Exception {
         'Apple-Anmeldung im Browser ist in Firebase noch nicht eingetragen. '
         'Unter Authentication → Apple die Services-ID und den '
         'Sign-in-with-Apple-Schlüssel speichern.',
+      );
+    }
+    if (code == 'requires-recent-login' ||
+        code == 'user-token-expired' ||
+        lower.contains('requires-recent-login')) {
+      return const AuthFailure(
+        'Bitte zuerst erneut anmelden, dann das Konto löschen.',
       );
     }
     if (lower.contains('network') || lower.contains('unavailable')) {
@@ -230,6 +238,122 @@ class AuthRepository extends StateNotifier<AppAuthState> {
   Future<void> signOut() async {
     _requireFirebase();
     await FirebaseAuth.instance.signOut();
+  }
+
+  /// Permanently deletes the Firebase account and associated cloud data.
+  ///
+  /// Re-authenticates first (Firebase requires a recent login). For Sign in
+  /// with Apple the authorization code is revoked before the user is removed.
+  Future<void> deleteAccount() async {
+    _requireFirebase();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw const AuthFailure('Nicht angemeldet.');
+    }
+    final uid = user.uid;
+    final providers = user.providerData.map((info) => info.providerId);
+    try {
+      final reauth = await _reauthenticate(user, providers);
+      try {
+        await wipeAccountCloudData(uid: uid);
+      } catch (_) {}
+      final code = reauth.appleAuthorizationCode ??
+          reauth.credential.additionalUserInfo?.authorizationCode;
+      if (code != null && code.isNotEmpty) {
+        try {
+          await FirebaseAuth.instance.revokeTokenWithAuthorizationCode(code);
+        } catch (_) {}
+      }
+      final remaining = FirebaseAuth.instance.currentUser ?? user;
+      try {
+        await remaining.delete();
+      } on FirebaseAuthException catch (error) {
+        if (error.code != 'user-not-found') rethrow;
+      }
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
+    } catch (error) {
+      final failure = AuthFailure.map(error);
+      if (failure.cancelled) throw failure;
+      if (FirebaseAuth.instance.currentUser == null) return;
+      throw failure;
+    }
+  }
+
+  Future<({UserCredential credential, String? appleAuthorizationCode})>
+  _reauthenticate(User user, Iterable<String> providers) async {
+    if (usesAppleSignIn(providers)) {
+      return _reauthenticateApple(user);
+    }
+    if (usesGoogleSignIn(providers)) {
+      return (
+        credential: await _reauthenticateGoogle(user),
+        appleAuthorizationCode: null,
+      );
+    }
+    throw const AuthFailure(
+      'Bitte erneut anmelden, um das Konto zu löschen.',
+    );
+  }
+
+  Future<({UserCredential credential, String? appleAuthorizationCode})>
+  _reauthenticateApple(User user) async {
+    final provider = AppleAuthProvider()
+      ..addScope('email')
+      ..addScope('name');
+    if (kIsWeb) {
+      final credential = await user.reauthenticateWithPopup(provider);
+      return (
+        credential: credential,
+        appleAuthorizationCode:
+            credential.additionalUserInfo?.authorizationCode,
+      );
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      final credential = await user.reauthenticateWithProvider(provider);
+      return (
+        credential: credential,
+        appleAuthorizationCode:
+            credential.additionalUserInfo?.authorizationCode,
+      );
+    }
+    final rawNonce = _nonce();
+    final appleCredential = await SignInWithApple.getAppleIDCredential(
+      scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ],
+      nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+    );
+    final credential = OAuthProvider('apple.com').credential(
+      idToken: appleCredential.identityToken,
+      rawNonce: rawNonce,
+      accessToken: appleCredential.authorizationCode,
+    );
+    return (
+      credential: await user.reauthenticateWithCredential(credential),
+      appleAuthorizationCode: appleCredential.authorizationCode,
+    );
+  }
+
+  Future<UserCredential> _reauthenticateGoogle(User user) async {
+    if (kIsWeb) {
+      return user.reauthenticateWithPopup(GoogleAuthProvider());
+    }
+    try {
+      return await user.reauthenticateWithProvider(GoogleAuthProvider());
+    } catch (error) {
+      final failure = AuthFailure.map(error);
+      if (failure.cancelled) throw failure;
+      await GoogleSignIn.instance.initialize();
+      final account = await GoogleSignIn.instance.authenticate();
+      final credential = GoogleAuthProvider.credential(
+        idToken: account.authentication.idToken,
+      );
+      return user.reauthenticateWithCredential(credential);
+    }
   }
 
   Future<void> _ensureProfile() async {

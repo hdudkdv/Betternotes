@@ -563,6 +563,7 @@ void showLibraryCreateSheet(
   required VoidCallback onInfinite,
   required VoidCallback onFlashcards,
   VoidCallback? onScanPages,
+  VoidCallback? onJoinNearby,
 }) {
   final l10n = AppLocalizations.of(context)!;
   showModalBottomSheet<void>(
@@ -587,6 +588,19 @@ void showLibraryCreateSheet(
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
+              if (onJoinNearby != null)
+                ListTile(
+                  leading: const Icon(Icons.qr_code_scanner_rounded),
+                  title: Text(
+                    l10n.nearbyJoinFromLibrary,
+                    style: AppTheme.body(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(l10n.nearbyJoinFromLibraryHint),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onJoinNearby();
+                  },
+                ),
               ListTile(
                 leading: Icon(Icons.folder_outlined, color: AppTheme.ink),
                 title: Text(

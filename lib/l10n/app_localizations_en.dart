@@ -1649,7 +1649,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planPointClassLoans => '5 marketplace loans per class';
 
   @override
-  String get planPointSyncFive => 'Online sync on 5 devices';
+  String get planPointSyncFive => 'Online sync for 5 notebooks at a time';
 
   @override
   String get planPointSyncUnlimited => 'Unlimited online sync';
@@ -1888,6 +1888,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signOut => 'Sign out';
 
   @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get deleteAccountHint =>
+      'Permanently deletes your cloud account and synced notebooks. Notes on this device stay local.';
+
+  @override
+  String get deleteAccountTitle => 'Delete cloud account?';
+
+  @override
+  String get deleteAccountBody =>
+      'This permanently deletes your sign-in (Google or Apple) and all notebooks stored in the cloud. Subscriptions bought through the App Store must be cancelled separately in Apple ID settings. Notebooks that only exist on this device stay until you delete them or uninstall the app.';
+
+  @override
+  String get deleteAccountContinue => 'Continue';
+
+  @override
+  String get deleteAccountConfirmTitle => 'Delete account permanently?';
+
+  @override
+  String get deleteAccountConfirmBody =>
+      'This cannot be undone. You will be asked to sign in again to confirm it is you.';
+
+  @override
+  String get deleteAccountConfirm => 'Delete account permanently';
+
+  @override
+  String get deleteAccountWorking => 'Deleting account…';
+
+  @override
+  String get deleteAccountDone =>
+      'Account deleted. Notebooks on this device remain local.';
+
+  @override
+  String get deleteAccountFailed =>
+      'The account could not be deleted. Check your internet connection and try again.';
+
+  @override
   String get cloudSyncOffline =>
       'Offline-first: without signing in, data stays on this device.';
 
@@ -2070,7 +2108,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nearbySyncIntro =>
-      'Share this notebook over the same Wi‑Fi or a phone hotspot. The first transfer sends the whole notebook; afterwards only changes are exchanged — no internet required.';
+      'One device hosts. The others scan the QR code or tap Join — no router and no internet.';
 
   @override
   String get nearbySyncDeviceName => 'Device name';
@@ -2080,7 +2118,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nearbySyncHostHint =>
-      'Start hosting, then tell the other device your IP address and session code. Both devices must be on the same network or hotspot.';
+      'Start hosting. In a park, Android creates a local network automatically. iPhone: enable Personal Hotspot in Settings, then wait until an address appears.';
 
   @override
   String get nearbySyncStartHost => 'Start nearby session';
@@ -2117,7 +2155,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nearbySyncNoAddress =>
-      'No local IP found yet. Connect to Wi‑Fi or enable a hotspot, then reopen this screen.';
+      'No local address yet. On iPhone enable Personal Hotspot; on Android allow location / nearby devices, then wait a moment.';
 
   @override
   String get nearbySyncStatusIdle => 'No nearby session';
@@ -2165,11 +2203,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nearbySyncBinaryNote =>
-      'PDF backgrounds and inserted images are transferred over the air with the notebook. Both devices must stay on the same Wi‑Fi or hotspot.';
+      'PDF backgrounds and images travel with the notebook. Stay on the host’s hotspot or the same Wi‑Fi until you are done.';
 
   @override
   String get nearbySyncDiscoverHint =>
-      'Devices hosting a nearby session appear automatically. Tap one to join.';
+      'On the same network, hosts appear automatically. In a park, scan the QR code instead.';
 
   @override
   String get nearbySyncSearching => 'Searching on this network…';
@@ -2185,13 +2223,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nearbySyncNoDevices =>
-      'No nearby hosts found yet. Ask the other device to start hosting.';
+      'No nearby hosts found yet. Ask the other device to start hosting, or scan its QR code.';
 
   @override
   String get nearbySyncManualJoin => 'Join manually (IP + code)';
 
   @override
   String get nearbySyncJoinManual => 'Join with IP';
+
+  @override
+  String get nearbySyncParkTitle => 'Without a router';
+
+  @override
+  String get nearbySyncParkHint =>
+      'One device hosts. Others scan the QR code — no internet needed. Works in a park, on a train, or in a classroom without Wi‑Fi.';
+
+  @override
+  String get nearbySyncWifiName => 'Wi‑Fi name';
+
+  @override
+  String get nearbySyncWifiPassword => 'Wi‑Fi password';
+
+  @override
+  String get nearbySyncScanQr => 'Scan QR code';
+
+  @override
+  String get nearbySyncQrHint =>
+      'The other device scans this code to join, even without a shared router.';
+
+  @override
+  String get nearbySyncIosHotspotHint =>
+      'On this iPhone: Settings → Personal Hotspot → turn it on. Then the address and QR code appear. The others join that hotspot (or scan the code).';
+
+  @override
+  String get nearbyJoinFromLibrary => 'Join nearby';
+
+  @override
+  String get nearbyJoinFromLibraryHint =>
+      'Scan a QR code or tap a device on this network — no internet.';
+
+  @override
+  String get nearbySyncHostNeedsNotebook =>
+      'To host, open a notebook first, then start nearby sync there.';
+
+  @override
+  String get liveFolder => 'Live';
+
+  @override
+  String get liveNow => 'Live';
+
+  @override
+  String get cloudSyncThisNotebook => 'Sync this notebook to the cloud';
+
+  @override
+  String get cloudSyncThisNotebookOff => 'Stop cloud sync for this notebook';
+
+  @override
+  String get cloudSyncLimitReached =>
+      'Lite syncs at most 5 notebooks at a time. Remove one first, or switch to Pro.';
 
   @override
   String get privacyPolicy => 'Privacy policy';

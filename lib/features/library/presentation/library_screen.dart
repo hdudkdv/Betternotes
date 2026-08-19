@@ -18,8 +18,13 @@ import '../../onboarding/app_tour.dart';
 import '../../planner/planner_screen.dart';
 import '../../planner/school_year_rollover.dart';
 import '../../lan_sync/lan_sync_controller.dart';
+import '../../lan_sync/nearby_link.dart';
+import '../../lan_sync/nearby_sync_screen.dart';
+import '../../entitlements/entitlement_model.dart';
+import '../../sync/cloud_sync_selection.dart';
 import '../../sync/web_cloud_bar.dart';
 import '../../timetable/timetable_screen.dart';
+import '../live_folder.dart';
 import '../providers/library_providers.dart';
 import 'widgets/library_create_dialogs.dart';
 import 'widgets/notebook_cover.dart';
@@ -44,6 +49,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   bool _rolloverLoaded = false;
   int _tourIndex = 0;
   bool _routeWasCurrent = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _ensureLiveFolder();
+      await ref.read(lanSyncProvider).startBrowsing();
+      final paid = ref.read(entitlementProvider).paidTier;
+      await ref.read(cloudSyncSelectionProvider).ensureInitialized(
+            paid: paid,
+            notebooks:
+                await ref.read(notebookRepositoryProvider).getNotebooks(),
+          );
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -173,6 +194,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       notebook = notebook.copyWith(isFavorite: true, updatedAt: DateTime.now());
       await ref.read(notebookRepositoryProvider).updateNotebook(notebook);
     }
+    await _enrollCloudSync(notebook.id);
     refreshLibraryLists(ref);
     await ref.read(notebooksProvider.future);
     if (!mounted) return;
@@ -219,17 +241,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 title: Text(l10n.editFolder),
                 onTap: () => Navigator.pop(context, 'edit'),
               ),
-              ListTile(
-                leading: Icon(
-                  Icons.delete_outline,
-                  color: Theme.of(context).colorScheme.error,
+              if (folder.id != kLiveFolderId)
+                ListTile(
+                  leading: Icon(
+                    Icons.delete_outline,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  title: Text(
+                    l10n.delete,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                  onTap: () => Navigator.pop(context, 'delete'),
                 ),
-                title: Text(
-                  l10n.delete,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                onTap: () => Navigator.pop(context, 'delete'),
-              ),
             ],
           ),
         );
@@ -326,7 +349,54 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       onInfinite: () => _createNotebook(initialMode: CanvasMode.infinite),
       onFlashcards: _createFlashcards,
       onScanPages: () => scanIntoNotebook(context, ref),
+      onJoinNearby: () => context.push('/nearby'),
     );
+  }
+
+  Future<void> _ensureLiveFolder() async {
+    final l10n = AppLocalizations.of(context)!;
+    await ref.read(notebookRepositoryProvider).createFolder(
+          id: kLiveFolderId,
+          name: l10n.liveFolder,
+          colorValue: kLiveFolderColor,
+          iconKey: kLiveFolderIcon,
+        );
+    ref.invalidate(foldersProvider);
+    ref.invalidate(allFoldersProvider);
+  }
+
+  Future<void> _enrollCloudSync(String notebookId) async {
+    final paid = ref.read(entitlementProvider).paidTier;
+    final selection = ref.read(cloudSyncSelectionProvider);
+    await selection.ensureInitialized(
+      paid: paid,
+      notebooks: await ref.read(notebookRepositoryProvider).getNotebooks(),
+    );
+    await selection.add(notebookId, paid);
+  }
+
+  Future<void> _toggleCloudSync(Notebook notebook) async {
+    final l10n = AppLocalizations.of(context)!;
+    final paid = ref.read(entitlementProvider).paidTier;
+    final selection = ref.read(cloudSyncSelectionProvider);
+    if (selection.isSynced(notebook.id, paid)) {
+      await selection.remove(notebook.id);
+      return;
+    }
+    final ok = await selection.add(notebook.id, paid);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.cloudSyncLimitReached)),
+      );
+    }
+  }
+
+  Future<void> _scanJoinFromLibrary() async {
+    final link = await Navigator.of(context).push<NearbyLink>(
+      MaterialPageRoute(builder: (_) => const NearbyScanJoinPage()),
+    );
+    if (link == null || !mounted) return;
+    await ref.read(lanSyncProvider).joinFromLink(link);
   }
 
   Future<void> _openSearchHit(SearchHit hit) async {
@@ -577,6 +647,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 ),
               ),
               actions: [
+                IconButton(
+                  tooltip: l10n.nearbySyncScanQr,
+                  onPressed: _scanJoinFromLibrary,
+                  icon: const Icon(Icons.qr_code_scanner_rounded),
+                ),
                 if (appSettings.isTeacher)
                   IconButton(
                     tooltip: l10n.teacherWorkspace,
@@ -651,6 +726,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         setState(() {});
                       },
                     ),
+                    if (folderId == null) ...[
+                      const SizedBox(height: 12),
+                      _NearbyJoinCard(
+                        onOpen: () => context.push('/nearby'),
+                        onScan: _scanJoinFromLibrary,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -710,7 +792,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 error: (e, st) =>
                     const SliverToBoxAdapter(child: SizedBox.shrink()),
                 data: (folders) {
-                  if (folders.isEmpty) {
+                  final ordered = [...folders]..sort((a, b) {
+                    if (a.id == kLiveFolderId) return -1;
+                    if (b.id == kLiveFolderId) return 1;
+                    return 0;
+                  });
+                  if (ordered.isEmpty) {
                     return const SliverToBoxAdapter(child: SizedBox.shrink());
                   }
                   return SliverToBoxAdapter(
@@ -732,7 +819,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             spacing: 10,
                             runSpacing: 10,
                             children: [
-                              for (final folder in folders)
+                              for (final folder in ordered)
                                 GestureDetector(
                                   onLongPress: () => _folderActions(folder),
                                   child: ActionChip(
@@ -818,18 +905,34 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 error: (e, _) =>
                     SliverFillRemaining(child: Center(child: Text('$e'))),
                 data: (notebooks) {
+                  var visible = notebooks;
+                  if (folderId == kLiveFolderId) {
+                    final lan = ref.watch(lanSyncProvider);
+                    final liveId = lan.isActive ? lan.notebookId : null;
+                    if (liveId != null &&
+                        !visible.any((notebook) => notebook.id == liveId)) {
+                      final all =
+                          ref.watch(allNotebooksProvider).valueOrNull ??
+                          const <Notebook>[];
+                      visible = [
+                        for (final notebook in all)
+                          if (notebook.id == liveId) notebook,
+                        ...visible,
+                      ];
+                    }
+                  }
                   final folders = foldersAsync.valueOrNull ?? [];
                   final decks = decksAsync.valueOrNull ?? [];
                   final settings = ref.watch(settingsProvider);
                   // Fire-and-forget prefs load for dismissed rollover cards.
                   _ensureRolloverDismissedLoaded();
                   final rollovers = SchoolYearRollover.candidates(
-                    folderNotebooks: notebooks,
+                    folderNotebooks: visible,
                     level: settings.educationLevel,
                     state: settings.germanState,
                     dismissedKeys: _rolloverDismissed,
                   );
-                  if (notebooks.isEmpty &&
+                  if (visible.isEmpty &&
                       folders.isEmpty &&
                       decks.isEmpty &&
                       rollovers.isEmpty) {
@@ -862,12 +965,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                     );
                   }
-                  if (notebooks.isEmpty && rollovers.isEmpty) {
+                  if (visible.isEmpty && rollovers.isEmpty) {
                     return const SliverToBoxAdapter(
                       child: SizedBox(height: 80),
                     );
                   }
-                  final itemCount = rollovers.length + notebooks.length;
+                  final itemCount = rollovers.length + visible.length;
                   return SliverPadding(
                     padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
                     sliver: SliverMainAxisGroup(
@@ -907,7 +1010,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               );
                             }
                             final notebook =
-                                notebooks[index - rollovers.length];
+                                visible[index - rollovers.length];
                             return NotebookCover(
                               notebook: notebook,
                               onOpen: () async {
@@ -937,6 +1040,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 ref,
                                 notebook.id,
                               ),
+                              onCloudSync: () => _toggleCloudSync(notebook),
                             );
                           }, childCount: itemCount),
                         ),
@@ -1010,3 +1114,63 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     );
   }
 }
+
+class _NearbyJoinCard extends ConsumerWidget {
+  const _NearbyJoinCard({required this.onOpen, required this.onScan});
+
+  final VoidCallback onOpen;
+  final VoidCallback onScan;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final sync = ref.watch(lanSyncProvider);
+    final hosts = sync.discoveredHosts;
+    return Card(
+      color: AppTheme.card,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.sensors_rounded),
+              title: Text(
+                l10n.nearbyJoinFromLibrary,
+                style: AppTheme.body(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+              subtitle: Text(l10n.nearbyJoinFromLibraryHint),
+              trailing: IconButton.filledTonal(
+                tooltip: l10n.nearbySyncScanQr,
+                onPressed: onScan,
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+              ),
+              onTap: onOpen,
+            ),
+            if (hosts.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              for (final host in hosts.take(3))
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: const Icon(Icons.tablet_mac_rounded, size: 22),
+                  title: Text(host.name),
+                  subtitle: Text(host.notebookTitle ?? host.sessionCode),
+                  trailing: TextButton(
+                    onPressed: sync.isActive
+                        ? null
+                        : () => ref.read(lanSyncProvider).joinDiscovered(host),
+                    child: Text(l10n.nearbySyncJoin),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+

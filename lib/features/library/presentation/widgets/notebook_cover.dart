@@ -9,6 +9,10 @@ import '../../../../data/models/notebook.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../editor/presentation/page_preview_cache.dart';
 import '../../../auth/auth_repository.dart';
+import '../../../entitlements/entitlement_model.dart';
+import '../../../lan_sync/lan_sync_controller.dart';
+import '../../../sync/cloud_sync_selection.dart';
+import '../../live_folder.dart';
 import '../../providers/library_providers.dart';
 
 class NotebookCover extends ConsumerWidget {
@@ -20,6 +24,7 @@ class NotebookCover extends ConsumerWidget {
     required this.onRename,
     required this.onDelete,
     this.onLink,
+    this.onCloudSync,
   });
 
   final Notebook notebook;
@@ -28,12 +33,21 @@ class NotebookCover extends ConsumerWidget {
   final VoidCallback onRename;
   final VoidCallback onDelete;
   final VoidCallback? onLink;
+  final VoidCallback? onCloudSync;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final uid = ref.watch(authProvider).user?.uid;
     final lockedOut = notebook.isLockedFor(uid);
+    final lan = ref.watch(lanSyncProvider);
+    final liveNow = notebook.folderId == kLiveFolderId ||
+        (lan.isActive && lan.notebookId == notebook.id);
+    final paid = ref.watch(entitlementProvider).paidTier;
+    final cloudOn = ref.watch(cloudSyncSelectionProvider).isSynced(
+          notebook.id,
+          paid,
+        );
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -115,6 +129,27 @@ class NotebookCover extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (liveNow)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0F6E56)
+                                      .withValues(alpha: 0.92),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  l10n.liveNow,
+                                  style: AppTheme.body(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
                             if (notebook.canvasMode == CanvasMode.infinite)
                               Container(
                                 margin: const EdgeInsets.only(bottom: 6),
@@ -194,6 +229,7 @@ class NotebookCover extends ConsumerWidget {
                             if (value == 'rename') onRename();
                             if (value == 'delete') onDelete();
                             if (value == 'link') onLink?.call();
+                            if (value == 'cloud') onCloudSync?.call();
                           },
                           itemBuilder: (context) => [
                             PopupMenuItem(
@@ -204,6 +240,15 @@ class NotebookCover extends ConsumerWidget {
                               PopupMenuItem(
                                 value: 'link',
                                 child: Text(l10n.crossLink),
+                              ),
+                            if (onCloudSync != null && paid == PaidTier.lite)
+                              PopupMenuItem(
+                                value: 'cloud',
+                                child: Text(
+                                  cloudOn
+                                      ? l10n.cloudSyncThisNotebookOff
+                                      : l10n.cloudSyncThisNotebook,
+                                ),
                               ),
                             PopupMenuItem(
                               value: 'delete',

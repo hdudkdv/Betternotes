@@ -75,13 +75,13 @@ abstract final class PlanCatalog {
     priceEn: '€4.99 / year or €20 lifetime',
     pointsDe: [
       'Wöchentliches Backup',
-      'Online-Sync für 5 Geräte',
+      'Online-Sync für 5 Notizbücher gleichzeitig',
       '3 Marketplace-Artikel dauerhaft kaufen',
       'Danach weitere Artikel mit Coins aus Werbung',
     ],
     pointsEn: [
       'Weekly backup',
-      'Online sync for 5 devices',
+      'Online sync for 5 notebooks at a time',
       'Buy 3 marketplace items permanently',
       'Then more items with coins from ads',
     ],
@@ -135,12 +135,14 @@ abstract final class PlanCatalog {
     priceEn: '€1.99 / month',
     pointsDe: [
       'Wöchentliches Backup',
+      'Online-Sync für 5 Notizbücher gleichzeitig',
       'Zugriff auf den Lehrmittel-Austausch',
       '3 Marketplace-Artikel dauerhaft kaufen',
       'Danach weitere Artikel mit Coins aus Werbung',
     ],
     pointsEn: [
       'Weekly backup',
+      'Online sync for 5 notebooks at a time',
       'Teacher exchange access',
       'Buy 3 marketplace items permanently',
       'Then more items with coins from ads',

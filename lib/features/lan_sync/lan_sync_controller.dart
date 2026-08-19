@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 import '../../data/models/content_models.dart';
 import '../../data/models/notebook.dart';
 import '../../data/repositories/notebook_repository.dart';
+import '../library/live_folder.dart';
 import '../library/providers/library_providers.dart';
 import '../sync/sync_merge.dart';
 import '../sync/transport_manager.dart';
@@ -19,6 +20,8 @@ import 'lan_sync_assets.dart';
 import 'lan_sync_discovery.dart';
 import 'lan_sync_protocol.dart';
 import 'lan_sync_transport.dart';
+import 'nearby_hotspot.dart';
+import 'nearby_link.dart';
 
 enum LanSyncEventKind {
   peerJoined,
@@ -220,6 +223,8 @@ class LanSyncController extends ChangeNotifier {
   bool _applyingRemote = false;
   bool _disposed = false;
   Future<void> _messageQueue = Future.value();
+  NearbyHotspotSession? hotspotSession;
+  Timer? _lanAddressPoll;
 
   /// Pending snapshot pages while assets are still arriving.
   Map<String, dynamic>? _pendingNotebook;
@@ -238,6 +243,31 @@ class LanSyncController extends ChangeNotifier {
 
   String get deviceId => _deviceId;
 
+  String? get preferredHostIp =>
+      localAddresses.isEmpty ? null : localAddresses.first;
+
+  NearbyLink? get joinLink {
+    final ip = preferredHostIp;
+    final code = sessionCode;
+    if (ip == null || code == null) return null;
+    return NearbyLink(
+      host: ip,
+      port: port,
+      code: code,
+      ssid: hotspotSession?.ssid,
+      password: hotspotSession?.password,
+    );
+  }
+
+  bool get startedLocalAp => hotspotSession != null;
+
+  /// Hosting with no LAN address yet — typical on iOS until Personal Hotspot is on.
+  bool get waitingForPersonalHotspot =>
+      role == LanSyncRole.host &&
+      isActive &&
+      localAddresses.isEmpty &&
+      hotspotSession == null;
+
   bool get canBroadcast =>
       isActive &&
       notebookId != null &&
@@ -254,6 +284,15 @@ class LanSyncController extends ChangeNotifier {
   Future<void> refreshAddresses() async {
     localAddresses = await LanSyncTransport.localIPv4Addresses();
     notifyListeners();
+  }
+
+  void _startLanAddressPoll() {
+    _lanAddressPoll?.cancel();
+    _lanAddressPoll = Timer.periodic(const Duration(seconds: 2), (_) async {
+      if (_disposed) return;
+      if (role != LanSyncRole.host || !isActive) return;
+      await refreshAddresses();
+    });
   }
 
   Future<void> startBrowsing() async {
@@ -336,8 +375,17 @@ class LanSyncController extends ChangeNotifier {
     };
 
     try {
+      await refreshAddresses();
+      if (localAddresses.isEmpty) {
+        hotspotSession = await NearbyHotspot.instance.startHostAp();
+      }
       port = await _transport.startHost(port: kLanSyncPort);
       await refreshAddresses();
+      for (var i = 0; i < 10 && localAddresses.isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+        await refreshAddresses();
+      }
+      _startLanAddressPoll();
       final notebook = await _repository.getNotebook(notebookId);
       await _discovery.startAdvertising(
         serviceName: deviceName,
@@ -366,6 +414,24 @@ class LanSyncController extends ChangeNotifier {
       errorMessage = '$e';
       _emit(LanSyncEvent(kind: LanSyncEventKind.error, message: errorMessage));
     }
+  }
+
+  Future<void> joinFromLink(NearbyLink link, {String? displayName}) async {
+    if (link.hasWifi) {
+      phase = LanSyncPhase.connecting;
+      notifyListeners();
+      await NearbyHotspot.instance.connectToAp(
+        ssid: link.ssid!,
+        password: link.password!,
+      );
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    await join(
+      host: link.host,
+      code: link.code,
+      port: link.port,
+      displayName: displayName,
+    );
   }
 
   Future<void> join({
@@ -458,6 +524,10 @@ class LanSyncController extends ChangeNotifier {
   }
 
   Future<void> stop() async {
+    _lanAddressPoll?.cancel();
+    _lanAddressPoll = null;
+    await NearbyHotspot.instance.stop();
+    hotspotSession = null;
     await _discovery.stopAdvertising();
     await _transport.stop();
     phase = LanSyncPhase.idle;
@@ -1078,7 +1148,16 @@ class LanSyncController extends ChangeNotifier {
       if (!importCopy) {
         notebookId = notebook.id;
       }
-      await _repository.upsertRemoteNotebook(notebook);
+      final liveFolder = await _repository.createFolder(
+        id: kLiveFolderId,
+        name: 'Live',
+        colorValue: kLiveFolderColor,
+        iconKey: kLiveFolderIcon,
+      );
+      final stored = notebook.folderId == kLiveFolderId
+          ? notebook
+          : notebook.copyWith(folderId: liveFolder.id);
+      await _repository.upsertRemoteNotebook(stored);
       for (final pageJson in pagesJson) {
         final remapped = remapPageAssetPaths(pageJson, _assetKeyToPath);
         final remote = NotePage.fromJson(remapped);
@@ -1180,7 +1259,11 @@ class LanSyncController extends ChangeNotifier {
           final remote = Notebook.fromJson(
             Map<String, dynamic>.from(jsonDecode(op.payloadJson) as Map),
           );
-          await _repository.upsertRemoteNotebook(remote);
+          final local = await _repository.getNotebook(remote.id);
+          final stored = local?.folderId == kLiveFolderId
+              ? remote.copyWith(folderId: kLiveFolderId)
+              : remote;
+          await _repository.upsertRemoteNotebook(stored);
           _emit(LanSyncEvent(
             kind: LanSyncEventKind.notebookUpdated,
             notebookId: remote.id,
@@ -1298,6 +1381,8 @@ class LanSyncController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _lanAddressPoll?.cancel();
+    unawaited(NearbyHotspot.instance.stop());
     _hostsSub?.cancel();
     _discovery.dispose();
     _transport.stop();

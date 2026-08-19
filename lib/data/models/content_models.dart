@@ -1092,13 +1092,14 @@ class LibraryFolder extends Equatable {
   }
 
   factory LibraryFolder.create({
+    String? id,
     required String name,
     String? parentId,
     int colorValue = 0xFF1D4E89,
     String iconKey = 'folder',
   }) {
     return LibraryFolder(
-      id: const Uuid().v4(),
+      id: id ?? const Uuid().v4(),
       name: name,
       createdAt: DateTime.now(),
       parentId: parentId,

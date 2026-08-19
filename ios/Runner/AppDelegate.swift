@@ -15,5 +15,8 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PencilGesturePlugin") {
       PencilGesturePlugin.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "NearbyHotspotPlugin") {
+      NearbyHotspotPlugin.register(with: registrar)
+    }
   }
 }

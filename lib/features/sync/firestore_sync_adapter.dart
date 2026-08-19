@@ -61,12 +61,14 @@ class FirestoreSyncAdapter {
     'teacherGradebookV1',
     'classroomAutoConnectSubject',
     'classroomAutoConnectRoom',
+    'cloudSyncNotebookIdsV1',
   ];
   static const _appBoolStateKeys = <String>[
     'classroomAutoConnectEnabled',
     'classroomAutoConnectAsked',
     'profileSetupCompleted',
     'tutorialCompleted',
+    'cloudSyncNotebookIdsInitV1',
   ];
 
   String get _uid {
@@ -407,10 +409,14 @@ class FirestoreSyncAdapter {
   }
 
   /// First-login migration for the existing local notebook collection.
-  Future<void> pushLocalSnapshot() async {
+  Future<void> pushLocalSnapshot({Set<String>? allowedNotebookIds}) async {
     await ensureProfile();
     for (final notebook in await _repository.getNotebooks()) {
       if (notebook.locked && notebook.ownerUid != _uid) continue;
+      if (allowedNotebookIds != null &&
+          !allowedNotebookIds.contains(notebook.id)) {
+        continue;
+      }
       await _user
           .collection('notebooks')
           .doc(notebook.id)

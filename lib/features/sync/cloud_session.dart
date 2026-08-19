@@ -120,3 +120,17 @@ Future<void> signOutWithHandover(BuildContext context, WidgetRef ref) async {
   await ref.read(authProvider.notifier).signOut();
   refreshLibraryLists(ref);
 }
+
+Future<void> deleteSignedInAccount(WidgetRef ref) async {
+  final uid = ref.read(authProvider).user?.uid;
+  await ref.read(authProvider.notifier).deleteAccount();
+  if (uid != null) {
+    AccountLibraryService.forgetVault(uid);
+  }
+  final prefs = ref.read(sharedPreferencesProvider);
+  await AccountLibraryService(
+    ref.read(notebookRepositoryProvider),
+    prefs,
+  ).rememberUid(null);
+  refreshLibraryLists(ref);
+}

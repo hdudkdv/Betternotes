@@ -47,6 +47,13 @@ final notebooksProvider = FutureProvider.autoDispose<List<Notebook>>((
   return all.where((n) => n.folderId == folderId).toList();
 });
 
+final allNotebooksProvider = FutureProvider.autoDispose<List<Notebook>>((
+  ref,
+) async {
+  ref.watch(libraryEpochProvider);
+  return ref.watch(notebookRepositoryProvider).getNotebooks();
+});
+
 final foldersProvider = FutureProvider.autoDispose<List<LibraryFolder>>((
   ref,
 ) async {

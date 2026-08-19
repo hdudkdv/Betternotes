@@ -162,20 +162,55 @@ class LanSyncTransport {
     _server = null;
   }
 
-  /// Local IPv4 addresses useful for showing the join target.
+  /// Local IPv4 addresses on Wi‑Fi / hotspot interfaces — not mobile data.
   static Future<List<String>> localIPv4Addresses() async {
-    final out = <String>[];
+    final hotspot = <String>[];
+    final wifi = <String>[];
     try {
       for (final iface in await NetworkInterface.list(
         type: InternetAddressType.IPv4,
         includeLinkLocal: false,
       )) {
+        if (_isCellularInterface(iface.name)) continue;
         for (final addr in iface.addresses) {
           if (addr.isLoopback) continue;
-          out.add(addr.address);
+          final ip = addr.address;
+          if (ip.startsWith('169.254.')) continue;
+          if (_isHotspotAddress(ip) || _isApInterface(iface.name)) {
+            hotspot.add(ip);
+          } else {
+            wifi.add(ip);
+          }
         }
       }
     } catch (_) {}
-    return out;
+    return [...hotspot, ...wifi];
+  }
+
+  static bool _isCellularInterface(String name) {
+    final n = name.toLowerCase();
+    return n.contains('rmnet') ||
+        n.contains('ccmni') ||
+        n.contains('wwan') ||
+        n.contains('cellular') ||
+        n.startsWith('pdp') ||
+        n.contains('dummy') ||
+        n.contains('tun') ||
+        n.contains('ppp');
+  }
+
+  static bool _isApInterface(String name) {
+    final n = name.toLowerCase();
+    return n.contains('ap0') ||
+        n.contains('swlan') ||
+        n.contains('softap') ||
+        n.contains('wlan1');
+  }
+
+  static bool _isHotspotAddress(String ip) {
+    return ip.startsWith('192.168.43.') ||
+        ip.startsWith('192.168.49.') ||
+        ip.startsWith('192.168.137.') ||
+        ip.startsWith('172.20.10.');
   }
 }

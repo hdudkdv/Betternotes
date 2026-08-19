@@ -3137,7 +3137,7 @@ abstract class AppLocalizations {
   /// No description provided for @planPointSyncFive.
   ///
   /// In en, this message translates to:
-  /// **'Online sync on 5 devices'**
+  /// **'Online sync for 5 notebooks at a time'**
   String get planPointSyncFive;
 
   /// No description provided for @planPointSyncUnlimited.
@@ -3560,6 +3560,72 @@ abstract class AppLocalizations {
   /// **'Sign out'**
   String get signOut;
 
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently deletes your cloud account and synced notebooks. Notes on this device stay local.'**
+  String get deleteAccountHint;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete cloud account?'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes your sign-in (Google or Apple) and all notebooks stored in the cloud. Subscriptions bought through the App Store must be cancelled separately in Apple ID settings. Notebooks that only exist on this device stay until you delete them or uninstall the app.'**
+  String get deleteAccountBody;
+
+  /// No description provided for @deleteAccountContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get deleteAccountContinue;
+
+  /// No description provided for @deleteAccountConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account permanently?'**
+  String get deleteAccountConfirmTitle;
+
+  /// No description provided for @deleteAccountConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone. You will be asked to sign in again to confirm it is you.'**
+  String get deleteAccountConfirmBody;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account permanently'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @deleteAccountWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting account…'**
+  String get deleteAccountWorking;
+
+  /// No description provided for @deleteAccountDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deleted. Notebooks on this device remain local.'**
+  String get deleteAccountDone;
+
+  /// No description provided for @deleteAccountFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The account could not be deleted. Check your internet connection and try again.'**
+  String get deleteAccountFailed;
+
   /// No description provided for @cloudSyncOffline.
   ///
   /// In en, this message translates to:
@@ -3911,7 +3977,7 @@ abstract class AppLocalizations {
   /// No description provided for @nearbySyncIntro.
   ///
   /// In en, this message translates to:
-  /// **'Share this notebook over the same Wi‑Fi or a phone hotspot. The first transfer sends the whole notebook; afterwards only changes are exchanged — no internet required.'**
+  /// **'One device hosts. The others scan the QR code or tap Join — no router and no internet.'**
   String get nearbySyncIntro;
 
   /// No description provided for @nearbySyncDeviceName.
@@ -3929,7 +3995,7 @@ abstract class AppLocalizations {
   /// No description provided for @nearbySyncHostHint.
   ///
   /// In en, this message translates to:
-  /// **'Start hosting, then tell the other device your IP address and session code. Both devices must be on the same network or hotspot.'**
+  /// **'Start hosting. In a park, Android creates a local network automatically. iPhone: enable Personal Hotspot in Settings, then wait until an address appears.'**
   String get nearbySyncHostHint;
 
   /// No description provided for @nearbySyncStartHost.
@@ -3995,7 +4061,7 @@ abstract class AppLocalizations {
   /// No description provided for @nearbySyncNoAddress.
   ///
   /// In en, this message translates to:
-  /// **'No local IP found yet. Connect to Wi‑Fi or enable a hotspot, then reopen this screen.'**
+  /// **'No local address yet. On iPhone enable Personal Hotspot; on Android allow location / nearby devices, then wait a moment.'**
   String get nearbySyncNoAddress;
 
   /// No description provided for @nearbySyncStatusIdle.
@@ -4079,13 +4145,13 @@ abstract class AppLocalizations {
   /// No description provided for @nearbySyncBinaryNote.
   ///
   /// In en, this message translates to:
-  /// **'PDF backgrounds and inserted images are transferred over the air with the notebook. Both devices must stay on the same Wi‑Fi or hotspot.'**
+  /// **'PDF backgrounds and images travel with the notebook. Stay on the host’s hotspot or the same Wi‑Fi until you are done.'**
   String get nearbySyncBinaryNote;
 
   /// No description provided for @nearbySyncDiscoverHint.
   ///
   /// In en, this message translates to:
-  /// **'Devices hosting a nearby session appear automatically. Tap one to join.'**
+  /// **'On the same network, hosts appear automatically. In a park, scan the QR code instead.'**
   String get nearbySyncDiscoverHint;
 
   /// No description provided for @nearbySyncSearching.
@@ -4115,7 +4181,7 @@ abstract class AppLocalizations {
   /// No description provided for @nearbySyncNoDevices.
   ///
   /// In en, this message translates to:
-  /// **'No nearby hosts found yet. Ask the other device to start hosting.'**
+  /// **'No nearby hosts found yet. Ask the other device to start hosting, or scan its QR code.'**
   String get nearbySyncNoDevices;
 
   /// No description provided for @nearbySyncManualJoin.
@@ -4129,6 +4195,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Join with IP'**
   String get nearbySyncJoinManual;
+
+  /// No description provided for @nearbySyncParkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Without a router'**
+  String get nearbySyncParkTitle;
+
+  /// No description provided for @nearbySyncParkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One device hosts. Others scan the QR code — no internet needed. Works in a park, on a train, or in a classroom without Wi‑Fi.'**
+  String get nearbySyncParkHint;
+
+  /// No description provided for @nearbySyncWifiName.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi‑Fi name'**
+  String get nearbySyncWifiName;
+
+  /// No description provided for @nearbySyncWifiPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi‑Fi password'**
+  String get nearbySyncWifiPassword;
+
+  /// No description provided for @nearbySyncScanQr.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR code'**
+  String get nearbySyncScanQr;
+
+  /// No description provided for @nearbySyncQrHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The other device scans this code to join, even without a shared router.'**
+  String get nearbySyncQrHint;
+
+  /// No description provided for @nearbySyncIosHotspotHint.
+  ///
+  /// In en, this message translates to:
+  /// **'On this iPhone: Settings → Personal Hotspot → turn it on. Then the address and QR code appear. The others join that hotspot (or scan the code).'**
+  String get nearbySyncIosHotspotHint;
+
+  /// No description provided for @nearbyJoinFromLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Join nearby'**
+  String get nearbyJoinFromLibrary;
+
+  /// No description provided for @nearbyJoinFromLibraryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code or tap a device on this network — no internet.'**
+  String get nearbyJoinFromLibraryHint;
+
+  /// No description provided for @nearbySyncHostNeedsNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'To host, open a notebook first, then start nearby sync there.'**
+  String get nearbySyncHostNeedsNotebook;
+
+  /// No description provided for @liveFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get liveFolder;
+
+  /// No description provided for @liveNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get liveNow;
+
+  /// No description provided for @cloudSyncThisNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync this notebook to the cloud'**
+  String get cloudSyncThisNotebook;
+
+  /// No description provided for @cloudSyncThisNotebookOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop cloud sync for this notebook'**
+  String get cloudSyncThisNotebookOff;
+
+  /// No description provided for @cloudSyncLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Lite syncs at most 5 notebooks at a time. Remove one first, or switch to Pro.'**
+  String get cloudSyncLimitReached;
 
   /// No description provided for @privacyPolicy.
   ///

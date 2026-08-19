@@ -20,6 +20,7 @@ import 'firebase_bootstrap.dart';
 import 'firestore_live_channel.dart';
 import 'firestore_sync_adapter.dart';
 import 'live_channel.dart';
+import 'cloud_sync_selection.dart';
 import 'sync_merge.dart';
 import 'transport_manager.dart';
 import 'vector_clock.dart';
@@ -43,6 +44,8 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
     this._preferences,
     this._firebaseAvailable, {
     TransportManager? transport,
+    this.cloudPaid = PaidTier.free,
+    this.cloudSelectedIds = const {},
   }) : _transport = transport {
     _refresh();
     _timer = Timer.periodic(const Duration(seconds: 4), (_) => _tick());
@@ -54,6 +57,8 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
   final SharedPreferences _preferences;
   final bool _firebaseAvailable;
   final TransportManager? _transport;
+  final PaidTier cloudPaid;
+  final Set<String> cloudSelectedIds;
   Timer? _timer;
   FirestoreSyncAdapter? _adapter;
   LiveChannel? _live;
@@ -86,8 +91,31 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
 
   bool get _cloudAllowed => _transport?.cloudPremium == true;
 
+  bool _cloudSyncsNotebook(String? notebookId) {
+    if (notebookId == null || notebookId.isEmpty) {
+      return cloudNotebookLimit(cloudPaid) == null;
+    }
+    return cloudSyncsNotebook(
+      notebookId,
+      paid: cloudPaid,
+      selected: cloudSelectedIds,
+    );
+  }
+
+  List<SyncOp> _pushableOps(List<SyncOp> ops) {
+    return [
+      for (final op in ops)
+        if (shouldPushCloudOp(
+          op,
+          paid: cloudPaid,
+          selected: cloudSelectedIds,
+        ))
+          op,
+    ];
+  }
+
   Future<void> _refresh() async {
-    pending = await _repo.pendingSyncCount();
+    pending = _pushableOps(await _repo.getPendingSyncOps()).length;
     notifyListeners();
   }
 
@@ -106,7 +134,7 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _tick() async {
     if (syncing) return;
-    final ops = await _repo.getPendingSyncOps();
+    final ops = _pushableOps(await _repo.getPendingSyncOps());
     pending = ops.length;
     if (ops.isEmpty) {
       if (syncStatus == SyncStatus.idle) notifyListeners();
@@ -154,7 +182,7 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
       await _refresh();
       return;
     }
-    final ops = await _repo.getPendingSyncOps();
+    final ops = _pushableOps(await _repo.getPendingSyncOps());
     if (ops.isEmpty) {
       if (!force) {
         syncStatus = SyncStatus.upToDate;
@@ -190,7 +218,7 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
       errorMessage = _publicError(e);
     } finally {
       syncing = false;
-      pending = await _repo.pendingSyncCount();
+      pending = _pushableOps(await _repo.getPendingSyncOps()).length;
       notifyListeners();
     }
   }
@@ -223,15 +251,19 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
         preferRemote: replace,
       );
       if (_cloudAllowed && !kIsWeb) {
-        await adapter.pushLocalSnapshot();
-        final ops = await _repo.getPendingSyncOps();
+        await adapter.pushLocalSnapshot(
+          allowedNotebookIds: cloudNotebookLimit(cloudPaid) == null
+              ? null
+              : cloudSelectedIds,
+        );
+        final ops = _pushableOps(await _repo.getPendingSyncOps());
         for (final op in ops) {
           await adapter.push(op);
           await _repo.markSyncOpSynced(op.id);
         }
         await _repo.pruneSyncedOps();
       } else if (_cloudAllowed) {
-        final ops = await _repo.getPendingSyncOps();
+        final ops = _pushableOps(await _repo.getPendingSyncOps());
         for (final op in ops) {
           await adapter.push(op);
           await _repo.markSyncOpSynced(op.id);
@@ -258,6 +290,7 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     if (!_cloudAllowed || !_firebaseAvailable) return;
     if (FirebaseAuth.instance.currentUser == null) return;
+    if (!_cloudSyncsNotebook(next.notebookId)) return;
     final deltas = diffsBetweenPages(
       previous: previous,
       next: next,
@@ -299,6 +332,7 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _startWatch(String notebookId) async {
     await _stopWatch();
     if (!_cloudAllowed || FirebaseAuth.instance.currentUser == null) return;
+    if (!_cloudSyncsNotebook(notebookId)) return;
     _watchingNotebookId = notebookId;
     final live = _ensureLive();
     await live.heartbeat(notebookId: notebookId);
@@ -325,7 +359,7 @@ class SyncEngine extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> enqueueDelta(CrdtDelta delta) async {
     _clock = _clock.merge(delta.clock).increment(deviceId);
-    if (_cloudAllowed) {
+    if (_cloudAllowed && _cloudSyncsNotebook(delta.notebookId)) {
       final live = _ensureLive();
       await live.heartbeat(notebookId: delta.notebookId);
       if (await live.hasRemotePeer()) {
@@ -387,5 +421,7 @@ final syncEngineProvider = ChangeNotifierProvider<SyncEngine>((ref) {
     ref.watch(sharedPreferencesProvider),
     firebase,
     transport: transport,
+    cloudPaid: entitlements.paidTier,
+    cloudSelectedIds: ref.watch(cloudSyncSelectionProvider).ids,
   );
 });

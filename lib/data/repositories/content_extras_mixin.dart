@@ -386,9 +386,29 @@ mixin ContentExtrasMixin {
     String? parentId,
     int colorValue = 0xFF1D4E89,
     String iconKey = 'folder',
+    String? id,
   }) async {
     final all = await getAllFolders();
+    if (id != null) {
+      for (final folder in all) {
+        if (folder.id == id) {
+          if (folder.name != name ||
+              folder.iconKey != iconKey ||
+              folder.colorValue != colorValue) {
+            final updated = folder.copyWith(
+              name: name,
+              iconKey: iconKey,
+              colorValue: colorValue,
+            );
+            await updateFolder(updated);
+            return updated;
+          }
+          return folder;
+        }
+      }
+    }
     final folder = LibraryFolder.create(
+      id: id,
       name: name,
       parentId: parentId,
       colorValue: colorValue,

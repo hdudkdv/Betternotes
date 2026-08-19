@@ -121,6 +121,7 @@ abstract class NotebookRepository {
     String? parentId,
     int colorValue = 0xFF1D4E89,
     String iconKey = 'folder',
+    String? id,
   });
   Future<void> updateFolder(LibraryFolder folder);
   Future<void> deleteFolder(String id);

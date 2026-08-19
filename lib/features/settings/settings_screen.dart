@@ -102,6 +102,84 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final first = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteAccountTitle),
+        content: Text(l10n.deleteAccountBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.deleteAccountContinue),
+          ),
+        ],
+      ),
+    );
+    if (first != true || !context.mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteAccountConfirmTitle),
+        content: Text(l10n.deleteAccountConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.danger),
+            child: Text(l10n.deleteAccountConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 16),
+              Expanded(child: Text(l10n.deleteAccountWorking)),
+            ],
+          ),
+        ),
+      ),
+    );
+    try {
+      await deleteSignedInAccount(ref);
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.deleteAccountDone)));
+    } catch (error) {
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      final failure = error is AuthFailure ? error : AuthFailure.map(error);
+      if (failure.cancelled) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            failure.message.isEmpty ? l10n.deleteAccountFailed : failure.message,
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _editSupportDetails(
     BuildContext context,
     WidgetRef ref,
@@ -752,6 +830,7 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsSection(
             title: l10n.sectionSyncPreview,
             titleStyle: _sectionTitle,
+            initiallyExpanded: true,
             children: [
               Text(
                 auth.firebaseAvailable
@@ -782,6 +861,20 @@ class SettingsScreen extends ConsumerWidget {
                           child: Text(l10n.signOut),
                         )
                       : null,
+                ),
+              if (auth.firebaseAvailable && auth.signedIn)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.delete_forever_outlined,
+                    color: AppTheme.danger,
+                  ),
+                  title: Text(
+                    l10n.deleteAccount,
+                    style: _label.copyWith(color: AppTheme.danger),
+                  ),
+                  subtitle: Text(l10n.deleteAccountHint, style: _body),
+                  onTap: () => _deleteAccount(context, ref),
                 ),
               if (auth.firebaseAvailable && !auth.signedIn)
                 Wrap(
@@ -955,6 +1048,20 @@ class SettingsScreen extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/legal/impressum'),
               ),
+              if (auth.signedIn)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.delete_forever_outlined,
+                    color: AppTheme.danger,
+                  ),
+                  title: Text(
+                    l10n.deleteAccount,
+                    style: _label.copyWith(color: AppTheme.danger),
+                  ),
+                  subtitle: Text(l10n.deleteAccountHint, style: _body),
+                  onTap: () => _deleteAccount(context, ref),
+                ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.description_outlined),

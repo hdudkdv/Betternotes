@@ -1653,7 +1653,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get planPointClassLoans => '5 Marketplace-Leihgaben pro Klasse';
 
   @override
-  String get planPointSyncFive => 'Online-Sync für 5 Geräte';
+  String get planPointSyncFive => 'Online-Sync für 5 Notizbücher gleichzeitig';
 
   @override
   String get planPointSyncUnlimited => 'Unbegrenzter Online-Sync';
@@ -1893,6 +1893,44 @@ class AppLocalizationsDe extends AppLocalizations {
   String get signOut => 'Abmelden';
 
   @override
+  String get deleteAccount => 'Konto löschen';
+
+  @override
+  String get deleteAccountHint =>
+      'Löscht dein Cloud-Konto und die synchronisierten Notizbücher dauerhaft. Hefte auf diesem Gerät bleiben lokal.';
+
+  @override
+  String get deleteAccountTitle => 'Cloud-Konto löschen?';
+
+  @override
+  String get deleteAccountBody =>
+      'Dein Login (Google oder Apple) und alle Notizbücher in der Cloud werden unwiderruflich gelöscht. Abos über den App Store kündigst du separat in den Apple-ID-Einstellungen. Notizbücher, die nur auf diesem Gerät liegen, bleiben, bis du sie löschst oder die App deinstallierst.';
+
+  @override
+  String get deleteAccountContinue => 'Weiter';
+
+  @override
+  String get deleteAccountConfirmTitle => 'Konto endgültig löschen?';
+
+  @override
+  String get deleteAccountConfirmBody =>
+      'Das kann nicht rückgängig gemacht werden. Zur Bestätigung wirst du noch einmal angemeldet.';
+
+  @override
+  String get deleteAccountConfirm => 'Konto unwiderruflich löschen';
+
+  @override
+  String get deleteAccountWorking => 'Konto wird gelöscht…';
+
+  @override
+  String get deleteAccountDone =>
+      'Konto gelöscht. Notizbücher auf diesem Gerät bleiben lokal.';
+
+  @override
+  String get deleteAccountFailed =>
+      'Das Konto konnte nicht gelöscht werden. Bitte Internet prüfen und nochmal versuchen.';
+
+  @override
   String get cloudSyncOffline =>
       'Offline-first: Ohne Anmeldung bleiben Daten nur auf diesem Gerät.';
 
@@ -2076,7 +2114,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get nearbySyncIntro =>
-      'Teile dieses Notizbuch über dasselbe WLAN oder einen Hotspot. Beim ersten Mal wird das ganze Notizbuch übertragen, danach nur noch Änderungen — ohne Internet.';
+      'Ein Gerät hostet. Die anderen scannen den QR-Code oder tippen auf Beitreten — ohne Router und ohne Internet.';
 
   @override
   String get nearbySyncDeviceName => 'Gerätename';
@@ -2086,7 +2124,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get nearbySyncHostHint =>
-      'Starte die Session und gib dem anderen Gerät deine IP-Adresse und den Code. Beide müssen im selben Netz oder Hotspot sein.';
+      'Session starten. Im Park legt Android automatisch ein lokales Netz an. iPhone: in den Einstellungen den Persönlichen Hotspot einschalten und warten, bis eine Adresse erscheint.';
 
   @override
   String get nearbySyncStartHost => 'Nahe-Session starten';
@@ -2123,7 +2161,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get nearbySyncNoAddress =>
-      'Noch keine lokale IP gefunden. Mit WLAN verbinden oder Hotspot starten, dann diesen Bildschirm erneut öffnen.';
+      'Noch keine lokale Adresse. Am iPhone den Persönlichen Hotspot einschalten; auf Android Standort / Geräte in der Nähe erlauben und kurz warten.';
 
   @override
   String get nearbySyncStatusIdle => 'Keine Nahe-Session';
@@ -2173,11 +2211,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get nearbySyncBinaryNote =>
-      'PDF-Hintergründe und eingefügte Bilder werden mit dem Notizbuch übertragen. Beide Geräte müssen im selben WLAN oder Hotspot sein.';
+      'PDF-Hintergründe und Bilder werden mit dem Notizbuch übertragen. Bleibt bis zum Schluss im Hotspot des Hosts oder im selben WLAN.';
 
   @override
   String get nearbySyncDiscoverHint =>
-      'Geräte mit laufender Session erscheinen automatisch. Tippe zum Beitreten.';
+      'Im selben Netz erscheinen Hosts automatisch. Im Park den QR-Code scannen.';
 
   @override
   String get nearbySyncSearching => 'Suche im Netzwerk…';
@@ -2193,13 +2231,66 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get nearbySyncNoDevices =>
-      'Noch keine Hosts gefunden. Das andere Gerät muss die Session starten.';
+      'Noch keine Hosts gefunden. Das andere Gerät muss die Session starten — oder du scannst den QR-Code.';
 
   @override
   String get nearbySyncManualJoin => 'Manuell beitreten (IP + Code)';
 
   @override
   String get nearbySyncJoinManual => 'Mit IP beitreten';
+
+  @override
+  String get nearbySyncParkTitle => 'Ohne Router';
+
+  @override
+  String get nearbySyncParkHint =>
+      'Ein Gerät hostet. Die anderen scannen den QR-Code — ohne Internet. Geht im Park, im Zug oder im Klassenzimmer ohne WLAN.';
+
+  @override
+  String get nearbySyncWifiName => 'WLAN-Name';
+
+  @override
+  String get nearbySyncWifiPassword => 'WLAN-Passwort';
+
+  @override
+  String get nearbySyncScanQr => 'QR-Code scannen';
+
+  @override
+  String get nearbySyncQrHint =>
+      'Das andere Gerät scannt diesen Code und tritt bei — auch ohne gemeinsamen Router.';
+
+  @override
+  String get nearbySyncIosHotspotHint =>
+      'Auf diesem iPhone: Einstellungen → Persönlicher Hotspot → einschalten. Danach erscheinen Adresse und QR-Code. Die anderen treten diesem Hotspot bei (oder scannen den Code).';
+
+  @override
+  String get nearbyJoinFromLibrary => 'Nahe Sync beitreten';
+
+  @override
+  String get nearbyJoinFromLibraryHint =>
+      'QR-Code scannen oder ein Gerät in der Nähe antippen — ohne Internet.';
+
+  @override
+  String get nearbySyncHostNeedsNotebook =>
+      'Zum Hosten zuerst ein Notizbuch öffnen und dort Nahe Sync starten.';
+
+  @override
+  String get liveFolder => 'Live';
+
+  @override
+  String get liveNow => 'Live';
+
+  @override
+  String get cloudSyncThisNotebook =>
+      'Dieses Notizbuch in der Cloud synchronisieren';
+
+  @override
+  String get cloudSyncThisNotebookOff =>
+      'Cloud-Sync für dieses Notizbuch beenden';
+
+  @override
+  String get cloudSyncLimitReached =>
+      'Lite synchronisiert höchstens 5 Notizbücher gleichzeitig. Entferne zuerst eines oder wechsle zu Pro.';
 
   @override
   String get privacyPolicy => 'Datenschutzerklärung';

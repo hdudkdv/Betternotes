@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -9,12 +11,14 @@ import '../library/providers/library_providers.dart';
 import 'lan_sync_controller.dart';
 import 'lan_sync_discovery.dart';
 import 'lan_sync_protocol.dart';
+import 'nearby_link.dart';
 
 /// Host or join a same-Wi‑Fi / hotspot notebook sync session.
 class NearbySyncScreen extends ConsumerStatefulWidget {
-  const NearbySyncScreen({super.key, required this.notebookId});
+  const NearbySyncScreen({super.key, this.notebookId});
 
-  final String notebookId;
+  /// When set, this device can host [notebookId]. Join works without it.
+  final String? notebookId;
 
   @override
   ConsumerState<NearbySyncScreen> createState() => _NearbySyncScreenState();
@@ -47,10 +51,12 @@ class _NearbySyncScreenState extends ConsumerState<NearbySyncScreen> {
   }
 
   Future<void> _host() async {
+    final notebookId = widget.notebookId;
+    if (notebookId == null) return;
     setState(() => _busy = true);
     try {
       await ref.read(lanSyncProvider).startHost(
-            notebookId: widget.notebookId,
+            notebookId: notebookId,
             displayName: _nameController.text,
           );
     } finally {
@@ -88,6 +94,22 @@ class _NearbySyncScreenState extends ConsumerState<NearbySyncScreen> {
 
   Future<void> _stop() async {
     await ref.read(lanSyncProvider).stop();
+  }
+
+  Future<void> _scanJoin() async {
+    final link = await Navigator.of(context).push<NearbyLink>(
+      MaterialPageRoute(builder: (_) => const NearbyScanJoinPage()),
+    );
+    if (link == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(lanSyncProvider).joinFromLink(
+            link,
+            displayName: _nameController.text,
+          );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -133,6 +155,14 @@ class _NearbySyncScreenState extends ConsumerState<NearbySyncScreen> {
             l10n.nearbySyncIntro,
             style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 14.5),
           ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.park_outlined),
+              title: Text(l10n.nearbySyncParkTitle),
+              subtitle: Text(l10n.nearbySyncParkHint),
+            ),
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _nameController,
@@ -141,11 +171,11 @@ class _NearbySyncScreenState extends ConsumerState<NearbySyncScreen> {
               prefixIcon: const Icon(Icons.badge_outlined),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _StatusCard(sync: sync, l10n: l10n),
           const SizedBox(height: 20),
           Text(
-            l10n.nearbySyncHostSection,
+            l10n.nearbySyncJoinSection,
             style: AppTheme.headline(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -154,14 +184,93 @@ class _NearbySyncScreenState extends ConsumerState<NearbySyncScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.nearbySyncHostHint,
+            l10n.nearbySyncDiscoverHint,
             style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13.5),
           ),
           const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _busy || (sync.isActive && sync.role != LanSyncRole.guest)
+                ? null
+                : _scanJoin,
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            label: Text(l10n.nearbySyncScanQr),
+          ),
+          const SizedBox(height: 16),
           if (sync.role == LanSyncRole.host && sync.sessionCode != null) ...[
+            Text(
+              l10n.nearbySyncHostSection,
+              style: AppTheme.headline(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
             _CodeBox(code: sync.sessionCode!, l10n: l10n),
             const SizedBox(height: 10),
-            if (sync.localAddresses.isEmpty)
+            if (sync.waitingForPersonalHotspot)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  l10n.nearbySyncIosHotspotHint,
+                  style: AppTheme.body(color: AppTheme.inkMuted),
+                ),
+              ),
+            if (sync.hotspotSession != null) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.wifi_rounded),
+                title: Text(l10n.nearbySyncWifiName),
+                subtitle: Text(sync.hotspotSession!.ssid),
+                trailing: IconButton(
+                  tooltip: l10n.nearbySyncCopy,
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(text: sync.hotspotSession!.ssid),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.nearbySyncCopied)),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded),
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.password_rounded),
+                title: Text(l10n.nearbySyncWifiPassword),
+                subtitle: Text(sync.hotspotSession!.password),
+                trailing: IconButton(
+                  tooltip: l10n.nearbySyncCopy,
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(text: sync.hotspotSession!.password),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.nearbySyncCopied)),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded),
+                ),
+              ),
+            ],
+            if (sync.joinLink != null) ...[
+              Center(
+                child: QrImageView(
+                  data: sync.joinLink!.toString(),
+                  size: 196,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.nearbySyncQrHint,
+                style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (sync.localAddresses.isEmpty && !sync.waitingForPersonalHotspot)
               Text(
                 l10n.nearbySyncNoAddress,
                 style: AppTheme.body(color: AppTheme.inkMuted),
@@ -190,27 +299,33 @@ class _NearbySyncScreenState extends ConsumerState<NearbySyncScreen> {
               icon: const Icon(Icons.stop_circle_outlined),
               label: Text(l10n.nearbySyncStop),
             ),
-          ] else
+          ] else if (widget.notebookId != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              l10n.nearbySyncHostSection,
+              style: AppTheme.headline(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.nearbySyncHostHint,
+              style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13.5),
+            ),
+            const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: _busy || sync.isActive ? null : _host,
               icon: const Icon(Icons.cast_connected_rounded),
               label: Text(l10n.nearbySyncStartHost),
             ),
-          const SizedBox(height: 28),
-          Text(
-            l10n.nearbySyncJoinSection,
-            style: AppTheme.headline(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.ink,
+          ] else
+            Text(
+              l10n.nearbySyncHostNeedsNotebook,
+              style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13.5),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.nearbySyncDiscoverHint,
-            style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13.5),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
@@ -406,6 +521,37 @@ class _CodeBox extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class NearbyScanJoinPage extends StatefulWidget {
+  const NearbyScanJoinPage({super.key});
+
+  @override
+  State<NearbyScanJoinPage> createState() => _NearbyScanJoinPageState();
+}
+
+class _NearbyScanJoinPageState extends State<NearbyScanJoinPage> {
+  var _done = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.nearbySyncScanQr)),
+      body: MobileScanner(
+        onDetect: (capture) {
+          if (_done) return;
+          for (final barcode in capture.barcodes) {
+            final link = NearbyLink.tryParse(barcode.rawValue ?? '');
+            if (link == null) continue;
+            _done = true;
+            Navigator.of(context).pop(link);
+            return;
+          }
+        },
       ),
     );
   }
