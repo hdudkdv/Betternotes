@@ -18,7 +18,7 @@ final class NearbyHotspotPlugin: NSObject, FlutterPlugin {
     instance.channel?.setMethodCallHandler(instance.handle)
   }
 
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+  func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "startHost", "connect":
       result(

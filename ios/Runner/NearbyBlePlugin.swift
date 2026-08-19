@@ -51,7 +51,7 @@ final class NearbyBlePlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
     return nil
   }
 
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+  func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any] ?? [:]
     switch call.method {
     case "startAdvertise":
