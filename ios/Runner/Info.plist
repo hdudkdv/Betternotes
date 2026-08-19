@@ -330,6 +330,12 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Notis finds nearby devices and shares notebooks over Wi-Fi or a Personal Hotspot — also without internet. / Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN oder Hotspot — auch ohne Internet.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Notis uses location only to find nearby tablets on the local network or Bluetooth. No map is shown and location is not tracked. / Notis nutzt den Standort nur, um Tablets in der Nähe im lokalen Netz oder per Bluetooth zu finden. Es wird keine Karte angezeigt und der Standort wird nicht erfasst.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Notis uses location only to find nearby tablets on the local network or Bluetooth. Location is not collected in the background and no map is shown. / Notis nutzt den Standort nur, um Tablets in der Nähe im lokalen Netz oder per Bluetooth zu finden. Der Standort wird nicht im Hintergrund erfasst und es wird keine Karte angezeigt.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Notis uses location only to find nearby tablets on the local network or Bluetooth. Location is not collected in the background and no map is shown. / Notis nutzt den Standort nur, um Tablets in der Nähe im lokalen Netz oder per Bluetooth zu finden. Der Standort wird nicht im Hintergrund erfasst und es wird keine Karte angezeigt.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Notis uses Bluetooth to find nearby tablets and share notebooks without internet. / Notis nutzt Bluetooth, um Tablets in der Nähe zu finden und Notizbücher ohne Internet zu teilen.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
