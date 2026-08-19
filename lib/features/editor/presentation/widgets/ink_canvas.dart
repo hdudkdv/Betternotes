@@ -813,25 +813,22 @@ class InkCanvasState extends State<InkCanvas>
     _downGlobal = event.position;
     _downLocal = event.localPosition;
 
+    // Stylus / left mouse must ink, even over existing strokes. Grabbing an
+    // object happens on overlays or on a short finger / right-click tap.
+    // Finger / right mouse may drag an already-selected object; otherwise pan.
     if (!widget.readOnly &&
         widget.engine.tool != InkTool.eraser &&
-        widget.onTrySelect != null) {
+        widget.onTrySelect != null &&
+        !PointerRouting.drawsLikeStylus(event)) {
       final pagePoint = _toPageLocal(event.localPosition);
-      final immediate =
-          PointerRouting.drawsLikeStylus(event) ||
-          rightMouse ||
-          _canDrawWith(event);
       final selected = widget.onTrySelect!(
         pagePoint,
         beginMove: true,
-        onlyExisting: !immediate,
+        onlyExisting: true,
       );
       if (selected) {
         setState(() {});
-        _armPointerTracking(
-          event.pointer,
-          isStylus: PointerRouting.drawsLikeStylus(event),
-        );
+        _armPointerTracking(event.pointer, isStylus: false);
         return;
       }
     }
@@ -1125,7 +1122,6 @@ class InkCanvasState extends State<InkCanvas>
                   child: Center(
                     child: GestureDetector(
                       onDoubleTap: widget.onDoubleTap,
-                      onSecondaryTap: () {},
                       child: Container(
                         width: pageSize.width,
                         height: pageSize.height,

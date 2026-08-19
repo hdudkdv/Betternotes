@@ -52,6 +52,7 @@ import 'widgets/editor_top_bar.dart';
 import 'widgets/image_elements_layer.dart';
 import 'widgets/ink_canvas.dart';
 import 'widgets/notebook_pages_viewport.dart';
+import 'widgets/overlay_hit_stack.dart';
 import 'widgets/outline_sidebar.dart';
 import 'widgets/page_meta_overlay.dart';
 import 'widgets/page_sidebar.dart';
@@ -2010,6 +2011,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   bool _toolWheelOpen = false;
   InkTool _previousTool = InkTool.pen;
   StreamSubscription<PencilHardwareEvent>? _pencilSub;
+  String? _nearbyOpenedId;
   bool _calcOpen = false;
   bool _calcPinned = false;
   bool _bookOpen = false;
@@ -2037,6 +2039,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     if (assignment.active && assignment.testMode && !assignment.submitted) {
       unawaited(ref.read(studentAssignmentProvider.notifier).leave('notebook'));
     }
+    unawaited(ref.read(lanSyncProvider).onNotebookClosed(widget.notebookId));
     super.dispose();
   }
 
@@ -2445,6 +2448,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     final tabs = ref.watch(openNotebookTabsProvider);
     final browseMode = ref.watch(settingsProvider).pageBrowseMode;
     final lan = ref.watch(lanSyncProvider);
+    final notebook = controller.notebook;
+    if (!controller.loading &&
+        notebook != null &&
+        _nearbyOpenedId != notebook.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _nearbyOpenedId == notebook.id) return;
+        _nearbyOpenedId = notebook.id;
+        unawaited(ref.read(lanSyncProvider).onNotebookOpened(notebook));
+      });
+    }
 
     controller.onPagePersisted = (page) {
       unawaited(ref.read(lanSyncProvider).noteLocalPageSaved(page));
@@ -2672,7 +2685,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                           },
                       onPointerMove: controller.onPointerMove,
                       onPointerUp: controller.onPointerUp,
-                      overlay: Stack(
+                      overlay: OverlayHitStack(
                         fit: StackFit.expand,
                         children: [
                           Positioned.fill(

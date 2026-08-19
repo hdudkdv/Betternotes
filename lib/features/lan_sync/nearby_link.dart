@@ -7,6 +7,7 @@ class NearbyLink {
     required this.host,
     required this.port,
     required this.code,
+    this.shareId,
     this.ssid,
     this.password,
   });
@@ -14,6 +15,7 @@ class NearbyLink {
   final String host;
   final int port;
   final String code;
+  final String? shareId;
   final String? ssid;
   final String? password;
 
@@ -28,6 +30,7 @@ class NearbyLink {
         'h': host,
         'o': '$port',
         'c': code,
+        if (shareId != null && shareId!.isNotEmpty) 'sid': shareId!,
         if (ssid != null && ssid!.isNotEmpty) 's': ssid!,
         if (password != null && password!.isNotEmpty) 'p': password!,
       },
@@ -51,6 +54,7 @@ class NearbyLink {
       host: host,
       port: port,
       code: code,
+      shareId: uri.queryParameters['sid'],
       ssid: uri.queryParameters['s'],
       password: uri.queryParameters['p'],
     );

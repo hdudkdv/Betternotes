@@ -127,6 +127,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get schoolClassSpec => 'Suffix';
+
+  @override
+  String get schoolClassSpecHint => 'e.g. a';
+
+  @override
   String get importFromPreviousClass => 'Import from previous class';
 
   @override
@@ -2256,11 +2262,56 @@ class AppLocalizationsEn extends AppLocalizations {
       'On this iPhone: Settings → Personal Hotspot → turn it on. Then the address and QR code appear. The others join that hotspot (or scan the code).';
 
   @override
+  String get nearbyShareDisplayName => 'Display name';
+
+  @override
+  String get nearbyShareDisplayNameHint =>
+      'This is what others see — not the internal notebook title.';
+
+  @override
+  String get nearbyShareAutoHost => 'Connect automatically';
+
+  @override
+  String get nearbyShareAutoHostHint =>
+      'When both of you have the notebook open, the session starts on its own. You can turn this off.';
+
+  @override
+  String get nearbyShareGranted => 'Devices with access';
+
+  @override
+  String get nearbyShareRevoke => 'Remove access';
+
+  @override
+  String get nearbyShareNoPeers => 'Nobody has entered the code yet.';
+
+  @override
+  String get nearbyShareEnterCodeTitle => 'Access code';
+
+  @override
+  String nearbyShareEnterCodeBody(String name) {
+    return '“$name” is protected. Enter the code shown on the host device.';
+  }
+
+  @override
+  String get nearbyShareRevoked => 'The host removed your access.';
+
+  @override
+  String get nearbyShareAccessSaved =>
+      'Access saved. Next time Notis will connect automatically.';
+
+  @override
   String get nearbyJoinFromLibrary => 'Join nearby';
 
   @override
   String get nearbyJoinFromLibraryHint =>
       'Scan a QR code or tap a device on this network — no internet.';
+
+  @override
+  String get nearbyJoinManual => 'Join manually';
+
+  @override
+  String get nearbyScanSheetHint =>
+      'Hold the other device’s QR code inside the frame.';
 
   @override
   String get nearbySyncHostNeedsNotebook =>
@@ -2271,6 +2322,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get liveNow => 'Live';
+
+  @override
+  String sharedByHost(String name) {
+    return 'From $name';
+  }
 
   @override
   String get cloudSyncThisNotebook => 'Sync this notebook to the cloud';

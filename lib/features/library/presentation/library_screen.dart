@@ -18,11 +18,10 @@ import '../../onboarding/app_tour.dart';
 import '../../planner/planner_screen.dart';
 import '../../planner/school_year_rollover.dart';
 import '../../lan_sync/lan_sync_controller.dart';
-import '../../lan_sync/nearby_link.dart';
+import '../../lan_sync/lan_sync_discovery.dart';
 import '../../lan_sync/nearby_sync_screen.dart';
 import '../../entitlements/entitlement_model.dart';
 import '../../sync/cloud_sync_selection.dart';
-import '../../sync/web_cloud_bar.dart';
 import '../../timetable/timetable_screen.dart';
 import '../live_folder.dart';
 import '../providers/library_providers.dart';
@@ -172,10 +171,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }) async {
     final settings = ref.read(settingsProvider);
     final folderId = ref.read(currentFolderIdProvider);
+    final folders = ref.read(allFoldersProvider).valueOrNull ?? const [];
+    String? folderName;
+    if (folderId != null) {
+      for (final folder in folders) {
+        if (folder.id == folderId) {
+          folderName = folder.name;
+          break;
+        }
+      }
+    }
     final result = await promptCreateNotebook(
       context,
       defaultTemplate: settings.defaultTemplate,
       initialMode: initialMode,
+      folderName: folderName,
     );
     if (result == null) return;
     var notebook = await ref
@@ -349,7 +359,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       onInfinite: () => _createNotebook(initialMode: CanvasMode.infinite),
       onFlashcards: _createFlashcards,
       onScanPages: () => scanIntoNotebook(context, ref),
-      onJoinNearby: () => context.push('/nearby'),
+      onJoinNearby: kIsWeb ? null : _scanJoinFromLibrary,
     );
   }
 
@@ -392,11 +402,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Future<void> _scanJoinFromLibrary() async {
-    final link = await Navigator.of(context).push<NearbyLink>(
-      MaterialPageRoute(builder: (_) => const NearbyScanJoinPage()),
-    );
+    final link = await showNearbyScanJoinSheet(context);
     if (link == null || !mounted) return;
     await ref.read(lanSyncProvider).joinFromLink(link);
+  }
+
+  Future<void> _joinNearbyHost(NearbyDiscoveredHost host) async {
+    final lan = ref.read(lanSyncProvider);
+    if (await lan.hasAccessTo(host) || host.sessionCode.isNotEmpty) {
+      await lan.joinDiscovered(host);
+      return;
+    }
+    if (!mounted) return;
+    final code = await promptNearbyAccessCode(context, host.publicName);
+    if (code == null || code.isEmpty || !mounted) return;
+    await lan.joinDiscovered(host, code: code);
   }
 
   Future<void> _openSearchHit(SearchHit hit) async {
@@ -647,11 +667,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 ),
               ),
               actions: [
-                IconButton(
-                  tooltip: l10n.nearbySyncScanQr,
-                  onPressed: _scanJoinFromLibrary,
-                  icon: const Icon(Icons.qr_code_scanner_rounded),
-                ),
                 if (appSettings.isTeacher)
                   IconButton(
                     tooltip: l10n.teacherWorkspace,
@@ -683,7 +698,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (kIsWeb) const WebCloudBar(),
                     TextField(
                       key: _searchFieldKey,
                       controller: _searchController,
@@ -726,11 +740,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         setState(() {});
                       },
                     ),
-                    if (folderId == null) ...[
+                    if (folderId == null && !kIsWeb) ...[
                       const SizedBox(height: 12),
                       _NearbyJoinCard(
                         onOpen: () => context.push('/nearby'),
                         onScan: _scanJoinFromLibrary,
+                        onJoin: _joinNearbyHost,
                       ),
                     ],
                   ],
@@ -908,15 +923,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   var visible = notebooks;
                   if (folderId == kLiveFolderId) {
                     final lan = ref.watch(lanSyncProvider);
-                    final liveId = lan.isActive ? lan.notebookId : null;
-                    if (liveId != null &&
-                        !visible.any((notebook) => notebook.id == liveId)) {
-                      final all =
-                          ref.watch(allNotebooksProvider).valueOrNull ??
-                          const <Notebook>[];
+                    final all =
+                        ref.watch(allNotebooksProvider).valueOrNull ??
+                        const <Notebook>[];
+                    final extraIds = <String>{
+                      if (lan.isActive && lan.notebookId != null)
+                        lan.notebookId!,
+                      for (final grant in lan.guestGrants) grant.notebookId,
+                    };
+                    if (extraIds.isNotEmpty) {
                       visible = [
                         for (final notebook in all)
-                          if (notebook.id == liveId) notebook,
+                          if (extraIds.contains(notebook.id) &&
+                              !notebooks.any((item) => item.id == notebook.id))
+                            notebook,
                         ...visible,
                       ];
                     }
@@ -1116,10 +1136,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 }
 
 class _NearbyJoinCard extends ConsumerWidget {
-  const _NearbyJoinCard({required this.onOpen, required this.onScan});
+  const _NearbyJoinCard({
+    required this.onOpen,
+    required this.onScan,
+    required this.onJoin,
+  });
 
   final VoidCallback onOpen;
   final VoidCallback onScan;
+  final Future<void> Function(NearbyDiscoveredHost host) onJoin;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1135,34 +1160,40 @@ class _NearbyJoinCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.sensors_rounded),
-              title: Text(
-                l10n.nearbyJoinFromLibrary,
-                style: AppTheme.body(fontWeight: FontWeight.w800, fontSize: 16),
+            Text(
+              l10n.nearbyJoinFromLibrary,
+              style: AppTheme.body(fontWeight: FontWeight.w800, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.nearbyJoinFromLibraryHint,
+              style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onScan,
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              label: Text(l10n.nearbySyncScanQr),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onOpen,
+                child: Text(l10n.nearbyJoinManual),
               ),
-              subtitle: Text(l10n.nearbyJoinFromLibraryHint),
-              trailing: IconButton.filledTonal(
-                tooltip: l10n.nearbySyncScanQr,
-                onPressed: onScan,
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-              ),
-              onTap: onOpen,
             ),
             if (hosts.isNotEmpty) ...[
-              const SizedBox(height: 4),
               for (final host in hosts.take(3))
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                   leading: const Icon(Icons.tablet_mac_rounded, size: 22),
-                  title: Text(host.name),
-                  subtitle: Text(host.notebookTitle ?? host.sessionCode),
+                  title: Text(host.publicName),
+                  subtitle: Text(
+                    host.host.isNotEmpty ? host.host : 'Bluetooth',
+                  ),
                   trailing: TextButton(
-                    onPressed: sync.isActive
-                        ? null
-                        : () => ref.read(lanSyncProvider).joinDiscovered(host),
+                    onPressed: sync.isActive ? null : () => onJoin(host),
                     child: Text(l10n.nearbySyncJoin),
                   ),
                 ),

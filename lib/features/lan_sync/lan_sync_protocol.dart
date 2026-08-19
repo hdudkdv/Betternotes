@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../../data/models/content_models.dart';
 
 /// Wire protocol version for nearby / LAN notebook sync.
-const int kLanSyncProtocolVersion = 3;
+const int kLanSyncProtocolVersion = 4;
 
 /// Default TCP port for nearby sessions (guest only needs host IP + code).
 const int kLanSyncPort = 47821;
@@ -31,6 +31,7 @@ abstract final class LanSyncMessage {
     bool autoReconnect = false,
     String? expectedSubject,
     String? expectedRoom,
+    String? shareId,
   }) => {
     'type': 'hello',
     'protocol': kLanSyncProtocolVersion,
@@ -40,6 +41,7 @@ abstract final class LanSyncMessage {
     'autoReconnect': autoReconnect,
     if (expectedSubject != null) 'expectedSubject': expectedSubject,
     if (expectedRoom != null) 'expectedRoom': expectedRoom,
+    if (shareId != null && shareId.isNotEmpty) 'shareId': shareId,
   };
 
   static Map<String, dynamic> welcome({
@@ -49,6 +51,8 @@ abstract final class LanSyncMessage {
     bool classroomMode = false,
     String? classroomSubject,
     String? classroomRoom,
+    String? shareId,
+    String? shareName,
   }) => {
     'type': 'welcome',
     'protocol': kLanSyncProtocolVersion,
@@ -58,6 +62,8 @@ abstract final class LanSyncMessage {
     'classroomMode': classroomMode,
     if (classroomSubject != null) 'classroomSubject': classroomSubject,
     if (classroomRoom != null) 'classroomRoom': classroomRoom,
+    if (shareId != null && shareId.isNotEmpty) 'shareId': shareId,
+    if (shareName != null && shareName.isNotEmpty) 'shareName': shareName,
   };
 
   static Map<String, dynamic> reject(String reason) => {

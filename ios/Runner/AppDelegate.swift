@@ -18,5 +18,8 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "NearbyHotspotPlugin") {
       NearbyHotspotPlugin.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "NearbyBlePlugin") {
+      NearbyBlePlugin.register(with: registrar)
+    }
   }
 }

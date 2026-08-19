@@ -11,9 +11,11 @@ class NearbyDiscoveredHost {
     required this.name,
     required this.host,
     required this.port,
-    required this.sessionCode,
+    this.sessionCode = '',
     this.notebookTitle,
     this.deviceId,
+    this.shareId,
+    this.bleId,
     this.classroomSubject,
     this.classroomRoom,
     this.classroomBeacon,
@@ -25,11 +27,23 @@ class NearbyDiscoveredHost {
   final String sessionCode;
   final String? notebookTitle;
   final String? deviceId;
+  final String? shareId;
+  final String? bleId;
   final String? classroomSubject;
   final String? classroomRoom;
   final String? classroomBeacon;
 
-  String get key => '$host:$port:$sessionCode';
+  String get publicName {
+    final title = notebookTitle?.trim();
+    if (title != null && title.isNotEmpty) return title;
+    return name;
+  }
+
+  String get key {
+    if (shareId != null && shareId!.isNotEmpty) return 'sid:$shareId';
+    if (bleId != null && bleId!.isNotEmpty) return 'ble:$bleId';
+    return '$host:$port:$sessionCode';
+  }
 }
 
 /// Bonjour / NSD discovery for BetterNotes nearby sessions.
@@ -57,6 +71,8 @@ class LanSyncDiscovery {
     required String sessionCode,
     required String deviceId,
     String? notebookTitle,
+    String? shareId,
+    bool advertiseCode = true,
     String? classroomSubject,
     String? classroomRoom,
     String? classroomBeacon,
@@ -71,8 +87,12 @@ class LanSyncDiscovery {
       type: kLanSyncServiceType,
       port: port,
       attributes: {
-        'code': sessionCode,
+        if (advertiseCode) 'code': sessionCode,
         'did': deviceId.length > 32 ? deviceId.substring(0, 32) : deviceId,
+        if (shareId != null && shareId.trim().isNotEmpty)
+          'sid': shareId.trim().length > 36
+              ? shareId.trim().substring(0, 36)
+              : shareId.trim(),
         if (notebookTitle != null && notebookTitle.trim().isNotEmpty)
           'title': notebookTitle.trim().length > 40
               ? notebookTitle.trim().substring(0, 40)
@@ -113,16 +133,17 @@ class LanSyncDiscovery {
         case BonsoirDiscoveryServiceResolvedEvent(:final service):
           final host = service.hostAddress;
           final code = service.attributes['code'];
-          if (host == null || host.isEmpty || code == null || code.isEmpty) {
+          if (host == null || host.isEmpty) {
             return;
           }
           final item = NearbyDiscoveredHost(
             name: service.name,
             host: host,
             port: service.port,
-            sessionCode: code.toUpperCase(),
+            sessionCode: (code ?? '').toUpperCase(),
             notebookTitle: service.attributes['title'],
             deviceId: service.attributes['did'],
+            shareId: service.attributes['sid'],
             classroomSubject: service.attributes['subject'],
             classroomRoom: service.attributes['room'],
             classroomBeacon: service.attributes['bh'],

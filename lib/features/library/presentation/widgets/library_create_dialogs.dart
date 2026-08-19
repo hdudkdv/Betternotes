@@ -8,6 +8,7 @@ import '../../../../shared/utils/page_size.dart';
 import '../../../entitlements/entitlement_model.dart';
 import '../../../entitlements/rewarded_ad_mock.dart';
 import '../../../editor/domain/ink_models.dart';
+import '../../notebook_title.dart';
 
 String _paperFormatLabel(AppLocalizations l10n, PaperFormat format) =>
     switch (format) {
@@ -120,14 +121,13 @@ Future<NotebookCreateResult?> promptCreateNotebook(
   BuildContext context, {
   required PageTemplate defaultTemplate,
   CanvasMode initialMode = CanvasMode.page,
+  String? folderName,
 }) {
   return showDialog<NotebookCreateResult>(
     context: context,
     builder: (context) {
       final l10n = AppLocalizations.of(context)!;
-      var title = initialMode == CanvasMode.infinite
-          ? l10n.untitledInfinite
-          : l10n.untitledNotebook;
+      var title = '';
       var color = coverPalette.first;
       var template = defaultTemplate;
       var favorite = false;
@@ -135,6 +135,7 @@ Future<NotebookCreateResult?> promptCreateNotebook(
       var paperFormat = PaperFormat.a4;
       var orientation = PageOrientation.portrait;
       int? schoolClass;
+      var classSpec = '';
       final maxH = MediaQuery.sizeOf(context).height * 0.72;
 
       return Consumer(
@@ -157,12 +158,18 @@ Future<NotebookCreateResult?> promptCreateNotebook(
                       children: [
                         TextField(
                           autofocus: true,
-                          decoration: InputDecoration(hintText: l10n.title),
-                          onChanged: (v) => title = v.trim().isEmpty
-                              ? (mode == CanvasMode.infinite
-                                    ? l10n.untitledInfinite
-                                    : l10n.untitledNotebook)
-                              : v.trim(),
+                          decoration: InputDecoration(
+                            hintText: suggestedNotebookTitle(
+                              untitled: mode == CanvasMode.infinite
+                                  ? l10n.untitledInfinite
+                                  : l10n.untitledNotebook,
+                              folderName: folderName,
+                              schoolClass: schoolClass,
+                              classSpec: classSpec,
+                            ),
+                            labelText: l10n.title,
+                          ),
+                          onChanged: (v) => title = v,
                         ),
                         const SizedBox(height: 16),
                         _sectionLabel(l10n.documentType),
@@ -235,24 +242,46 @@ Future<NotebookCreateResult?> promptCreateNotebook(
                         ],
                         _sectionLabel(l10n.schoolClass),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<int?>(
-                          initialValue: schoolClass,
-                          decoration: InputDecoration(
-                            hintText: l10n.schoolClassHint,
-                          ),
-                          items: [
-                            DropdownMenuItem<int?>(
-                              value: null,
-                              child: Text(l10n.schoolClassNone),
-                            ),
-                            for (var grade = 5; grade <= 13; grade++)
-                              DropdownMenuItem<int?>(
-                                value: grade,
-                                child: Text(l10n.schoolClassValue(grade)),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: DropdownButtonFormField<int?>(
+                                isExpanded: true,
+                                initialValue: schoolClass,
+                                decoration: InputDecoration(
+                                  hintText: l10n.schoolClassHint,
+                                ),
+                                items: [
+                                  DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text(l10n.schoolClassNone),
+                                  ),
+                                  for (var grade = 5; grade <= 13; grade++)
+                                    DropdownMenuItem<int?>(
+                                      value: grade,
+                                      child: Text(l10n.schoolClassValue(grade)),
+                                    ),
+                                ],
+                                onChanged: (value) =>
+                                    setLocal(() => schoolClass = value),
                               ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                textCapitalization: TextCapitalization.none,
+                                decoration: InputDecoration(
+                                  labelText: l10n.schoolClassSpec,
+                                  hintText: l10n.schoolClassSpecHint,
+                                ),
+                                onChanged: (v) =>
+                                    setLocal(() => classSpec = v),
+                              ),
+                            ),
                           ],
-                          onChanged: (value) =>
-                              setLocal(() => schoolClass = value),
                         ),
                         const SizedBox(height: 16),
                         _sectionLabel(l10n.cover),
@@ -317,19 +346,34 @@ Future<NotebookCreateResult?> promptCreateNotebook(
                   child: Text(l10n.cancel),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.pop(
-                    context,
-                    NotebookCreateResult(
-                      title: title,
-                      color: color,
-                      template: template,
-                      canvasMode: mode,
-                      paperFormat: paperFormat,
-                      orientation: orientation,
-                      favorite: favorite,
-                      schoolClass: schoolClass,
-                    ),
-                  ),
+                  onPressed: () {
+                    final untitled = mode == CanvasMode.infinite
+                        ? l10n.untitledInfinite
+                        : l10n.untitledNotebook;
+                    final typed = title.trim();
+                    final resolved =
+                        typed.isEmpty || typed == untitled
+                        ? suggestedNotebookTitle(
+                            untitled: untitled,
+                            folderName: folderName,
+                            schoolClass: schoolClass,
+                            classSpec: classSpec,
+                          )
+                        : typed;
+                    Navigator.pop(
+                      context,
+                      NotebookCreateResult(
+                        title: resolved,
+                        color: color,
+                        template: template,
+                        canvasMode: mode,
+                        paperFormat: paperFormat,
+                        orientation: orientation,
+                        favorite: favorite,
+                        schoolClass: schoolClass,
+                      ),
+                    );
+                  },
                   child: Text(l10n.create),
                 ),
               ],

@@ -308,6 +308,18 @@ abstract class AppLocalizations {
   /// **'Grade {n}'**
   String schoolClassValue(int n);
 
+  /// No description provided for @schoolClassSpec.
+  ///
+  /// In en, this message translates to:
+  /// **'Suffix'**
+  String get schoolClassSpec;
+
+  /// No description provided for @schoolClassSpecHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. a'**
+  String get schoolClassSpecHint;
+
   /// No description provided for @importFromPreviousClass.
   ///
   /// In en, this message translates to:
@@ -4238,6 +4250,72 @@ abstract class AppLocalizations {
   /// **'On this iPhone: Settings → Personal Hotspot → turn it on. Then the address and QR code appear. The others join that hotspot (or scan the code).'**
   String get nearbySyncIosHotspotHint;
 
+  /// No description provided for @nearbyShareDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name'**
+  String get nearbyShareDisplayName;
+
+  /// No description provided for @nearbyShareDisplayNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This is what others see — not the internal notebook title.'**
+  String get nearbyShareDisplayNameHint;
+
+  /// No description provided for @nearbyShareAutoHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect automatically'**
+  String get nearbyShareAutoHost;
+
+  /// No description provided for @nearbyShareAutoHostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When both of you have the notebook open, the session starts on its own. You can turn this off.'**
+  String get nearbyShareAutoHostHint;
+
+  /// No description provided for @nearbyShareGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices with access'**
+  String get nearbyShareGranted;
+
+  /// No description provided for @nearbyShareRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove access'**
+  String get nearbyShareRevoke;
+
+  /// No description provided for @nearbyShareNoPeers.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody has entered the code yet.'**
+  String get nearbyShareNoPeers;
+
+  /// No description provided for @nearbyShareEnterCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Access code'**
+  String get nearbyShareEnterCodeTitle;
+
+  /// No description provided for @nearbyShareEnterCodeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” is protected. Enter the code shown on the host device.'**
+  String nearbyShareEnterCodeBody(String name);
+
+  /// No description provided for @nearbyShareRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'The host removed your access.'**
+  String get nearbyShareRevoked;
+
+  /// No description provided for @nearbyShareAccessSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Access saved. Next time Notis will connect automatically.'**
+  String get nearbyShareAccessSaved;
+
   /// No description provided for @nearbyJoinFromLibrary.
   ///
   /// In en, this message translates to:
@@ -4249,6 +4327,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scan a QR code or tap a device on this network — no internet.'**
   String get nearbyJoinFromLibraryHint;
+
+  /// No description provided for @nearbyJoinManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Join manually'**
+  String get nearbyJoinManual;
+
+  /// No description provided for @nearbyScanSheetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the other device’s QR code inside the frame.'**
+  String get nearbyScanSheetHint;
 
   /// No description provided for @nearbySyncHostNeedsNotebook.
   ///
@@ -4267,6 +4357,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Live'**
   String get liveNow;
+
+  /// No description provided for @sharedByHost.
+  ///
+  /// In en, this message translates to:
+  /// **'From {name}'**
+  String sharedByHost(String name);
 
   /// No description provided for @cloudSyncThisNotebook.
   ///

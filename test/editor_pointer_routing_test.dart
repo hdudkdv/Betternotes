@@ -163,4 +163,42 @@ void main() {
     expect(PointerRouting.drawsLikeStylus(finger), isFalse);
     expect(PointerRouting.browsesLikeFinger(finger), isTrue);
   });
+
+  testWidgets('empty overlay stack does not steal mouse downs from the canvas', (
+    tester,
+  ) async {
+    var downs = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 600,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Listener(
+                    behavior: HitTestBehavior.opaque,
+                    onPointerDown: (_) => downs++,
+                    child: const ColoredBox(color: Color(0xFFFFFFFF)),
+                  ),
+                ),
+                Positioned.fill(
+                  child: OverlayHitStack(
+                    fit: StackFit.expand,
+                    children: const [
+                      IgnorePointer(child: SizedBox.expand()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tapAt(const Offset(200, 300));
+    expect(downs, 1);
+  });
 }

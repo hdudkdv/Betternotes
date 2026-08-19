@@ -42,6 +42,8 @@
       }
     }
   },
+  "schoolClassSpec": "Zusatz",
+  "schoolClassSpecHint": "z. B. a",
   "importFromPreviousClass": "Aus letzter Klasse übernehmen",
   "importFromClass": "Aus Klasse {n} übernehmen",
   "@importFromClass": {
@@ -953,11 +955,39 @@
   "nearbySyncScanQr": "QR-Code scannen",
   "nearbySyncQrHint": "Das andere Gerät scannt diesen Code und tritt bei — auch ohne gemeinsamen Router.",
   "nearbySyncIosHotspotHint": "Auf diesem iPhone: Einstellungen → Persönlicher Hotspot → einschalten. Danach erscheinen Adresse und QR-Code. Die anderen treten diesem Hotspot bei (oder scannen den Code).",
+  "nearbyShareDisplayName": "Anzeigename",
+  "nearbyShareDisplayNameHint": "So sehen andere das Notizbuch — nicht den internen Titel.",
+  "nearbyShareAutoHost": "Automatisch verbinden",
+  "nearbyShareAutoHostHint": "Sobald beide das Notizbuch geöffnet haben, startet die Session von selbst. Du kannst das jederzeit ausstellen.",
+  "nearbyShareGranted": "Geräte mit Zugriff",
+  "nearbyShareRevoke": "Zugriff entziehen",
+  "nearbyShareNoPeers": "Noch niemand hat den Code eingegeben.",
+  "nearbyShareEnterCodeTitle": "Zugangscode",
+  "nearbyShareEnterCodeBody": "„{name}“ ist geschützt. Gib den Code ein, den der Host dir zeigt.",
+  "@nearbyShareEnterCodeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nearbyShareRevoked": "Der Host hat den Zugriff entzogen.",
+  "nearbyShareAccessSaved": "Zugriff gespeichert. Beim nächsten Mal verbindet Notis automatisch.",
   "nearbyJoinFromLibrary": "Nahe Sync beitreten",
   "nearbyJoinFromLibraryHint": "QR-Code scannen oder ein Gerät in der Nähe antippen — ohne Internet.",
+  "nearbyJoinManual": "Manuell beitreten",
+  "nearbyScanSheetHint": "Halte den QR-Code vom anderen Gerät in den Rahmen.",
   "nearbySyncHostNeedsNotebook": "Zum Hosten zuerst ein Notizbuch öffnen und dort Nahe Sync starten.",
   "liveFolder": "Live",
   "liveNow": "Live",
+  "sharedByHost": "Von {name}",
+  "@sharedByHost": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "cloudSyncThisNotebook": "Dieses Notizbuch in der Cloud synchronisieren",
   "cloudSyncThisNotebookOff": "Cloud-Sync für dieses Notizbuch beenden",
   "cloudSyncLimitReached": "Lite synchronisiert höchstens 5 Notizbücher gleichzeitig. Entferne zuerst eines oder wechsle zu Pro.",

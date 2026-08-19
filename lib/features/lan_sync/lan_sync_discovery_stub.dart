@@ -6,9 +6,11 @@ class NearbyDiscoveredHost {
     required this.name,
     required this.host,
     required this.port,
-    required this.sessionCode,
+    this.sessionCode = '',
     this.notebookTitle,
     this.deviceId,
+    this.shareId,
+    this.bleId,
     this.classroomSubject,
     this.classroomRoom,
     this.classroomBeacon,
@@ -20,11 +22,23 @@ class NearbyDiscoveredHost {
   final String sessionCode;
   final String? notebookTitle;
   final String? deviceId;
+  final String? shareId;
+  final String? bleId;
   final String? classroomSubject;
   final String? classroomRoom;
   final String? classroomBeacon;
 
-  String get key => '$host:$port:$sessionCode';
+  String get publicName {
+    final title = notebookTitle?.trim();
+    if (title != null && title.isNotEmpty) return title;
+    return name;
+  }
+
+  String get key {
+    if (shareId != null && shareId!.isNotEmpty) return 'sid:$shareId';
+    if (bleId != null && bleId!.isNotEmpty) return 'ble:$bleId';
+    return '$host:$port:$sessionCode';
+  }
 }
 
 /// Web stub — mDNS is unavailable in the browser.
@@ -41,6 +55,8 @@ class LanSyncDiscovery {
     required String sessionCode,
     required String deviceId,
     String? notebookTitle,
+    String? shareId,
+    bool advertiseCode = true,
     String? classroomSubject,
     String? classroomRoom,
     String? classroomBeacon,

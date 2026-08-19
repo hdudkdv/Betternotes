@@ -127,6 +127,12 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get schoolClassSpec => 'Zusatz';
+
+  @override
+  String get schoolClassSpecHint => 'z. B. a';
+
+  @override
   String get importFromPreviousClass => 'Aus letzter Klasse übernehmen';
 
   @override
@@ -2264,11 +2270,56 @@ class AppLocalizationsDe extends AppLocalizations {
       'Auf diesem iPhone: Einstellungen → Persönlicher Hotspot → einschalten. Danach erscheinen Adresse und QR-Code. Die anderen treten diesem Hotspot bei (oder scannen den Code).';
 
   @override
+  String get nearbyShareDisplayName => 'Anzeigename';
+
+  @override
+  String get nearbyShareDisplayNameHint =>
+      'So sehen andere das Notizbuch — nicht den internen Titel.';
+
+  @override
+  String get nearbyShareAutoHost => 'Automatisch verbinden';
+
+  @override
+  String get nearbyShareAutoHostHint =>
+      'Sobald beide das Notizbuch geöffnet haben, startet die Session von selbst. Du kannst das jederzeit ausstellen.';
+
+  @override
+  String get nearbyShareGranted => 'Geräte mit Zugriff';
+
+  @override
+  String get nearbyShareRevoke => 'Zugriff entziehen';
+
+  @override
+  String get nearbyShareNoPeers => 'Noch niemand hat den Code eingegeben.';
+
+  @override
+  String get nearbyShareEnterCodeTitle => 'Zugangscode';
+
+  @override
+  String nearbyShareEnterCodeBody(String name) {
+    return '„$name“ ist geschützt. Gib den Code ein, den der Host dir zeigt.';
+  }
+
+  @override
+  String get nearbyShareRevoked => 'Der Host hat den Zugriff entzogen.';
+
+  @override
+  String get nearbyShareAccessSaved =>
+      'Zugriff gespeichert. Beim nächsten Mal verbindet Notis automatisch.';
+
+  @override
   String get nearbyJoinFromLibrary => 'Nahe Sync beitreten';
 
   @override
   String get nearbyJoinFromLibraryHint =>
       'QR-Code scannen oder ein Gerät in der Nähe antippen — ohne Internet.';
+
+  @override
+  String get nearbyJoinManual => 'Manuell beitreten';
+
+  @override
+  String get nearbyScanSheetHint =>
+      'Halte den QR-Code vom anderen Gerät in den Rahmen.';
 
   @override
   String get nearbySyncHostNeedsNotebook =>
@@ -2279,6 +2330,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get liveNow => 'Live';
+
+  @override
+  String sharedByHost(String name) {
+    return 'Von $name';
+  }
 
   @override
   String get cloudSyncThisNotebook =>

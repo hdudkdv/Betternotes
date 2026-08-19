@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/models/content_models.dart';
@@ -20,8 +20,10 @@ import 'lan_sync_assets.dart';
 import 'lan_sync_discovery.dart';
 import 'lan_sync_protocol.dart';
 import 'lan_sync_transport.dart';
+import 'nearby_ble.dart';
 import 'nearby_hotspot.dart';
 import 'nearby_link.dart';
+import 'nearby_share.dart';
 
 enum LanSyncEventKind {
   peerJoined,
@@ -176,20 +178,22 @@ class _IncomingAsset {
 /// snapshots plus incremental page/notebook ops (including binary assets).
 class LanSyncController extends ChangeNotifier {
   LanSyncController(this._repository) {
-    _deviceId = const Uuid().v4();
+    _shareStore = NearbyShareStore(_repository);
+    _deviceId = '';
     _discovery = createLanSyncDiscovery();
-    _hostsSub = _discovery.hostsStream.listen((_) {
-      discoveredHosts = _discovery.hosts;
-      _emit(const LanSyncEvent(kind: LanSyncEventKind.hostsChanged));
-    });
+    _hostsSub = _discovery.hostsStream.listen((_) => _publishHosts());
+    unawaited(_ensureDeviceId());
   }
 
   final NotebookRepository _repository;
+  late final NearbyShareStore _shareStore;
   final LanSyncTransport _transport = LanSyncTransport();
   late final LanSyncDiscovery _discovery;
   StreamSubscription<List<NearbyDiscoveredHost>>? _hostsSub;
+  StreamSubscription<List<NearbyBleBeacon>>? _bleSub;
 
-  late final String _deviceId;
+  late String _deviceId;
+  bool _deviceIdReady = false;
   String deviceName = 'Notis';
   String? sessionCode;
   String? notebookId;
@@ -225,6 +229,13 @@ class LanSyncController extends ChangeNotifier {
   Future<void> _messageQueue = Future.value();
   NearbyHotspotSession? hotspotSession;
   Timer? _lanAddressPoll;
+  NearbyHostedShare? hostedShare;
+  bool _autoSession = false;
+  bool _autoJoining = false;
+  String? _pendingGuestShareId;
+  String? _openedNotebookId;
+  final Map<String, NearbyDiscoveredHost> _bleHosts = {};
+  List<NearbyGuestGrant> guestGrants = const [];
 
   /// Pending snapshot pages while assets are still arriving.
   Map<String, dynamic>? _pendingNotebook;
@@ -254,6 +265,7 @@ class LanSyncController extends ChangeNotifier {
       host: ip,
       port: port,
       code: code,
+      shareId: hostedShare?.shareId,
       ssid: hotspotSession?.ssid,
       password: hotspotSession?.password,
     );
@@ -283,7 +295,138 @@ class LanSyncController extends ChangeNotifier {
 
   Future<void> refreshAddresses() async {
     localAddresses = await LanSyncTransport.localIPv4Addresses();
+    if (role == LanSyncRole.host) {
+      unawaited(_advertiseBle());
+    }
     notifyListeners();
+  }
+
+  Future<void> _ensureDeviceId() async {
+    if (_deviceIdReady && _deviceId.isNotEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    var id = prefs.getString('nearbyDeviceIdV1');
+    if (id == null || id.isEmpty) {
+      id = const Uuid().v4();
+      await prefs.setString('nearbyDeviceIdV1', id);
+    }
+    _deviceId = id;
+    _deviceIdReady = true;
+    await _reloadGuestGrants();
+    await _placeGrantedNotebooksInLive();
+  }
+
+  NearbyGuestGrant? guestGrantFor(String notebookId) {
+    for (final grant in guestGrants) {
+      if (grant.notebookId == notebookId) return grant;
+    }
+    return null;
+  }
+
+  Future<void> _reloadGuestGrants() async {
+    guestGrants = await _shareStore.guestGrants();
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> _placeGrantedNotebooksInLive() async {
+    if (guestGrants.isEmpty) return;
+    await _repository.createFolder(
+      id: kLiveFolderId,
+      name: 'Live',
+      colorValue: kLiveFolderColor,
+      iconKey: kLiveFolderIcon,
+    );
+    var moved = false;
+    for (final grant in guestGrants) {
+      final notebook = await _repository.getNotebook(grant.notebookId);
+      if (notebook == null || notebook.folderId == kLiveFolderId) continue;
+      await _repository.updateNotebook(
+        notebook.copyWith(folderId: kLiveFolderId, updatedAt: DateTime.now()),
+      );
+      moved = true;
+    }
+    if (moved && !_disposed) {
+      _emit(
+        const LanSyncEvent(
+          kind: LanSyncEventKind.notebookUpdated,
+          message: 'shared',
+        ),
+      );
+    }
+  }
+
+  void _publishHosts() {
+    final byKey = <String, NearbyDiscoveredHost>{};
+    for (final host in _bleHosts.values) {
+      byKey[host.key] = host;
+    }
+    for (final host in _discovery.hosts) {
+      byKey[host.key] = host;
+    }
+    discoveredHosts = byKey.values.toList();
+    _emit(const LanSyncEvent(kind: LanSyncEventKind.hostsChanged));
+    unawaited(_maybeAutoJoin());
+  }
+
+  void _onBleBeacons(List<NearbyBleBeacon> beacons) {
+    _bleHosts
+      ..clear()
+      ..addEntries([
+        for (final beacon in beacons)
+          MapEntry(
+            NearbyDiscoveredHost(
+              name: beacon.name,
+              host: '',
+              port: kLanSyncPort,
+              notebookTitle: beacon.name,
+              shareId: beacon.shareId,
+              bleId: beacon.id,
+            ).key,
+            NearbyDiscoveredHost(
+              name: beacon.name,
+              host: '',
+              port: kLanSyncPort,
+              notebookTitle: beacon.name,
+              shareId: beacon.shareId,
+              bleId: beacon.id,
+            ),
+          ),
+      ]);
+    _publishHosts();
+  }
+
+  Future<void> _advertiseBle() async {
+    final share = hostedShare;
+    if (role != LanSyncRole.host || share == null || _disposed) return;
+    await NearbyBle.instance.startAdvertise(
+      name: share.displayName,
+      payload: NearbyBlePayload(
+        shareId: share.shareId,
+        notebookId: share.notebookId,
+        displayName: share.displayName,
+        hostDeviceId: _deviceId,
+        ip: preferredHostIp,
+        port: port,
+        ssid: hotspotSession?.ssid,
+        password: hotspotSession?.password,
+      ),
+    );
+  }
+
+  Future<void> startBrowsing() async {
+    browsing = true;
+    notifyListeners();
+    try {
+      await _discovery.startBrowsing();
+      _bleSub ??= NearbyBle.instance.beacons.listen(_onBleBeacons);
+      await NearbyBle.instance.startScan();
+      await _reloadGuestGrants();
+      await _placeGrantedNotebooksInLive();
+      _publishHosts();
+    } catch (e) {
+      browsing = false;
+      errorMessage = '$e';
+      _emit(LanSyncEvent(kind: LanSyncEventKind.error, message: errorMessage));
+    }
   }
 
   void _startLanAddressPoll() {
@@ -295,40 +438,23 @@ class LanSyncController extends ChangeNotifier {
     });
   }
 
-  Future<void> startBrowsing() async {
-    browsing = true;
-    notifyListeners();
-    try {
-      await _discovery.startBrowsing();
-      discoveredHosts = _discovery.hosts;
-      notifyListeners();
-    } catch (e) {
-      browsing = false;
-      errorMessage = '$e';
-      _emit(LanSyncEvent(kind: LanSyncEventKind.error, message: errorMessage));
-    }
-  }
-
   Future<void> stopBrowsing() async {
     browsing = false;
+    await NearbyBle.instance.stopScan();
     await _discovery.stopBrowsing();
+    _bleHosts.clear();
     discoveredHosts = const [];
     notifyListeners();
-  }
-
-  String _generateCode() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final rand = Random.secure();
-    return List.generate(6, (_) => alphabet[rand.nextInt(alphabet.length)])
-        .join();
   }
 
   Future<void> startHost({
     required String notebookId,
     String? displayName,
+    String? shareName,
     bool classroomMode = false,
     String? classroomSubject,
     String? classroomRoom,
+    bool autoSession = false,
   }) async {
     if (kIsWeb) {
       phase = LanSyncPhase.error;
@@ -336,7 +462,9 @@ class LanSyncController extends ChangeNotifier {
       _emit(LanSyncEvent(kind: LanSyncEventKind.error, message: errorMessage));
       return;
     }
+    await _ensureDeviceId();
     await stop();
+    _autoSession = autoSession;
     this.notebookId = notebookId;
     this.classroomMode = classroomMode;
     this.classroomSubject = classroomSubject?.trim();
@@ -345,7 +473,14 @@ class LanSyncController extends ChangeNotifier {
     deviceName = displayName?.trim().isNotEmpty == true
         ? displayName!.trim()
         : 'Host';
-    sessionCode = _generateCode();
+    final notebook = await _repository.getNotebook(notebookId);
+    hostedShare = await _shareStore.ensureHosted(
+      notebookId: notebookId,
+      displayName: shareName?.trim().isNotEmpty == true
+          ? shareName!.trim()
+          : (notebook?.title ?? 'Notis'),
+    );
+    sessionCode = hostedShare!.accessCode;
     phase = LanSyncPhase.hosting;
     errorMessage = null;
     notifyListeners();
@@ -386,13 +521,14 @@ class LanSyncController extends ChangeNotifier {
         await refreshAddresses();
       }
       _startLanAddressPoll();
-      final notebook = await _repository.getNotebook(notebookId);
       await _discovery.startAdvertising(
-        serviceName: deviceName,
+        serviceName: hostedShare?.displayName ?? deviceName,
         port: port,
         sessionCode: sessionCode!,
         deviceId: _deviceId,
-        notebookTitle: notebook?.title,
+        notebookTitle: hostedShare?.displayName ?? notebook?.title,
+        shareId: hostedShare?.shareId,
+        advertiseCode: classroomMode,
         classroomSubject: this.classroomSubject,
         classroomRoom: this.classroomRoom,
         classroomBeacon: this.classroomSubject != null ||
@@ -404,6 +540,7 @@ class LanSyncController extends ChangeNotifier {
               )
             : null,
       );
+      await _advertiseBle();
       _emit(LanSyncEvent(
         kind: LanSyncEventKind.status,
         notebookId: notebookId,
@@ -431,6 +568,7 @@ class LanSyncController extends ChangeNotifier {
       code: link.code,
       port: link.port,
       displayName: displayName,
+      shareId: link.shareId,
     );
   }
 
@@ -442,6 +580,9 @@ class LanSyncController extends ChangeNotifier {
     bool autoReconnect = false,
     String? expectedSubject,
     String? expectedRoom,
+    String? shareId,
+    String? bleId,
+    bool autoSession = false,
   }) async {
     if (kIsWeb) {
       phase = LanSyncPhase.error;
@@ -449,15 +590,49 @@ class LanSyncController extends ChangeNotifier {
       _emit(LanSyncEvent(kind: LanSyncEventKind.error, message: errorMessage));
       return;
     }
+    await _ensureDeviceId();
+    var resolvedHost = host.trim();
+    var resolvedPort = port;
+    var resolvedShareId = shareId;
+    if (resolvedHost.isEmpty && bleId != null && bleId.isNotEmpty) {
+      phase = LanSyncPhase.connecting;
+      notifyListeners();
+      final payload = await NearbyBle.instance.readPayload(bleId);
+      if (payload != null) {
+        resolvedHost = payload.ip?.trim() ?? '';
+        resolvedPort = payload.port;
+        resolvedShareId = payload.shareId.isEmpty
+            ? resolvedShareId
+            : payload.shareId;
+        if (payload.ssid != null &&
+            payload.ssid!.isNotEmpty &&
+            payload.password != null) {
+          await NearbyHotspot.instance.connectToAp(
+            ssid: payload.ssid!,
+            password: payload.password!,
+          );
+          await Future<void>.delayed(const Duration(seconds: 2));
+        }
+      }
+    }
+    if (resolvedHost.isEmpty) {
+      phase = LanSyncPhase.error;
+      errorMessage = 'no_address';
+      _emit(LanSyncEvent(kind: LanSyncEventKind.error, message: errorMessage));
+      return;
+    }
     await _discovery.stopAdvertising();
+    await NearbyBle.instance.stopAdvertise();
     // Keep browsing optional; stop transport from previous session.
     await _transport.stop();
+    _autoSession = autoSession;
     role = LanSyncRole.guest;
     deviceName = displayName?.trim().isNotEmpty == true
         ? displayName!.trim()
         : 'Gast';
     sessionCode = code.trim().toUpperCase();
-    this.port = port;
+    _pendingGuestShareId = resolvedShareId;
+    this.port = resolvedPort;
     notebookId = null;
     classroomMode = false;
     classroomSubject = null;
@@ -485,17 +660,18 @@ class LanSyncController extends ChangeNotifier {
     };
 
     try {
-      await _transport.connect(host: host, port: port);
+      await _transport.connect(host: resolvedHost, port: resolvedPort);
       phase = LanSyncPhase.syncing;
       notifyListeners();
       await _transport.broadcast(
         LanSyncMessage.hello(
-          code: sessionCode!,
+          code: sessionCode ?? '',
           deviceId: _deviceId,
           deviceName: deviceName,
           autoReconnect: autoReconnect,
           expectedSubject: expectedSubject,
           expectedRoom: expectedRoom,
+          shareId: resolvedShareId,
         ),
       );
     } catch (e) {
@@ -511,16 +687,141 @@ class LanSyncController extends ChangeNotifier {
     bool autoReconnect = false,
     String? expectedSubject,
     String? expectedRoom,
-  }) {
+    String? code,
+    bool autoSession = false,
+  }) async {
+    final grant = host.shareId == null || host.shareId!.isEmpty
+        ? null
+        : await _shareStore.grantForShare(host.shareId!);
     return join(
       host: host.host,
-      code: host.sessionCode,
+      code: code ?? host.sessionCode,
       port: host.port,
       displayName: displayName,
       autoReconnect: autoReconnect,
       expectedSubject: expectedSubject,
       expectedRoom: expectedRoom,
+      shareId: host.shareId ?? grant?.shareId,
+      bleId: host.bleId,
+      autoSession: autoSession,
     );
+  }
+
+  Future<bool> hasAccessTo(NearbyDiscoveredHost host) async {
+    await _ensureDeviceId();
+    if (host.shareId != null && host.shareId!.isNotEmpty) {
+      final grant = await _shareStore.grantForShare(host.shareId!);
+      if (grant != null) return true;
+    }
+    if (host.deviceId != null && host.deviceId!.isNotEmpty) {
+      final grants = await _shareStore.guestGrants();
+      return grants.any((g) => g.hostDeviceId == host.deviceId);
+    }
+    return false;
+  }
+
+  Future<void> onNotebookOpened(Notebook notebook) async {
+    if (kIsWeb || _disposed) return;
+    await _ensureDeviceId();
+    _openedNotebookId = notebook.id;
+    if (isActive && notebookId == notebook.id) return;
+    if (isActive) return;
+    final hosted = await _shareStore.hostedForNotebook(notebook.id);
+    if (hosted != null && hosted.autoHost) {
+      await startHost(
+        notebookId: notebook.id,
+        shareName: hosted.displayName,
+        displayName: deviceName,
+        autoSession: true,
+      );
+      return;
+    }
+    final grant = await _shareStore.grantForNotebook(notebook.id);
+    if (grant == null) return;
+    if (!browsing) await startBrowsing();
+    await _maybeAutoJoin();
+  }
+
+  Future<void> onNotebookClosed(String notebookId) async {
+    if (_openedNotebookId == notebookId) {
+      _openedNotebookId = null;
+    }
+    if (!_autoSession) return;
+    if (this.notebookId != notebookId && _openedNotebookId != null) return;
+    if (isActive) await stop();
+  }
+
+  Future<void> _maybeAutoJoin() async {
+    if (_autoJoining || _disposed || isActive || role == LanSyncRole.host) {
+      return;
+    }
+    final opened = _openedNotebookId;
+    if (opened == null) return;
+    final grant = await _shareStore.grantForNotebook(opened);
+    if (grant == null) return;
+    NearbyDiscoveredHost? match;
+    for (final host in discoveredHosts) {
+      if (host.shareId == grant.shareId) {
+        match = host;
+        break;
+      }
+      if (host.deviceId != null &&
+          host.deviceId!.isNotEmpty &&
+          host.deviceId == grant.hostDeviceId) {
+        match = host;
+        break;
+      }
+    }
+    if (match == null) return;
+    _autoJoining = true;
+    try {
+      await joinDiscovered(match, autoSession: true);
+    } finally {
+      _autoJoining = false;
+    }
+  }
+
+  Future<void> setShareAutoHost(bool enabled) async {
+    final current = hostedShare;
+    final notebookId = current?.notebookId ?? this.notebookId;
+    var share = current;
+    if (share == null && notebookId != null) {
+      share = await _shareStore.hostedForNotebook(notebookId);
+    }
+    if (share == null) return;
+    final updated = share.copyWith(autoHost: enabled);
+    await _shareStore.saveHosted(updated);
+    if (hostedShare?.notebookId == updated.notebookId) {
+      hostedShare = updated;
+    }
+    notifyListeners();
+  }
+
+  Future<void> revokeSharePeer(String deviceId) async {
+    final current = hostedShare;
+    final notebookId = current?.notebookId ?? this.notebookId;
+    var share = current;
+    if (share == null && notebookId != null) {
+      share = await _shareStore.hostedForNotebook(notebookId);
+    }
+    if (share == null) return;
+    final updated = await _shareStore.revokePeer(share, deviceId);
+    if (hostedShare?.notebookId == updated.notebookId) {
+      hostedShare = updated;
+    }
+    notifyListeners();
+  }
+
+  Future<void> setShareDisplayName(String name) async {
+    final share = hostedShare;
+    if (share == null) return;
+    hostedShare = share.copyWith(displayName: name.trim());
+    await _shareStore.saveHosted(hostedShare!);
+    notifyListeners();
+  }
+
+  Future<NearbyHostedShare?> loadHostedShare(String notebookId) {
+    return _shareStore.hostedForNotebook(notebookId);
   }
 
   Future<void> stop() async {
@@ -528,12 +829,16 @@ class LanSyncController extends ChangeNotifier {
     _lanAddressPoll = null;
     await NearbyHotspot.instance.stop();
     hotspotSession = null;
+    await NearbyBle.instance.stopAdvertise();
     await _discovery.stopAdvertising();
     await _transport.stop();
     phase = LanSyncPhase.idle;
     role = null;
     sessionCode = null;
     notebookId = null;
+    hostedShare = null;
+    _autoSession = false;
+    _pendingGuestShareId = null;
     peerCount = 0;
     peerName = null;
     errorMessage = null;
@@ -939,8 +1244,39 @@ class LanSyncController extends ChangeNotifier {
     LanPeerConnection? peer,
   ) async {
     if (role != LanSyncRole.host || peer == null || notebookId == null) return;
+    final remoteId = message['deviceId']?.toString() ?? '';
     final code = '${message['code'] ?? ''}'.toUpperCase();
-    if (code != sessionCode) {
+    var share = hostedShare ?? await _shareStore.hostedForNotebook(notebookId!);
+    hostedShare = share;
+    if (share != null) {
+      final decision = decideNearbyHello(
+        deviceId: remoteId,
+        code: code,
+        share: share,
+        sessionCode: sessionCode,
+        classroomMode: classroomMode,
+      );
+      if (decision == NearbyHelloDecision.rejectRevoked) {
+        await _transport.sendTo(peer, LanSyncMessage.reject('revoked'));
+        await _transport.disconnectPeer(peer);
+        return;
+      }
+      if (decision == NearbyHelloDecision.rejectInvalid) {
+        await _transport.sendTo(peer, LanSyncMessage.reject('invalid_code'));
+        await _transport.disconnectPeer(peer);
+        return;
+      }
+      if (decision == NearbyHelloDecision.allowCode) {
+        hostedShare = await _shareStore.grantPeer(
+          share,
+          NearbySharePeer(
+            deviceId: remoteId,
+            name: message['deviceName']?.toString() ?? 'Peer',
+            grantedAt: DateTime.now(),
+          ),
+        );
+      }
+    } else if (code != sessionCode) {
       await _transport.sendTo(peer, LanSyncMessage.reject('invalid_code'));
       await _transport.disconnectPeer(peer);
       return;
@@ -987,6 +1323,8 @@ class LanSyncController extends ChangeNotifier {
         classroomMode: classroomMode,
         classroomSubject: classroomSubject,
         classroomRoom: classroomRoom,
+        shareId: hostedShare?.shareId,
+        shareName: hostedShare?.displayName,
       ),
     );
 
@@ -1060,6 +1398,25 @@ class LanSyncController extends ChangeNotifier {
     classroomMode = message['classroomMode'] as bool? ?? false;
     classroomSubject = message['classroomSubject']?.toString();
     classroomRoom = message['classroomRoom']?.toString();
+    final shareId =
+        message['shareId']?.toString() ?? _pendingGuestShareId ?? '';
+    final shareName = message['shareName']?.toString() ??
+        message['deviceName']?.toString() ??
+        '';
+    final hostId = message['deviceId']?.toString() ?? '';
+    final hostName = message['deviceName']?.toString() ?? '';
+    if (notebookId != null && notebookId!.isNotEmpty) {
+      await _shareStore.saveGuestGrant(
+        NearbyGuestGrant(
+          shareId: shareId.isEmpty ? notebookId! : shareId,
+          notebookId: notebookId!,
+          displayName: shareName.isEmpty ? hostName : shareName,
+          hostDeviceId: hostId,
+          hostName: hostName,
+        ),
+      );
+      await _reloadGuestGrants();
+    }
     phase = LanSyncPhase.syncing;
     notifyListeners();
   }
@@ -1158,6 +1515,10 @@ class LanSyncController extends ChangeNotifier {
           ? notebook
           : notebook.copyWith(folderId: liveFolder.id);
       await _repository.upsertRemoteNotebook(stored);
+      if (!importCopy) {
+        await _reloadGuestGrants();
+        await _placeGrantedNotebooksInLive();
+      }
       for (final pageJson in pagesJson) {
         final remapped = remapPageAssetPaths(pageJson, _assetKeyToPath);
         final remote = NotePage.fromJson(remapped);
@@ -1384,6 +1745,9 @@ class LanSyncController extends ChangeNotifier {
     _lanAddressPoll?.cancel();
     unawaited(NearbyHotspot.instance.stop());
     _hostsSub?.cancel();
+    unawaited(_bleSub?.cancel());
+    unawaited(NearbyBle.instance.stopScan());
+    unawaited(NearbyBle.instance.stopAdvertise());
     _discovery.dispose();
     _transport.stop();
     super.dispose();

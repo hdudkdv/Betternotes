@@ -52,6 +52,8 @@
       }
     }
   },
+  "schoolClassSpec": "Suffix",
+  "schoolClassSpecHint": "e.g. a",
   "importFromPreviousClass": "Import from previous class",
   "importFromClass": "Import from grade {n}",
   "@importFromClass": {
@@ -979,11 +981,39 @@
   "nearbySyncScanQr": "Scan QR code",
   "nearbySyncQrHint": "The other device scans this code to join, even without a shared router.",
   "nearbySyncIosHotspotHint": "On this iPhone: Settings → Personal Hotspot → turn it on. Then the address and QR code appear. The others join that hotspot (or scan the code).",
+  "nearbyShareDisplayName": "Display name",
+  "nearbyShareDisplayNameHint": "This is what others see — not the internal notebook title.",
+  "nearbyShareAutoHost": "Connect automatically",
+  "nearbyShareAutoHostHint": "When both of you have the notebook open, the session starts on its own. You can turn this off.",
+  "nearbyShareGranted": "Devices with access",
+  "nearbyShareRevoke": "Remove access",
+  "nearbyShareNoPeers": "Nobody has entered the code yet.",
+  "nearbyShareEnterCodeTitle": "Access code",
+  "nearbyShareEnterCodeBody": "“{name}” is protected. Enter the code shown on the host device.",
+  "@nearbyShareEnterCodeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nearbyShareRevoked": "The host removed your access.",
+  "nearbyShareAccessSaved": "Access saved. Next time Notis will connect automatically.",
   "nearbyJoinFromLibrary": "Join nearby",
   "nearbyJoinFromLibraryHint": "Scan a QR code or tap a device on this network — no internet.",
+  "nearbyJoinManual": "Join manually",
+  "nearbyScanSheetHint": "Hold the other device’s QR code inside the frame.",
   "nearbySyncHostNeedsNotebook": "To host, open a notebook first, then start nearby sync there.",
   "liveFolder": "Live",
   "liveNow": "Live",
+  "sharedByHost": "From {name}",
+  "@sharedByHost": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "cloudSyncThisNotebook": "Sync this notebook to the cloud",
   "cloudSyncThisNotebookOff": "Stop cloud sync for this notebook",
   "cloudSyncLimitReached": "Lite syncs at most 5 notebooks at a time. Remove one first, or switch to Pro.",

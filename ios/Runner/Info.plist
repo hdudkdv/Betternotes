@@ -330,6 +330,10 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Notis finds nearby devices and shares notebooks over Wi-Fi or a Personal Hotspot — also without internet. / Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN oder Hotspot — auch ohne Internet.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Notis uses Bluetooth to find nearby tablets and share notebooks without internet. / Notis nutzt Bluetooth, um Tablets in der Nähe zu finden und Notizbücher ohne Internet zu teilen.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Notis uses Bluetooth to find nearby tablets and share notebooks without internet. / Notis nutzt Bluetooth, um Tablets in der Nähe zu finden und Notizbücher ohne Internet zu teilen.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_betternotes-nearby._tcp</string>

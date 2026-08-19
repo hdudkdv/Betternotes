@@ -41,6 +41,8 @@ class NotebookCover extends ConsumerWidget {
     final uid = ref.watch(authProvider).user?.uid;
     final lockedOut = notebook.isLockedFor(uid);
     final lan = ref.watch(lanSyncProvider);
+    final grant = lan.guestGrantFor(notebook.id);
+    final sharedBy = grant?.hostLabel;
     final liveNow = notebook.folderId == kLiveFolderId ||
         (lan.isActive && lan.notebookId == notebook.id);
     final paid = ref.watch(entitlementProvider).paidTier;
@@ -192,6 +194,20 @@ class NotebookCover extends ConsumerWidget {
                                 height: 1.15,
                               ),
                             ),
+                            if (sharedBy != null && sharedBy.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  l10n.sharedByHost(sharedBy),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTheme.body(
+                                    color: Colors.white.withValues(alpha: 0.88),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
