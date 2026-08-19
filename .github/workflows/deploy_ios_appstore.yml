@@ -169,6 +169,7 @@ jobs:
           # Keep products in one DerivedData tree (helps ML Kit / CocoaPods resources).
           # DEVELOPMENT_TEAM satisfies SPM packages; Runner signs via Release.xcconfig.
           if ! xcodebuild \
+            -quiet \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \

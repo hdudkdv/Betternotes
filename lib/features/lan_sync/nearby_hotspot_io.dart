@@ -55,6 +55,9 @@ class NearbyHotspot {
     required String password,
   }) async {
     if (kIsWeb) return false;
+    // iOS guests join Personal Hotspot in Settings; no Hotspot Configuration
+    // entitlement on the App Store profile.
+    if (Platform.isIOS) return false;
     if (Platform.isAndroid && !await ensurePermissions()) return false;
     try {
       final ok = await _channel.invokeMethod<bool>('connect', {

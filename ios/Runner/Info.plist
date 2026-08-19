@@ -54,7 +54,7 @@
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-5148114115565319~7652831090</string>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>Notis verwendet die Werbe-ID, um relevante Belohnungsanzeigen anzuzeigen.</string>
+	<string>Notis uses the advertising identifier only after you choose to watch a rewarded ad, so relevant ads can be shown. / Notis verwendet die Werbe-ID nur, wenn du eine Belohnungsanzeige anschaust.</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
@@ -261,11 +261,11 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Notis importiert geteilte Fotos in Notizbücher.</string>
+	<string>Notis imports photos you pick into notebooks. / Notis importiert ausgewählte Fotos in Notizbücher.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Notis nutzt die Kamera, um Arbeitsblätter einzuscannen und den QR-Code für den Nahe-Sync zu lesen.</string>
+	<string>Notis uses the camera to scan worksheets and the nearby-sync QR code. / Notis nutzt die Kamera, um Arbeitsblätter einzuscannen und den QR-Code für den Nahe-Sync zu lesen.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Notis nimmt Lehrer-Erklärungen nur auf, wenn du eine Aufnahme startest.</string>
+	<string>Notis records audio only when you start a recording. / Notis nimmt Ton nur auf, wenn du eine Aufnahme startest.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Notis</string>
 	<key>CFBundleExecutable</key>
@@ -329,13 +329,7 @@
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN, Hotspot oder ein eigenes Gerät-zu-Gerät-Netz — auch ohne Internet.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Notis nutzt den Standort nur, um Geräte in der Nähe im lokalen Netz zu finden. Es wird keine Karte angezeigt.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Notis nutzt den Standort nur, um Geräte in der Nähe im lokalen Netz zu finden. Der Standort wird nicht im Hintergrund erfasst und es wird keine Karte angezeigt.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Notis nutzt den Standort nur, um Geräte in der Nähe im lokalen Netz zu finden. Der Standort wird nicht im Hintergrund erfasst und es wird keine Karte angezeigt.</string>
+	<string>Notis finds nearby devices and shares notebooks over Wi-Fi or a Personal Hotspot — also without internet. / Notis findet Geräte in der Nähe und teilt Notizbücher über WLAN oder Hotspot — auch ohne Internet.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_betternotes-nearby._tcp</string>

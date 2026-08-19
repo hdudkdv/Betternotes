@@ -55,7 +55,6 @@ class RewardedAdService {
     if (_initialized || !AdConfig.isSupported) return;
     try {
       await _gatherConsent();
-      await _requestTrackingAuthorization();
       await MobileAds.instance.initialize();
       _initialized = true;
       if (!_canRequestAds) {
@@ -205,6 +204,8 @@ class RewardedAdService {
   Future<RewardedAdOutcome> show() async {
     if (!AdConfig.isSupported) return RewardedAdOutcome.unavailable;
     if (!_initialized) await initialize();
+    // ATT belongs next to an ad the user asked for, not at cold start.
+    await _requestTrackingAuthorization();
     try {
       _canRequestAds = await ConsentInformation.instance.canRequestAds();
       if (!_canRequestAds && _consentUpdateFailed) _canRequestAds = true;
