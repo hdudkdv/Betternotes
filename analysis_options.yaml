@@ -12,6 +12,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     - lib/**/*.g.dart
+    - lib/features/tools/assistant/gemma_runtime_io.dart
   errors:
     experimental_member_use: ignore
 

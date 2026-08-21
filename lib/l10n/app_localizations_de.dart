@@ -3248,6 +3248,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Kurzer Systemcheck: RAM, Kerne und Rechenleistung. Danach wird das passende Gemma-Modell auf das Gerät geladen — leichter oder stärker.';
 
   @override
+  String get gemmaUnavailable =>
+      'On-Device-Gemma ist in dieser Version noch nicht verfügbar. Der Assistent im Editor bleibt nutzbar.';
+
+  @override
   String get gemmaRam => 'Arbeitsspeicher';
 
   @override

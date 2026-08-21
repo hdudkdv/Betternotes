@@ -29,7 +29,7 @@ class _GemmaSetupSheetState extends ConsumerState<_GemmaSetupSheet> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final runtime = ref.read(gemmaRuntimeProvider);
-      if (runtime.isReady) return;
+      if (!runtime.isSupported || runtime.isReady) return;
       runtime.runCheck();
     });
   }
@@ -80,7 +80,9 @@ class _GemmaSetupSheetState extends ConsumerState<_GemmaSetupSheet> {
               ),
               const SizedBox(height: 8),
               Text(
-                l10n.gemmaSetupBody,
+                runtime.isSupported
+                    ? l10n.gemmaSetupBody
+                    : l10n.gemmaUnavailable,
                 style: AppTheme.body(fontSize: 13, color: AppTheme.inkMuted),
               ),
               const SizedBox(height: 14),
@@ -130,7 +132,7 @@ class _GemmaSetupSheetState extends ConsumerState<_GemmaSetupSheet> {
                   ),
                 ),
               const SizedBox(height: 14),
-              if (runtime.phase != GemmaPhase.ready)
+              if (runtime.isSupported && runtime.phase != GemmaPhase.ready)
                 FilledButton(
                   onPressed:
                       runtime.phase == GemmaPhase.downloading ||

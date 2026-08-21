@@ -3227,6 +3227,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A short system check: RAM, cores, and a speed probe. Then the matching Gemma model is downloaded onto this device — lighter or heavier.';
 
   @override
+  String get gemmaUnavailable =>
+      'On-device Gemma is not available in this version. The in-editor assistant still works.';
+
+  @override
   String get gemmaRam => 'Memory';
 
   @override

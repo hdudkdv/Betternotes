@@ -1,7 +1,7 @@
 name: betternotes
 description: Notis — tablet-first handwritten notes for school and study.
 publish_to: 'none'
-version: 1.0.3+11
+version: 1.0.3+12
 
 environment:
   sdk: ^3.11.4
@@ -51,7 +51,10 @@ dependencies:
   google_mlkit_text_recognition: ^0.15.0
   cunning_document_scanner: ^1.3.1
   purchases_ui_flutter: ^10.9.0
-  flutter_gemma: 0.16.5
+  # flutter_gemma: 0.16.5
+  # Native LiteRT/MediaPipe constructors call abort() during dyld on
+  # iPadOS 26 (App Store launch crash, 1.0.3 build 10). Keep the Dart
+  # stub until an iOS-safe engine can ship.
   device_info_plus: ^11.5.0
   permission_handler: ^12.0.3
   qr_flutter: ^4.1.0

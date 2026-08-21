@@ -5954,6 +5954,12 @@ abstract class AppLocalizations {
   /// **'A short system check: RAM, cores, and a speed probe. Then the matching Gemma model is downloaded onto this device — lighter or heavier.'**
   String get gemmaSetupBody;
 
+  /// No description provided for @gemmaUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device Gemma is not available in this version. The in-editor assistant still works.'**
+  String get gemmaUnavailable;
+
   /// No description provided for @gemmaRam.
   ///
   /// In en, this message translates to:

@@ -1352,6 +1352,7 @@
   "gemmaNeedsSetup": "Systemcheck und Modell laden",
   "gemmaSetupTitle": "Gemma einrichten",
   "gemmaSetupBody": "Kurzer Systemcheck: RAM, Kerne und Rechenleistung. Danach wird das passende Gemma-Modell auf das Gerät geladen — leichter oder stärker.",
+  "gemmaUnavailable": "On-Device-Gemma ist in dieser Version noch nicht verfügbar. Der Assistent im Editor bleibt nutzbar.",
   "gemmaRam": "Arbeitsspeicher",
   "gemmaCores": "Prozessorkerne",
   "gemmaBench": "Rechentest",
