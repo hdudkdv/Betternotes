@@ -121,10 +121,16 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                   )
               else
                 for (final plan in plans) _CatalogPlanCard(plan: plan),
+              const SizedBox(height: 12),
+              Text(
+                l10n.subscriptionLegalNote,
+                style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 12),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 alignment: WrapAlignment.center,
-                spacing: 12,
+                spacing: 8,
+                runSpacing: 0,
                 children: [
                   TextButton(
                     onPressed: () => launchUrl(
@@ -140,7 +146,24 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                     ),
                     child: Text(l10n.termsOfUseEula),
                   ),
+                  TextButton(
+                    onPressed: () => launchUrl(
+                      Uri.parse(LegalUrls.appleStandardEula),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    child: Text(l10n.appleStandardEula),
+                  ),
                 ],
+              ),
+              TextButton(
+                onPressed: billing.configured
+                    ? () async {
+                        final outcome = await billing.restorePurchases();
+                        if (!context.mounted) return;
+                        Navigator.pop(context, outcome);
+                      }
+                    : null,
+                child: Text(l10n.restorePurchases),
               ),
               TextButton(
                 onPressed: () =>
@@ -161,20 +184,50 @@ class _StorePackageTile extends StatelessWidget {
   final Package package;
   final VoidCallback onBuy;
 
+  String _length(AppLocalizations l10n) {
+    return switch (package.packageType) {
+      PackageType.annual => l10n.subscriptionLengthYear,
+      PackageType.monthly => l10n.subscriptionLengthMonth,
+      PackageType.weekly => l10n.subscriptionLengthWeek,
+      PackageType.sixMonth => l10n.subscriptionLengthSixMonths,
+      PackageType.lifetime => l10n.subscriptionLengthLifetime,
+      _ => l10n.subscriptionLengthYear,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final product = package.storeProduct;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        title: Text(
-          product.title,
-          style: AppTheme.body(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(product.description, style: AppTheme.body(fontSize: 13)),
-        trailing: FilledButton(
-          onPressed: onBuy,
-          child: Text(product.priceString),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              product.title,
+              style: AppTheme.body(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(_length(l10n), style: AppTheme.body(fontSize: 13)),
+            if (product.description.trim().isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                product.description,
+                style: AppTheme.body(fontSize: 13, color: AppTheme.inkMuted),
+              ),
+            ],
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: onBuy,
+                child: Text(product.priceString),
+              ),
+            ),
+          ],
         ),
       ),
     );

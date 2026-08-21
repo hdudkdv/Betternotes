@@ -1610,7 +1610,30 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get choosePlanHint =>
-      'Schüler- und Lehrerpläne: Free, Lite und Pro. Käufe laufen über den Store.';
+      'Schüler- und Lehrerpläne: Free, Lite und Pro. Abos verlängern sich automatisch, bis du kündigst.';
+
+  @override
+  String get subscriptionLengthYear =>
+      'Laufzeit: 1 Jahr, automatische Verlängerung';
+
+  @override
+  String get subscriptionLengthMonth =>
+      'Laufzeit: 1 Monat, automatische Verlängerung';
+
+  @override
+  String get subscriptionLengthWeek =>
+      'Laufzeit: 1 Woche, automatische Verlängerung';
+
+  @override
+  String get subscriptionLengthSixMonths =>
+      'Laufzeit: 6 Monate, automatische Verlängerung';
+
+  @override
+  String get subscriptionLengthLifetime => 'Einmalkauf, keine Verlängerung';
+
+  @override
+  String get subscriptionLegalNote =>
+      'Das Abo verlängert sich automatisch, wenn du nicht mindestens 24 Stunden vor Periodenende kündigst. Die Zahlung wird über deine Apple-ID abgebucht. Kündigen: Einstellungen → Apple-ID → Abos.';
 
   @override
   String get revenueCatTestStoreHint =>
@@ -2356,6 +2379,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get termsOfUseEula => 'Nutzungsbedingungen (EULA)';
+
+  @override
+  String get appleStandardEula => 'Apple-Standard-EULA';
 
   @override
   String get impressum => 'Impressum';
@@ -4037,6 +4063,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get webLoginBody =>
       'Google oder Apple — dasselbe Konto wie in der App. Danach lädt Notis deine aktuellen Cloud-Notizbücher.';
+
+  @override
+  String get webLoginGuest => 'Ohne Konto fortfahren';
 
   @override
   String get stickers => 'Sticker';

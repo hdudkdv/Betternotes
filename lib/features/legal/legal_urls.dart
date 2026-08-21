@@ -4,5 +4,7 @@ abstract final class LegalUrls {
   static const privacy = '$origin/datenschutz';
   static const terms = '$origin/agb';
   static const eula = '$origin/eula';
+  static const appleStandardEula =
+      'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
   static const impressum = '$origin/impressum';
 }

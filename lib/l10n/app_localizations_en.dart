@@ -1605,7 +1605,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get choosePlanHint =>
-      'Student and teacher plans: Free, Lite and Pro. Purchases go through the store.';
+      'Student and teacher plans: Free, Lite and Pro. Subscriptions renew automatically until you cancel.';
+
+  @override
+  String get subscriptionLengthYear => 'Duration: 1 year, auto-renewing';
+
+  @override
+  String get subscriptionLengthMonth => 'Duration: 1 month, auto-renewing';
+
+  @override
+  String get subscriptionLengthWeek => 'Duration: 1 week, auto-renewing';
+
+  @override
+  String get subscriptionLengthSixMonths => 'Duration: 6 months, auto-renewing';
+
+  @override
+  String get subscriptionLengthLifetime => 'One-time purchase, no renewal';
+
+  @override
+  String get subscriptionLegalNote =>
+      'Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. Payment is charged to your Apple ID. Cancel in Settings → Apple ID → Subscriptions.';
 
   @override
   String get revenueCatTestStoreHint =>
@@ -2346,6 +2365,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get termsOfUseEula => 'Terms of Use (EULA)';
+
+  @override
+  String get appleStandardEula => 'Apple Standard EULA';
 
   @override
   String get impressum => 'Legal notice';
@@ -4018,6 +4040,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get webLoginBody =>
       'Google or Apple — the same account as in the app. Notis then loads your current cloud notebooks.';
+
+  @override
+  String get webLoginGuest => 'Continue without an account';
 
   @override
   String get stickers => 'Stickers';

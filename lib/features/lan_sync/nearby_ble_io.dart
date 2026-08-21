@@ -72,14 +72,20 @@ class NearbyBlePayload {
 /// way iOS and Android find each other without a shared router (the same
 /// pattern as Nearby Connections: BLE to meet, then the fastest local path).
 class NearbyBle {
-  NearbyBle._() {
-    _events.receiveBroadcastStream().listen(_onEvent, onError: (_) {});
-  }
+  NearbyBle._();
 
   static final NearbyBle instance = NearbyBle._();
 
   static const _channel = MethodChannel('notis/nearby_ble');
   static const _events = EventChannel('notis/nearby_ble_events');
+
+  bool _eventsStarted = false;
+
+  void _ensureEvents() {
+    if (_eventsStarted) return;
+    _eventsStarted = true;
+    _events.receiveBroadcastStream().listen(_onEvent, onError: (_) {});
+  }
 
   final _beacons = <String, NearbyBleBeacon>{};
   final _controller = StreamController<List<NearbyBleBeacon>>.broadcast();
@@ -137,6 +143,7 @@ class NearbyBle {
     required NearbyBlePayload payload,
   }) async {
     if (kIsWeb) return;
+    _ensureEvents();
     if (!await ensurePermissions()) return;
     try {
       await _channel.invokeMethod<void>('startAdvertise', {
@@ -160,6 +167,7 @@ class NearbyBle {
 
   Future<void> startScan() async {
     if (kIsWeb) return;
+    _ensureEvents();
     if (!await ensurePermissions()) return;
     _beacons.clear();
     _publish();

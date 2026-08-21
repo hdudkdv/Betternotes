@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 import 'app/url_strategy.dart';
 import 'data/local/local_database.dart';
-import 'features/entitlements/rewarded_ad_service.dart';
 import 'features/library/providers/library_providers.dart';
 import 'features/sync/firebase_bootstrap.dart';
 import 'startup_error_log.dart';
@@ -16,6 +16,9 @@ import 'startup_error_log.dart';
 Future<void> main() async {
   configureUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    BrowserContextMenu.disableContextMenu();
+  }
 
   // Show UI immediately so startup failures are visible instead of a white crash.
   runApp(const _BootApp());
@@ -81,11 +84,6 @@ class _BootAppState extends State<_BootApp> {
       setState(() => _step = 'Einstellungen werden geladen…');
       final prefs = await SharedPreferences.getInstance();
       await StartupErrorLog.breadcrumb('prefs ok');
-
-      // Non-fatal; ads stay off on web/desktop and use Google test units
-      // until live AdMob IDs from the current account are configured.
-      unawaited(RewardedAdService.instance.initialize());
-
       await StartupErrorLog.clear();
       if (!mounted) return;
       setState(() {

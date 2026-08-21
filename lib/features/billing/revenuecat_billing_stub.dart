@@ -5,6 +5,18 @@ import '../entitlements/entitlement_model.dart';
 
 enum PurchaseOutcome { success, cancelled, error, unavailable }
 
+enum PackageType {
+  unknown,
+  custom,
+  lifetime,
+  annual,
+  sixMonth,
+  threeMonth,
+  twoMonth,
+  monthly,
+  weekly,
+}
+
 class StoreProduct {
   String get title => '';
   String get description => '';
@@ -13,6 +25,7 @@ class StoreProduct {
 
 class Package {
   StoreProduct get storeProduct => StoreProduct();
+  PackageType get packageType => PackageType.unknown;
 }
 
 class Offering {

@@ -27,16 +27,18 @@ final class NearbyBlePlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
 
   static func register(with registrar: FlutterPluginRegistrar) {
     let instance = NearbyBlePlugin()
-    instance.channel = FlutterMethodChannel(
+    let channel = FlutterMethodChannel(
       name: "notis/nearby_ble",
       binaryMessenger: registrar.messenger()
     )
-    instance.channel?.setMethodCallHandler(instance.handle)
+    instance.channel = channel
+    registrar.addMethodCallDelegate(instance, channel: channel)
     instance.eventChannel = FlutterEventChannel(
       name: "notis/nearby_ble_events",
       binaryMessenger: registrar.messenger()
     )
     instance.eventChannel?.setStreamHandler(instance)
+    registrar.publish(instance)
   }
 
   func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)

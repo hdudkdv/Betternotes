@@ -11,11 +11,13 @@ final class NearbyHotspotPlugin: NSObject, FlutterPlugin {
 
   static func register(with registrar: FlutterPluginRegistrar) {
     let instance = NearbyHotspotPlugin()
-    instance.channel = FlutterMethodChannel(
+    let channel = FlutterMethodChannel(
       name: "notis/nearby_hotspot",
       binaryMessenger: registrar.messenger()
     )
-    instance.channel?.setMethodCallHandler(instance.handle)
+    instance.channel = channel
+    registrar.addMethodCallDelegate(instance, channel: channel)
+    registrar.publish(instance)
   }
 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

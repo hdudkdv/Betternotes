@@ -54,8 +54,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await _ensureLiveFolder();
-      await ref.read(lanSyncProvider).startBrowsing();
+      try {
+        await _ensureLiveFolder();
+        await ref.read(lanSyncProvider).startBrowsing();
+      } catch (error) {
+        debugPrint('Nearby browse skipped: $error');
+      }
       final paid = ref.read(entitlementProvider).paidTier;
       await ref.read(cloudSyncSelectionProvider).ensureInitialized(
             paid: paid,

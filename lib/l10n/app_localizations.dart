@@ -3053,8 +3053,44 @@ abstract class AppLocalizations {
   /// No description provided for @choosePlanHint.
   ///
   /// In en, this message translates to:
-  /// **'Student and teacher plans: Free, Lite and Pro. Purchases go through the store.'**
+  /// **'Student and teacher plans: Free, Lite and Pro. Subscriptions renew automatically until you cancel.'**
   String get choosePlanHint;
+
+  /// No description provided for @subscriptionLengthYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: 1 year, auto-renewing'**
+  String get subscriptionLengthYear;
+
+  /// No description provided for @subscriptionLengthMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: 1 month, auto-renewing'**
+  String get subscriptionLengthMonth;
+
+  /// No description provided for @subscriptionLengthWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: 1 week, auto-renewing'**
+  String get subscriptionLengthWeek;
+
+  /// No description provided for @subscriptionLengthSixMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: 6 months, auto-renewing'**
+  String get subscriptionLengthSixMonths;
+
+  /// No description provided for @subscriptionLengthLifetime.
+  ///
+  /// In en, this message translates to:
+  /// **'One-time purchase, no renewal'**
+  String get subscriptionLengthLifetime;
+
+  /// No description provided for @subscriptionLegalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. Payment is charged to your Apple ID. Cancel in Settings → Apple ID → Subscriptions.'**
+  String get subscriptionLegalNote;
 
   /// No description provided for @revenueCatTestStoreHint.
   ///
@@ -4399,6 +4435,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Terms of Use (EULA)'**
   String get termsOfUseEula;
+
+  /// No description provided for @appleStandardEula.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Standard EULA'**
+  String get appleStandardEula;
 
   /// No description provided for @impressum.
   ///
@@ -7363,6 +7405,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Google or Apple — the same account as in the app. Notis then loads your current cloud notebooks.'**
   String get webLoginBody;
+
+  /// No description provided for @webLoginGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue without an account'**
+  String get webLoginGuest;
 
   /// No description provided for @stickers.
   ///

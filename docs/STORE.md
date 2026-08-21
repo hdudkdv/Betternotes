@@ -100,11 +100,13 @@ Do all of the following in App Store Connect, then reply to App Review
 
 ```
 Terms of Use (EULA): https://notis-notizbuecher.web.app/agb
+Apple Standard EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 Privacy Policy: https://notis-notizbuecher.web.app/datenschutz
 ```
 
 ```
 Nutzungsbedingungen (EULA): https://notis-notizbuecher.web.app/agb
+Apple-Standard-EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 Datenschutzerklärung: https://notis-notizbuecher.web.app/datenschutz
 ```
 

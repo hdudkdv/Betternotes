@@ -10,7 +10,7 @@ import 'revenuecat_config.dart';
 import 'revenuecat_paywall.dart';
 
 export 'package:purchases_flutter/purchases_flutter.dart'
-    show CustomerInfo, Offering, Offerings, Package, StoreProduct;
+    show CustomerInfo, Offering, Offerings, Package, PackageType, StoreProduct;
 
 enum PurchaseOutcome { success, cancelled, error, unavailable }
 
