@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../library/providers/library_providers.dart';
 import '../sync/cloud_session.dart';
 import 'auth_repository.dart';
+
+final webGuestProvider = StateProvider<bool>((ref) => false);
 
 class WebLoginScreen extends ConsumerStatefulWidget {
   const WebLoginScreen({super.key});
@@ -119,6 +122,32 @@ class _WebLoginScreenState extends ConsumerState<WebLoginScreen> {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                     ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    l10n.mouseAsPenHint,
+                    textAlign: TextAlign.center,
+                    style: AppTheme.body(
+                      color: AppTheme.inkMuted,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _busy
+                        ? null
+                        : () {
+                            ref.read(webGuestProvider.notifier).state = true;
+                            final settings = ref.read(settingsProvider);
+                            if (settings.userRole == null) {
+                              context.go('/welcome');
+                            } else if (!settings.profileSetupCompleted) {
+                              context.go('/setup');
+                            } else {
+                              context.go('/');
+                            }
+                          },
+                    child: Text(l10n.webLoginGuest),
                   ),
                   if (_busy) ...[
                     const SizedBox(height: 18),
