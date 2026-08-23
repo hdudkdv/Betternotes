@@ -24,6 +24,7 @@ import '../features/lan_sync/lan_sync_protocol.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/marketplace/marketplace_screen.dart';
 import '../features/library/providers/library_providers.dart';
+import '../features/privacy/app_tracking.dart';
 import '../features/onboarding/profile_setup_screen.dart';
 import '../features/onboarding/role_onboarding_screen.dart';
 import '../features/search/global_search_screen.dart';
@@ -57,6 +58,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     authProvider.select((auth) => auth.signedIn),
     (_, _) => refresh.bump(),
   );
+  ref.listen<bool>(webGuestProvider, (_, _) => refresh.bump());
   ref.onDispose(refresh.dispose);
 
   final initial = ref.read(settingsProvider);
@@ -76,7 +78,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final onSetup = loc == '/setup';
       final onLogin = loc == '/login';
       final onLegal = loc.startsWith('/legal');
-      if (kIsWeb && !ref.read(authProvider).signedIn) {
+      if (kIsWeb &&
+          !ref.read(authProvider).signedIn &&
+          !ref.read(webGuestProvider)) {
         if (onLogin || onLegal) return null;
         return '/login';
       }
@@ -270,6 +274,13 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      unawaited(() async {
+        try {
+          await requestTrackingThenAds();
+        } catch (error, stack) {
+          debugPrint('ATT / ads init skipped: $error\n$stack');
+        }
+      }());
       unawaited(() async {
         try {
           await ref.read(revenueCatBillingProvider).initialize(

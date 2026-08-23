@@ -23,6 +23,14 @@ Future<PurchaseOutcome> showSubscriptionPaywall(
     await billing.refresh();
   }
   if (!context.mounted) return PurchaseOutcome.cancelled;
+  if (billing.configured && billing.paywallSupported) {
+    final native = await billing.presentPaywall(audience: audience);
+    if (native == PurchaseOutcome.success ||
+        native == PurchaseOutcome.cancelled) {
+      return native;
+    }
+  }
+  if (!context.mounted) return PurchaseOutcome.cancelled;
   final outcome = await showModalBottomSheet<PurchaseOutcome>(
     context: context,
     isScrollControlled: true,
@@ -116,11 +124,20 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                     onBuy: () async {
                       final outcome = await billing.purchase(package);
                       if (!context.mounted) return;
-                      Navigator.pop(context, outcome);
+                      if (outcome == PurchaseOutcome.success ||
+                          outcome == PurchaseOutcome.cancelled) {
+                        Navigator.pop(context, outcome);
+                      }
                     },
                   )
-              else
+              else ...[
+                Text(
+                  l10n.storeProductsUnavailable,
+                  style: AppTheme.body(color: AppTheme.danger, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
                 for (final plan in plans) _CatalogPlanCard(plan: plan),
+              ],
               const SizedBox(height: 12),
               Text(
                 l10n.subscriptionLegalNote,

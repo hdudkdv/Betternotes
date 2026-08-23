@@ -1601,6 +1601,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'The paywall is not available on this device.';
 
   @override
+  String get purchaseSuccess => 'Purchase confirmed.';
+
+  @override
+  String get storeProductsUnavailable =>
+      'The App Store could not load subscription products. Try again or restore purchases.';
+
+  @override
   String get choosePlan => 'Choose a plan';
 
   @override

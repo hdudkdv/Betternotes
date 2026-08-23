@@ -692,6 +692,8 @@
     }
   },
   "paywallUnavailable": "Die Paywall ist auf diesem Gerät nicht verfügbar.",
+  "purchaseSuccess": "Kauf bestätigt.",
+  "storeProductsUnavailable": "Die Abo-Produkte konnten gerade nicht vom App Store geladen werden. Bitte erneut versuchen oder Käufe wiederherstellen.",
   "choosePlan": "Plan wählen",
   "choosePlanHint": "Schüler- und Lehrerpläne: Free, Lite und Pro. Abos verlängern sich automatisch, bis du kündigst.",
   "subscriptionLengthYear": "Laufzeit: 1 Jahr, automatische Verlängerung",

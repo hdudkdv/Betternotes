@@ -247,13 +247,11 @@ class SettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     PurchaseOutcome outcome,
   ) async {
+    if (outcome == PurchaseOutcome.cancelled) return;
     final l10n = AppLocalizations.of(context)!;
     final billing = ref.read(revenueCatBillingProvider);
     final message = switch (outcome) {
-      PurchaseOutcome.success =>
-        billing.hasNotisPro
-            ? l10n.restorePurchasesSuccess
-            : l10n.restorePurchasesEmpty,
+      PurchaseOutcome.success => l10n.purchaseSuccess,
       PurchaseOutcome.cancelled => l10n.purchaseCancelled,
       PurchaseOutcome.unavailable => l10n.paywallUnavailable,
       PurchaseOutcome.error => l10n.purchaseFailed(billing.error ?? ''),
@@ -759,6 +757,13 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () async {
                     final outcome = await billing.restorePurchases();
                     if (!context.mounted) return;
+                    if (outcome == PurchaseOutcome.success &&
+                        !ref.read(revenueCatBillingProvider).hasNotisPro) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.restorePurchasesEmpty)),
+                      );
+                      return;
+                    }
                     await _handlePurchaseOutcome(context, ref, outcome);
                   },
                 ),

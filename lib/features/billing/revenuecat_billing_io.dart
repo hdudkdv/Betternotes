@@ -74,6 +74,14 @@ class RevenueCatBilling extends ChangeNotifier {
     if (collected.isEmpty && currentOffering != null) {
       addAll(currentOffering!.availablePackages);
     }
+    if (collected.isEmpty) {
+      for (final offering in (offerings?.all.values ?? const <Offering>[])) {
+        for (final package in offering.availablePackages) {
+          final key = package.storeProduct.identifier;
+          if (seen.add(key)) collected.add(package);
+        }
+      }
+    }
     return collected;
   }
 
@@ -250,7 +258,7 @@ class RevenueCatBilling extends ChangeNotifier {
     }
     final offering = audience == null
         ? currentOffering
-        : offeringForAudience(audience);
+        : offeringForAudience(audience) ?? currentOffering;
     if (offering == null) {
       error = audience == PaywallAudience.teacher
           ? 'Kein Lehrer-Offering. In RevenueCat das Offering „lehrer“ anlegen und eine Paywall anhängen.'

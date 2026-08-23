@@ -3044,6 +3044,18 @@ abstract class AppLocalizations {
   /// **'The paywall is not available on this device.'**
   String get paywallUnavailable;
 
+  /// No description provided for @purchaseSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase confirmed.'**
+  String get purchaseSuccess;
+
+  /// No description provided for @storeProductsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The App Store could not load subscription products. Try again or restore purchases.'**
+  String get storeProductsUnavailable;
+
   /// No description provided for @choosePlan.
   ///
   /// In en, this message translates to:

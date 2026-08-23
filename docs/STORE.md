@@ -111,7 +111,25 @@ Datenschutzerklärung: https://notis-notizbuecher.web.app/datenschutz
 ```
 
 Then **Reply to App Review** that the EULA is in the description, as a custom
-license, and on the subscription group.
+license, and on the subscription group. Attach a screen recording of the
+paywall (title, duration, price, Privacy + EULA taps).
+
+### Paid Apps Agreement (required for sandbox IAP)
+
+App Store Connect → **Business** → **Paid Apps Agreement** must be **Active**.
+Without it, reviewers get an error when they tap Buy.
+
+### App Tracking Transparency
+
+The app shows the ATT dialog shortly after first launch. Record:
+
+1. Fresh install (or Settings → Privacy → Tracking → reset)
+2. Launch Notis
+3. The tracking permission alert
+4. Continue into the app
+
+If you do **not** track users, instead: App Privacy → remove tracking, and
+we can drop ATT from the binary.
 
 In-app copies stay under Settings → About (`/legal/privacy`, `/legal/terms`, `/legal/impressum`).
 Impressum still contains placeholders — replace with real publisher data before store release.
