@@ -35,9 +35,9 @@ abstract final class AdConfig {
 
   static const sampleAndroidAppId = 'ca-app-pub-3940256099942544~3347511713';
   static const sampleIosAppId = 'ca-app-pub-3940256099942544~1458002511';
-  static const _androidRewardedTestUnitId =
+  static const androidRewardedTestUnitId =
       'ca-app-pub-3940256099942544/5224354917';
-  static const _iosRewardedTestUnitId =
+  static const iosRewardedTestUnitId =
       'ca-app-pub-3940256099942544/1712485313';
 
   static bool get isSupported =>
@@ -59,11 +59,18 @@ abstract final class AdConfig {
     return true;
   }
 
+  static String get rewardedTestUnitId {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return iosRewardedTestUnitId;
+    }
+    return androidRewardedTestUnitId;
+  }
+
   static String? get rewardedUnitId {
     if (!isSupported) return null;
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return useTestAds ? _iosRewardedTestUnitId : iosRewardedUnitId;
+      return useTestAds ? iosRewardedTestUnitId : iosRewardedUnitId;
     }
-    return useTestAds ? _androidRewardedTestUnitId : androidRewardedUnitId;
+    return useTestAds ? androidRewardedTestUnitId : androidRewardedUnitId;
   }
 }

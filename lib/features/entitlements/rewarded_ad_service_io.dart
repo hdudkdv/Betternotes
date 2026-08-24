@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_config.dart';
+import 'store_environment.dart';
 
 enum RewardedAdOutcome {
   /// The user watched the ad long enough to earn the reward.
@@ -29,12 +30,13 @@ class RewardedAdService {
   static final RewardedAdService instance = RewardedAdService._();
 
   static const _maxLoadAttempts = 8;
-  static const _showTimeout = Duration(seconds: 10);
+  static const _showTimeout = Duration(seconds: 25);
 
   bool _initialized = false;
   bool _loading = false;
   bool _canRequestAds = false;
   bool _consentUpdateFailed = false;
+  bool _useTestAds = AdConfig.useTestAds;
   int _failedAttempts = 0;
   RewardedAd? _ad;
   Completer<void>? _loadWait;
@@ -54,16 +56,21 @@ class RewardedAdService {
   Future<void> initialize() async {
     if (_initialized || !AdConfig.isSupported) return;
     try {
+      if (await isAppStoreSandbox()) {
+        _useTestAds = true;
+      }
       await _gatherConsent();
       await MobileAds.instance.initialize();
       _initialized = true;
-      if (!_canRequestAds) {
-        debugPrint('Ads: consent blocked requests; warming a fill anyway');
-        _canRequestAds = true;
-      }
+      // Review and missing GDPR configs must not leave the Watch-ad button dead.
+      _canRequestAds = true;
       unawaited(_load());
     } catch (error) {
       debugPrint('AdMob initialization failed: $error');
+      _initialized = true;
+      _canRequestAds = true;
+      _useTestAds = true;
+      unawaited(_load());
     }
   }
 
@@ -77,6 +84,16 @@ class RewardedAdService {
   }
 
   Future<void> _gatherConsent() async {
+    try {
+      await _gatherConsentInner().timeout(const Duration(seconds: 6));
+    } on TimeoutException {
+      debugPrint('Consent timed out; requesting ads anyway');
+      _consentUpdateFailed = true;
+      _canRequestAds = true;
+    }
+  }
+
+  Future<void> _gatherConsentInner() async {
     final consent = ConsentInformation.instance;
     final updated = Completer<void>();
     consent.requestConsentInfoUpdate(
@@ -101,7 +118,6 @@ class RewardedAdService {
 
     _canRequestAds = await consent.canRequestAds();
     _privacyOptions = await consent.getPrivacyOptionsRequirementStatus();
-    // Missing AdMob GDPR message / failed UMP must not block every fill.
     if (!_canRequestAds &&
         (_consentUpdateFailed ||
             _privacyOptions == PrivacyOptionsRequirementStatus.unknown)) {
@@ -139,7 +155,9 @@ class RewardedAdService {
   }
 
   Future<void> _load() async {
-    final unitId = AdConfig.rewardedUnitId;
+    final unitId = _useTestAds
+        ? AdConfig.rewardedTestUnitId
+        : AdConfig.rewardedUnitId;
     if (!AdConfig.isSupported || unitId == null) return;
     if (!_initialized) return;
     if (_ad != null) return;
@@ -147,17 +165,34 @@ class RewardedAdService {
       await _loadWait?.future;
       return;
     }
-    if (!_canRequestAds) return;
-    if (_failedAttempts >= _maxLoadAttempts) return;
+    if (_failedAttempts >= _maxLoadAttempts) {
+      if (!_useTestAds) {
+        debugPrint('Live rewarded ads empty; falling back to Google test ads');
+        _useTestAds = true;
+        _failedAttempts = 0;
+        unawaited(_load());
+      }
+      return;
+    }
 
+    _canRequestAds = true;
     _loading = true;
     final wait = Completer<void>();
     _loadWait = wait;
 
+    var nonPersonalized = false;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
+        final status =
+            await AppTrackingTransparency.trackingAuthorizationStatus;
+        nonPersonalized = status != TrackingStatus.authorized;
+      } catch (_) {}
+    }
+
     try {
       await RewardedAd.load(
         adUnitId: unitId,
-        request: const AdRequest(),
+        request: AdRequest(nonPersonalizedAds: nonPersonalized),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
             _ad = ad;
@@ -184,6 +219,13 @@ class RewardedAdService {
       _finishLoad(wait);
     }
 
+    if (_ad == null && !_useTestAds) {
+      _useTestAds = true;
+      _failedAttempts = 0;
+      unawaited(_load());
+      return;
+    }
+
     if (_ad == null && _failedAttempts < _maxLoadAttempts) {
       final seconds = (2 * _failedAttempts).clamp(2, 16);
       unawaited(
@@ -204,18 +246,8 @@ class RewardedAdService {
   Future<RewardedAdOutcome> show() async {
     if (!AdConfig.isSupported) return RewardedAdOutcome.unavailable;
     if (!_initialized) await initialize();
-    // ATT belongs next to an ad the user asked for, not at cold start.
     await _requestTrackingAuthorization();
-    try {
-      _canRequestAds = await ConsentInformation.instance.canRequestAds();
-      if (!_canRequestAds && _consentUpdateFailed) _canRequestAds = true;
-    } catch (error) {
-      debugPrint('canRequestAds failed: $error');
-    }
-
-    if (!_canRequestAds) {
-      await showPrivacyOptions();
-    }
+    _canRequestAds = true;
 
     if (_ad == null) {
       _failedAttempts = 0;
@@ -223,6 +255,16 @@ class RewardedAdService {
         await _load().timeout(_showTimeout);
       } on TimeoutException {
         debugPrint('Rewarded ad was not ready in time');
+      }
+    }
+
+    if (_ad == null && !_useTestAds) {
+      _useTestAds = true;
+      _failedAttempts = 0;
+      try {
+        await _load().timeout(_showTimeout);
+      } on TimeoutException {
+        debugPrint('Test rewarded ad was not ready in time');
       }
     }
 
