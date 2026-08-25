@@ -152,7 +152,18 @@ void main() {
       buttons: kSecondaryButton,
     );
     const stylus = PointerDownEvent(kind: PointerDeviceKind.stylus);
-    const finger = PointerDownEvent(kind: PointerDeviceKind.touch);
+    const finger = PointerDownEvent(
+      kind: PointerDeviceKind.touch,
+      size: 0.4,
+    );
+    const webMouseAsTouch = PointerDownEvent(
+      kind: PointerDeviceKind.touch,
+      buttons: kPrimaryButton,
+    );
+    const webRightAsTouch = PointerDownEvent(
+      kind: PointerDeviceKind.touch,
+      buttons: kSecondaryButton,
+    );
 
     expect(PointerRouting.drawsLikeStylus(left), isTrue);
     expect(PointerRouting.browsesLikeFinger(left), isFalse);
@@ -162,6 +173,11 @@ void main() {
     expect(PointerRouting.browsesLikeFinger(stylus), isFalse);
     expect(PointerRouting.drawsLikeStylus(finger), isFalse);
     expect(PointerRouting.browsesLikeFinger(finger), isTrue);
+    expect(PointerRouting.looksLikeWebMouse(webMouseAsTouch), isTrue);
+    expect(PointerRouting.looksLikeWebMouse(finger), isFalse);
+    expect(PointerRouting.isRightMouse(webRightAsTouch), isTrue);
+    expect(PointerRouting.drawsLikeStylus(webRightAsTouch), isFalse);
+    expect(PointerRouting.browsesLikeFinger(webRightAsTouch), isTrue);
   });
 
   testWidgets('empty overlay stack does not steal mouse downs from the canvas', (

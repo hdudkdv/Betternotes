@@ -49,8 +49,6 @@ class RulerOverlay extends StatelessWidget {
       (aid.start.dx + aid.end.dx) / 2,
       (aid.start.dy + aid.end.dy) / 2,
     );
-    final length = aid.lengthPt;
-    const bodyHalf = RulerAid.edgeOffset + 18;
 
     return Stack(
       fit: StackFit.expand,
@@ -61,18 +59,24 @@ class RulerOverlay extends StatelessWidget {
             painter: _RulerPainter(aid: aid),
           ),
         ),
-        if (!readOnly) ...[
-          // Full ruler body — drag anywhere on the strip to move it.
+        if (!readOnly && !aid.fixed) ...[
+          // Small center grip only — the body must not steal ink.
           Positioned(
-            left: mid.dx - length / 2,
-            top: mid.dy - bodyHalf,
-            width: length,
-            height: bodyHalf * 2,
+            left: mid.dx - 40,
+            top: mid.dy - 20,
+            width: 80,
+            height: 40,
             child: Transform.rotate(
               angle: aid.angle,
               child: StylusPan(
                 onPanUpdate: _moveBy,
-                child: const ColoredBox(color: Color(0x01FFFFFF)),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: EditorChrome.selected.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white70, width: 1.2),
+                  ),
+                ),
               ),
             ),
           ),
@@ -86,13 +90,13 @@ class RulerOverlay extends StatelessWidget {
           ),
         ],
         Positioned(
-          left: (mid.dx - 78).clamp(8, aid.pageSize.width - 160),
-          top: (mid.dy - 52).clamp(8, aid.pageSize.height - 48),
+          left: (mid.dx - 88).clamp(8, aid.pageSize.width - 176),
+          top: (mid.dy + 22).clamp(8, aid.pageSize.height - 52),
           child: Material(
-            color: EditorChrome.floating.withValues(alpha: 0.94),
+            color: EditorChrome.floating.withValues(alpha: 0.96),
             borderRadius: BorderRadius.circular(14),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.fromLTRB(10, 2, 4, 2),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -104,17 +108,18 @@ class RulerOverlay extends StatelessWidget {
                       fontSize: 12,
                     ),
                   ),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      foregroundColor: aid.fixed
+                  IconButton(
+                    tooltip: aid.fixed ? l10n.guideFixed : l10n.fixGuide,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: readOnly ? null : onToggleFixed,
+                    icon: Icon(
+                      aid.fixed
+                          ? Icons.push_pin_rounded
+                          : Icons.push_pin_outlined,
+                      size: 20,
+                      color: aid.fixed
                           ? EditorChrome.selected
-                          : EditorChrome.onDarkMuted,
-                    ),
-                    onPressed: onToggleFixed,
-                    child: Text(
-                      aid.fixed ? l10n.guideFixed : l10n.fixGuide,
-                      style: const TextStyle(fontSize: 11.5),
+                          : EditorChrome.onDark,
                     ),
                   ),
                 ],

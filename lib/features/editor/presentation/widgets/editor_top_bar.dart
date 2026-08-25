@@ -24,6 +24,7 @@ enum EditorMenuAction {
   scrollDirection,
   addTag,
   studyMode,
+  presentView,
   makeFlashcard,
   saveSnapshot,
   restoreSnapshot,
@@ -78,7 +79,6 @@ class EditorTopBar extends StatelessWidget {
     required this.onToggleLock,
     required this.onToggleStudy,
     this.studyModeUnlocked = false,
-    required this.onPresent,
     required this.onMenuAction,
     this.onConfigureEraser,
     this.onConfigureLasso,
@@ -119,7 +119,6 @@ class EditorTopBar extends StatelessWidget {
   final VoidCallback onToggleLock;
   final VoidCallback onToggleStudy;
   final bool studyModeUnlocked;
-  final VoidCallback onPresent;
   final ValueChanged<EditorMenuAction> onMenuAction;
   final VoidCallback? onConfigureEraser;
   final VoidCallback? onConfigureLasso;
@@ -193,11 +192,6 @@ class EditorTopBar extends StatelessWidget {
                       active: studyMode,
                       onTap: onToggleStudy,
                     ),
-                  _BarIcon(
-                    icon: Icons.visibility_outlined,
-                    tooltip: AppLocalizations.of(context)!.presentView,
-                    onTap: onPresent,
-                  ),
                   _BarIcon(
                     icon: Icons.ios_share_rounded,
                     tooltip: AppLocalizations.of(context)!.shareExport,

@@ -267,7 +267,9 @@ class InkCanvasState extends State<InkCanvas>
       Offset(oldViewport.width / 2, oldViewport.height / 2),
     );
     _fitScale = _computeFitScale(newViewport);
-    if (scale <= _fitScale * 1.12) {
+    // Keep a real zoom when chrome appears/disappears. Only refit if the
+    // page is already at (or past) the overview scale.
+    if (scale <= _fitScale * 1.02) {
       _applyFit(newViewport);
       return;
     }
@@ -370,10 +372,12 @@ class InkCanvasState extends State<InkCanvas>
     if (widget.canvasMode == CanvasMode.infinite) return;
     if (!_isUsableViewport(_viewportSize)) return;
     final scale = _transform.value.getMaxScaleOnAxis();
+    // Snap only when pinched out to the page overview — never throw away
+    // a deliberate zoom the moment a finger lifts.
     final keepZoom =
         _fitReady &&
         _fitScale > 0 &&
-        scale > _fitScale * 1.04 &&
+        scale > _fitScale * 1.02 &&
         !_isBogusIdentityScale(scale);
     if (keepZoom) {
       _clampView();
@@ -475,9 +479,6 @@ class InkCanvasState extends State<InkCanvas>
 
   @override
   void dispose() {
-    if (kIsWeb) {
-      BrowserContextMenu.enableContextMenu();
-    }
     _viewAnim?.dispose();
     _transform.removeListener(_onTransformChanged);
     _transform.dispose();

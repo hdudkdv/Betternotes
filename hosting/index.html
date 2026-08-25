@@ -3,23 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Notis — Notiz-App für Schule und Studium</title>
+  <title>Notis — Notizbücher für Schule und Studium</title>
   <meta name="application-name" content="Notis">
   <meta name="apple-mobile-web-app-title" content="Notis">
-  <meta name="description" content="Notis: handschriftliche Notizbücher für Schule und Unterricht. Sticker, Notizzettel, Stundenplan, Lehrer-Whiteboard, Marketplace. Offline zuerst, optional Cloud.">
+  <meta name="theme-color" content="#5B4BE0">
+  <meta name="description" content="Notis: handschriftliche Notizbücher mit Stift, Text, Sticker, Stundenplan, Live-Ordner und Lehrer-Tools. Offline zuerst, optional Cloud. Im Browser: Linksklick schreibt, Rechtsklick schiebt.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Notis">
   <meta property="og:title" content="Notis">
-  <meta property="og:description" content="Handwritten notebooks, stickers, sticky notes, timetable and teacher tools. Offline first, optional cloud.">
-  <meta property="og:url" content="https://notis-2dee0.firebaseapp.com/">
-  <meta property="og:image" content="https://notis-2dee0.firebaseapp.com/img/app_icon.png">
-  <link rel="canonical" href="https://notis-2dee0.firebaseapp.com/">
+  <meta property="og:description" content="Handwritten notebooks for school: stylus, text, stickers, timetable, nearby share and teacher tools. Offline first, optional cloud.">
+  <meta property="og:url" content="https://notis-notizbuecher.web.app/">
+  <meta property="og:image" content="https://notis-notizbuecher.web.app/img/app_icon.png">
+  <link rel="canonical" href="https://notis-notizbuecher.web.app/">
   <link rel="icon" type="image/png" href="/img/app_icon.png">
   <link rel="apple-touch-icon" href="/img/app_icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/site.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/site.css?v=20260819">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -27,9 +28,9 @@
     "name": "Notis",
     "applicationCategory": "EducationalApplication",
     "operatingSystem": "Android, iOS, Web",
-    "url": "https://notis-2dee0.firebaseapp.com/",
-    "image": "https://notis-2dee0.firebaseapp.com/img/app_icon.png",
-    "description": "Notis is a notebook app for school and university: handwritten notes, timetable, grades and flashcards. Offline first, with optional cloud sign-in.",
+    "url": "https://notis-notizbuecher.web.app/",
+    "image": "https://notis-notizbuecher.web.app/img/app_icon.png",
+    "description": "Notis is a notebook app for school and university: handwriting, timetable, grades, flashcards and nearby sharing. Offline first, with optional cloud sign-in.",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
     "publisher": { "@type": "Organization", "name": "Notis" }
   }
@@ -59,8 +60,8 @@
         <p class="kicker" data-lang="de">Notizbücher für Schule und Unterricht</p>
         <p class="kicker" data-lang="en" hidden>Notebooks for school and class</p>
         <h1>Notis</h1>
-        <p data-lang="de">Handschrift, Sticker, Notizzettel, Stundenplan und Lehrer-Whiteboard — zuerst lokal, optional mit Cloud. Im Browser: Linksklick schreibt, Rechtsklick schiebt.</p>
-        <p data-lang="en" hidden>Handwriting, stickers, sticky notes, timetable and a teacher whiteboard — on-device first, optional cloud. In the browser: left-click writes, right-click pans.</p>
+        <p data-lang="de">Dieselbe App wie auf dem Tablet: Handschrift, Text, Sticker, Stundenplan, Live-Ordner und Lehrer-Tools. Zuerst lokal, optional mit Cloud. Im Browser schreibt der Linksklick wie der Stift, der Rechtsklick schiebt wie der Finger.</p>
+        <p data-lang="en" hidden>The same app as on the tablet: handwriting, text, stickers, timetable, Live folder and teacher tools. On-device first, optional cloud. In the browser, left-click writes like the stylus and right-click pans like a finger.</p>
         <div class="cta-row">
           <a class="btn btn-primary" href="/app/">
             <span data-lang="de">Notis im Browser öffnen</span>
@@ -73,31 +74,36 @@
         </div>
       </div>
       <div class="hero-card">
-        <img src="/img/app_icon.png" alt="Notis Logo">
-        <p class="kicker">Notis · iOS · Android · Web</p>
-        <p data-lang="de">Dieselbe App, dasselbe Konto. Schüler- und Lehrerpläne: Free, Lite und Pro.</p>
-        <p data-lang="en" hidden>The same app, the same account. Student and teacher plans: Free, Lite and Pro.</p>
+        <div class="desk-page">
+          <p class="kicker">Studio · iOS · Android · Web</p>
+          <p data-lang="de">Papier auf dem Schreibtisch — nicht ein dunkler Rahmen drumherum. Looks: Studio, Paper, Fresh und Mono.</p>
+          <p data-lang="en" hidden>Paper on a desk — not a dark frame around it. Looks: Studio, Paper, Fresh and Mono.</p>
+        </div>
       </div>
     </section>
 
     <section class="purpose">
       <h2 data-lang="de">Was Notis kann</h2>
       <h2 data-lang="en" hidden>What Notis does</h2>
-      <p data-lang="de">Notis ersetzt Papierhefte im Unterricht und im Studium. Notizen bleiben zuerst auf dem Gerät. Optional meldest du dich mit Google oder Apple an, damit Cloud-Notizbücher zwischen Geräten und dem Browser laufen.</p>
-      <p data-lang="en" hidden>Notis replaces paper notebooks at school and university. Notes stay on your device first. Optional Google or Apple sign-in syncs cloud notebooks across devices and the browser.</p>
+      <p data-lang="de">Notis ersetzt Papierhefte in Schule und Studium. Die Web-App unter <a href="/app/">/app/</a> ist dieselbe Software wie iOS und Android: Bibliothek, Editor, Stundenplan, Noten, Karteikarten, Marketplace und Lehrerbereich.</p>
+      <p data-lang="en" hidden>Notis replaces paper notebooks at school and university. The web app at <a href="/app/">/app/</a> is the same software as iOS and Android: library, editor, timetable, grades, flashcards, marketplace and teacher tools.</p>
       <ul data-lang="de">
-        <li><strong>Schreiben:</strong> Stift, Marker, Radierer, Lasso, Text, Sticker und Notizzettel. Seiten mit Namen und Datum.</li>
-        <li><strong>Schule:</strong> Stundenplan, Noten, Termine und Karteikarten aus deinen Notizen.</li>
+        <li><strong>Schreiben:</strong> Stift, Marker, Radierer, Lasso, Formen, Text, Sticker, Notizzettel, PDF-Import. Linksklick schreibt, Rechtsklick schiebt.</li>
+        <li><strong>Looks:</strong> Studio, Paper, Fresh und Mono — hell und dunkel, unter Einstellungen.</li>
+        <li><strong>Schule:</strong> Stundenplan, Noten, Termine und Karteikarten aus den Notizen.</li>
+        <li><strong>In der Nähe (App):</strong> Notizbücher ohne Internet teilen. Geteilte Hefte liegen im Live-Ordner mit dem Namen, wer teilt.</li>
         <li><strong>Lehrer:</strong> Klassen, Aufgaben, Lehrmittel-Austausch und Whiteboard (Lehrer Pro).</li>
-        <li><strong>Marketplace:</strong> optionale Extras wie KI-Assistent, OCR und Packs — Free mit Coins, Lite kauft 3 und danach Coins über Werbung, Pro leiht 5.</li>
-        <li><strong>Konto (optional):</strong> Google oder Apple nur für Cloud-Sync, nicht für Werbung mit deinen Notizen.</li>
+        <li><strong>Marketplace:</strong> KI-Assistent Gemma, OCR und Packs — Free mit Coins, Lite kauft 3, Pro leiht 5.</li>
+        <li><strong>Konto:</strong> Google oder Apple nur für Cloud-Sync. Im Browser geht es auch ohne Konto weiter.</li>
       </ul>
       <ul data-lang="en" hidden>
-        <li><strong>Writing:</strong> pen, marker, eraser, lasso, text, stickers and sticky notes. Pages with names and dates.</li>
+        <li><strong>Writing:</strong> pen, marker, eraser, lasso, shapes, text, stickers, sticky notes, PDF import. Left-click writes, right-click pans.</li>
+        <li><strong>Looks:</strong> Studio, Paper, Fresh and Mono — light and dark, under Settings.</li>
         <li><strong>School:</strong> timetable, grades, dates and flashcards from your notes.</li>
+        <li><strong>Nearby (app):</strong> share notebooks without internet. Shared books land in the Live folder with who shared them.</li>
         <li><strong>Teachers:</strong> classes, assignments, material exchange and whiteboard (Teacher Pro).</li>
-        <li><strong>Marketplace:</strong> extras such as the AI assistant, OCR and packs — Free with coins, Lite buys 3 then coins from ads, Pro borrows 5.</li>
-        <li><strong>Account (optional):</strong> Google or Apple only for cloud sync, not to advertise your notes.</li>
+        <li><strong>Marketplace:</strong> Gemma AI, OCR and packs — Free with coins, Lite buys 3, Pro borrows 5.</li>
+        <li><strong>Account:</strong> Google or Apple only for cloud sync. In the browser you can continue without an account.</li>
       </ul>
     </section>
 
@@ -154,8 +160,8 @@
       <article class="card">
         <h2 data-lang="de">Web, Tablet, Handy</h2>
         <h2 data-lang="en" hidden>Web, tablet, phone</h2>
-        <p data-lang="de">Notis läuft im Browser und als App für iOS und Android.</p>
-        <p data-lang="en" hidden>Notis runs in the browser and as an iOS and Android app.</p>
+        <p data-lang="de">Dieselbe Bibliothek und derselbe Editor im Browser und in der App für iOS und Android.</p>
+        <p data-lang="en" hidden>The same library and editor in the browser and in the iOS and Android app.</p>
       </article>
       <article class="card">
         <h2 data-lang="de">Rechtliches</h2>
@@ -174,6 +180,6 @@
       </span>
     </footer>
   </div>
-  <script src="/js/site.js"></script>
+  <script src="/js/site.js?v=20260819"></script>
 </body>
 </html>

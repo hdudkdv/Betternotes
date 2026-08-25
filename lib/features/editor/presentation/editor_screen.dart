@@ -2825,7 +2825,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         if (!presenting) ...[
           Positioned(
             left: _sidebarOpen ? PageSidebar.width + 12 : 12,
-            top: 10,
+            top: 58,
             child: UndoRedoPill(
               canUndo: controller.ink.canUndo,
               canRedo: controller.ink.canRedo,
@@ -3366,7 +3366,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     .watch(entitlementProvider)
                     .hasAccess(FeatureKeys.studyMode),
                 onToggleStudy: controller.toggleStudyMode,
-                onPresent: controller.togglePresentationMode,
                 onMenuAction: (action) =>
                     _handleMenuAction(context, controller, action),
                 onConfigureEraser: () =>
@@ -3512,6 +3511,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
             );
       case EditorMenuAction.studyMode:
         controller.toggleStudyMode();
+      case EditorMenuAction.presentView:
+        controller.togglePresentationMode();
       case EditorMenuAction.makeFlashcard:
         final front = controller.selectedTextId != null
             ? controller.textBlocks

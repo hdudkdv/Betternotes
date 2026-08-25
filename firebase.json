@@ -61,6 +61,24 @@
           ]
         },
         {
+          "source": "/index.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/css/site.css",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/js/site.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
           "source": "**/*.@(css|png|svg|ico|webp|wasm)",
           "headers": [
             {

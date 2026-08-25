@@ -122,6 +122,11 @@ class _EditorMoreSheetState extends State<_EditorMoreSheet> {
         ),
         const SizedBox(height: 14),
         EditorSheetGroup(l10n.menuViewGroup),
+        EditorSheetTile(
+          icon: Icons.visibility_outlined,
+          label: l10n.presentView,
+          onTap: () => _close(EditorMenuAction.presentView),
+        ),
         if (!infinite)
           EditorSheetSegments(
             icon: Icons.swap_horiz_rounded,
