@@ -2384,6 +2384,102 @@ abstract class AppLocalizations {
   /// **'0–15 points · Q1–Q4 + exams · 900-point projection.'**
   String get eduScaleSek2Hint;
 
+  /// No description provided for @eduScaleSek2TwoYearHint.
+  ///
+  /// In en, this message translates to:
+  /// **'2 years · 0–15 points from Q1 · 900-point projection.'**
+  String get eduScaleSek2TwoYearHint;
+
+  /// No description provided for @eduScaleSek2ThreeYearHint.
+  ///
+  /// In en, this message translates to:
+  /// **'3 years · grade 11 uses 1–6 · grades 12/13 count for Abitur (0–15).'**
+  String get eduScaleSek2ThreeYearHint;
+
+  /// No description provided for @oberstufeDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Upper secondary length'**
+  String get oberstufeDuration;
+
+  /// No description provided for @oberstufeTwoYears.
+  ///
+  /// In en, this message translates to:
+  /// **'2 years'**
+  String get oberstufeTwoYears;
+
+  /// No description provided for @oberstufeThreeYears.
+  ///
+  /// In en, this message translates to:
+  /// **'3 years'**
+  String get oberstufeThreeYears;
+
+  /// No description provided for @oberstufeTwoYearsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Points 0–15 from the start (Q1–Q4 + final exams).'**
+  String get oberstufeTwoYearsHint;
+
+  /// No description provided for @oberstufeThreeYearsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade 11 uses marks 1–6. Grades 12 and 13 count toward Abitur with points 0–15.'**
+  String get oberstufeThreeYearsHint;
+
+  /// No description provided for @periodE1.
+  ///
+  /// In en, this message translates to:
+  /// **'E1 · grade 11'**
+  String get periodE1;
+
+  /// No description provided for @periodE2.
+  ///
+  /// In en, this message translates to:
+  /// **'E2 · grade 11'**
+  String get periodE2;
+
+  /// No description provided for @periodQ1Class12.
+  ///
+  /// In en, this message translates to:
+  /// **'Q1 · grade 12'**
+  String get periodQ1Class12;
+
+  /// No description provided for @periodQ2Class12.
+  ///
+  /// In en, this message translates to:
+  /// **'Q2 · grade 12'**
+  String get periodQ2Class12;
+
+  /// No description provided for @periodQ3Class13.
+  ///
+  /// In en, this message translates to:
+  /// **'Q3 · grade 13'**
+  String get periodQ3Class13;
+
+  /// No description provided for @periodQ4Class13.
+  ///
+  /// In en, this message translates to:
+  /// **'Q4 · grade 13'**
+  String get periodQ4Class13;
+
+  /// No description provided for @leistungskurs.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced course'**
+  String get leistungskurs;
+
+  /// No description provided for @leistungskursShort.
+  ///
+  /// In en, this message translates to:
+  /// **'LK'**
+  String get leistungskursShort;
+
+  /// No description provided for @leistungskursHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Counts double in the Abitur projection.'**
+  String get leistungskursHint;
+
   /// No description provided for @eduScaleUniHint.
   ///
   /// In en, this message translates to:
@@ -3311,7 +3407,7 @@ abstract class AppLocalizations {
   /// No description provided for @adPrivacyOptionsHint.
   ///
   /// In en, this message translates to:
-  /// **'Change your consent for personalised ads'**
+  /// **'Choose how ads are shown without tracking you'**
   String get adPrivacyOptionsHint;
 
   /// No description provided for @rewardedAdLoading.

@@ -1230,6 +1230,58 @@ class AppLocalizationsDe extends AppLocalizations {
       '0–15 Punkte · Q1–Q4 + Abitur · Prognose auf 900 Punkte.';
 
   @override
+  String get eduScaleSek2TwoYearHint =>
+      '2 Jahre · 0–15 Punkte ab Q1 · Prognose auf 900 Punkte.';
+
+  @override
+  String get eduScaleSek2ThreeYearHint =>
+      '3 Jahre · Klasse 11 Noten 1–6 · 12/13 Punkte 0–15 (Abi).';
+
+  @override
+  String get oberstufeDuration => 'Dauer der Oberstufe';
+
+  @override
+  String get oberstufeTwoYears => '2 Jahre';
+
+  @override
+  String get oberstufeThreeYears => '3 Jahre';
+
+  @override
+  String get oberstufeTwoYearsHint =>
+      'Direkt mit Punkten 0–15 (Q1–Q4 + Abitur).';
+
+  @override
+  String get oberstufeThreeYearsHint =>
+      'Klasse 11 mit Noten 1–6. Klasse 12 und 13 zählen als Abitur mit Punkten 0–15.';
+
+  @override
+  String get periodE1 => 'E1 · Klasse 11';
+
+  @override
+  String get periodE2 => 'E2 · Klasse 11';
+
+  @override
+  String get periodQ1Class12 => 'Q1 · Klasse 12';
+
+  @override
+  String get periodQ2Class12 => 'Q2 · Klasse 12';
+
+  @override
+  String get periodQ3Class13 => 'Q3 · Klasse 13';
+
+  @override
+  String get periodQ4Class13 => 'Q4 · Klasse 13';
+
+  @override
+  String get leistungskurs => 'Leistungskurs';
+
+  @override
+  String get leistungskursShort => 'LK';
+
+  @override
+  String get leistungskursHint => 'Zählt in der Abitur-Prognose doppelt.';
+
+  @override
   String get eduScaleUniHint => 'Noten 1,0–5,0 · ECTS-gewichteter Schnitt.';
 
   @override
@@ -1752,7 +1804,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get adPrivacyOptionsHint =>
-      'Einwilligung für personalisierte Werbung ändern';
+      'Festlegen, wie Anzeigen ohne Tracking gezeigt werden';
 
   @override
   String get rewardedAdLoading => 'Werbung wird geladen …';

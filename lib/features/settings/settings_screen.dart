@@ -173,7 +173,9 @@ class SettingsScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            failure.message.isEmpty ? l10n.deleteAccountFailed : failure.message,
+            failure.message.isEmpty
+                ? l10n.deleteAccountFailed
+                : failure.message,
           ),
         ),
       );
@@ -254,7 +256,11 @@ class SettingsScreen extends ConsumerWidget {
       PurchaseOutcome.success => l10n.purchaseSuccess,
       PurchaseOutcome.cancelled => l10n.purchaseCancelled,
       PurchaseOutcome.unavailable => l10n.paywallUnavailable,
-      PurchaseOutcome.error => l10n.purchaseFailed(billing.error ?? ''),
+      PurchaseOutcome.error => l10n.purchaseFailed(
+        (billing.error ?? '').trim().isEmpty
+            ? l10n.storeProductsUnavailable
+            : billing.error!,
+      ),
     };
     if (!context.mounted) return;
     ScaffoldMessenger.of(
@@ -574,7 +580,13 @@ class SettingsScreen extends ConsumerWidget {
                     .setEducationLevel(s.first),
               ),
               const SizedBox(height: 6),
-              Text(settings.educationLevel.scaleHint(l10n), style: _body),
+              Text(
+                settings.educationLevel.scaleHint(
+                  l10n,
+                  duration: settings.oberstufeDuration,
+                ),
+                style: _body,
+              ),
               if (settings.educationLevel == EducationLevel.university) ...[
                 const SizedBox(height: 12),
                 Text(l10n.targetEcts, style: _label),
@@ -597,6 +609,27 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
               if (settings.educationLevel == EducationLevel.sek2) ...[
+                const SizedBox(height: 12),
+                Text(l10n.oberstufeDuration, style: _label),
+                const SizedBox(height: 6),
+                SegmentedButton<OberstufeDuration>(
+                  segments: [
+                    ButtonSegment(
+                      value: OberstufeDuration.twoYears,
+                      label: Text(l10n.oberstufeTwoYears),
+                    ),
+                    ButtonSegment(
+                      value: OberstufeDuration.threeYears,
+                      label: Text(l10n.oberstufeThreeYears),
+                    ),
+                  ],
+                  selected: {settings.oberstufeDuration},
+                  onSelectionChanged: (s) => ref
+                      .read(settingsProvider.notifier)
+                      .setOberstufeDuration(s.first),
+                ),
+                const SizedBox(height: 6),
+                Text(settings.oberstufeDuration.hint(l10n), style: _body),
                 const SizedBox(height: 12),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -697,17 +730,10 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 14),
               ],
-              if (billing.error != null) ...[
+              if (billing.configured && !billing.hasStoreProducts) ...[
                 Text(
-                  billing.error!,
-                  style: AppTheme.body(
-                    color:
-                        billing.error!.contains('Sideload') ||
-                            billing.error!.contains('TestFlight')
-                        ? AppTheme.inkMuted
-                        : AppTheme.danger,
-                    fontSize: 13,
-                  ),
+                  l10n.storeProductsUnavailable,
+                  style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -861,8 +887,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   trailing: auth.signedIn
                       ? TextButton(
-                          onPressed: () =>
-                              signOutWithHandover(context, ref),
+                          onPressed: () => signOutWithHandover(context, ref),
                           child: Text(l10n.signOut),
                         )
                       : null,

@@ -131,6 +131,80 @@ void main() {
       expect(p.projectedTotal, 600);
       expect(p.projectedNote, isNotNull);
     });
+
+    test('Einführungsphase 1–6 is excluded from Abitur prognosis', () {
+      final grades = [
+        GradeEntry.create(
+          value: 2.0,
+          date: DateTime(2026, 1, 1),
+          subject: 'Mathe',
+          category: GradeCategory.major,
+          period: GradePeriod.e1,
+          scale: GradeScale.german,
+          educationLevel: EducationLevel.sek2,
+        ),
+        GradeEntry.create(
+          value: 12,
+          date: DateTime(2026, 1, 2),
+          subject: 'Mathe',
+          category: GradeCategory.major,
+          period: GradePeriod.q1,
+          scale: GradeScale.points,
+          educationLevel: EducationLevel.sek2,
+        ),
+      ];
+      final calc = GradeCalculator(
+        level: EducationLevel.sek2,
+        grades: grades,
+        subjectWeights: const [],
+        subjects: const ['Mathe'],
+        courseCount: 40,
+        examCount: 4,
+        examWeight: 5,
+      );
+      expect(calc.subjectAverage('Mathe', period: GradePeriod.e1), 2.0);
+      expect(calc.subjectAverage('Mathe', period: GradePeriod.q1), 12);
+      final p = calc.abiPrognosis();
+      expect(p.currentPointAverage, 12);
+      expect(p.blockIProjected, 480);
+    });
+
+    test('Leistungskurs counts double in Block I', () {
+      final grades = [
+        GradeEntry.create(
+          value: 10,
+          date: DateTime(2026, 1, 1),
+          subject: 'Mathe',
+          category: GradeCategory.major,
+          period: GradePeriod.q1,
+          scale: GradeScale.points,
+        ),
+        GradeEntry.create(
+          value: 4,
+          date: DateTime(2026, 1, 2),
+          subject: 'Kunst',
+          category: GradeCategory.major,
+          period: GradePeriod.q1,
+          scale: GradeScale.points,
+        ),
+      ];
+      final calc = GradeCalculator(
+        level: EducationLevel.sek2,
+        grades: grades,
+        subjectWeights: const [
+          SubjectWeight(subject: 'Mathe', isLeistungskurs: true),
+        ],
+        subjects: const ['Mathe', 'Kunst'],
+        courseCount: 40,
+        examCount: 4,
+        examWeight: 5,
+      );
+      final p = calc.abiPrognosis();
+      // LK 10×2 + GK 4×1 = 24 / 3 = 8
+      expect(p.currentPointAverage, closeTo(8, 1e-9));
+      expect(p.blockIProjected, closeTo(320, 1e-9));
+      expect(p.collectedPoints, 24);
+    });
   });
 
   group('GradeCalculator Studium', () {

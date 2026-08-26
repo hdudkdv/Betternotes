@@ -76,36 +76,52 @@ class EventRecurrence extends Equatable {
 }
 
 class SubjectWeight extends Equatable {
-  const SubjectWeight({required this.subject, this.majorPercent = 50});
+  const SubjectWeight({
+    required this.subject,
+    this.majorPercent = 50,
+    this.isLeistungskurs = false,
+  });
 
   final String subject;
 
   /// Anteil schriftlich / Klausuren (0–100). Rest = mündlich / sonstige.
   final int majorPercent;
 
+  /// Leistungskurs — counts double in the Abitur Block-I projection.
+  final bool isLeistungskurs;
+
   int get minorPercent => 100 - majorPercent;
+
+  int get abiCourseMultiplier => isLeistungskurs ? 2 : 1;
 
   Map<String, dynamic> toJson() => {
     'subject': subject,
     'majorPercent': majorPercent,
+    'isLeistungskurs': isLeistungskurs,
   };
 
   factory SubjectWeight.fromJson(Map<String, dynamic> json) {
     return SubjectWeight(
       subject: json['subject'] as String? ?? '',
       majorPercent: (json['majorPercent'] as num?)?.round().clamp(0, 100) ?? 50,
+      isLeistungskurs: json['isLeistungskurs'] as bool? ?? false,
     );
   }
 
-  SubjectWeight copyWith({String? subject, int? majorPercent}) {
+  SubjectWeight copyWith({
+    String? subject,
+    int? majorPercent,
+    bool? isLeistungskurs,
+  }) {
     return SubjectWeight(
       subject: subject ?? this.subject,
       majorPercent: majorPercent ?? this.majorPercent,
+      isLeistungskurs: isLeistungskurs ?? this.isLeistungskurs,
     );
   }
 
   @override
-  List<Object?> get props => [subject, majorPercent];
+  List<Object?> get props => [subject, majorPercent, isLeistungskurs];
 }
 
 class PlannerEvent extends Equatable {

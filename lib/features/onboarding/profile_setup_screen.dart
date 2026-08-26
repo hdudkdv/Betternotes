@@ -20,6 +20,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   bool _busy = false;
   TeacherTrack? _track;
   EducationLevel? _level;
+  OberstufeDuration? _duration;
   GermanState? _state;
 
   @override
@@ -28,6 +29,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final settings = ref.read(settingsProvider);
     _track = settings.teacherTrack;
     _level = settings.educationLevel;
+    _duration = settings.profileSetupCompleted
+        ? settings.oberstufeDuration
+        : null;
     _state = settings.germanState;
   }
 
@@ -54,6 +58,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         await notifier.setEducationLevel(_level!);
       }
       await notifier.setGermanState(_state!);
+      if ((isTeacher && _track == TeacherTrack.qualified) ||
+          (!isTeacher && _level == EducationLevel.sek2)) {
+        await notifier.setOberstufeDuration(
+          _duration ?? OberstufeDuration.twoYears,
+        );
+      }
       await notifier.completeProfileSetup();
       if (!mounted) return;
 
@@ -91,8 +101,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsProvider);
     final isTeacher = settings.isTeacher;
+    final showOberstufe = isTeacher
+        ? _track == TeacherTrack.qualified
+        : _level == EducationLevel.sek2;
     final canContinue =
-        _state != null && (isTeacher ? _track != null : _level != null);
+        _state != null &&
+        (isTeacher ? _track != null : _level != null) &&
+        (!showOberstufe || _duration != null);
 
     return Scaffold(
       body: SafeArea(
@@ -125,16 +140,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     selected: _track == TeacherTrack.studying,
                     title: l10n.teacherTrackStudying,
                     body: l10n.teacherTrackStudyingHint,
-                    onTap: () =>
-                        setState(() => _track = TeacherTrack.studying),
+                    onTap: () => setState(() {
+                      _track = TeacherTrack.studying;
+                      _duration = null;
+                    }),
                   ),
                   const SizedBox(height: 10),
                   _ChoiceCard(
                     selected: _track == TeacherTrack.qualified,
                     title: l10n.teacherTrackQualified,
                     body: l10n.teacherTrackQualifiedHint,
-                    onTap: () =>
-                        setState(() => _track = TeacherTrack.qualified),
+                    onTap: () => setState(() {
+                      _track = TeacherTrack.qualified;
+                      _duration = null;
+                    }),
                   ),
                 ] else ...[
                   Text(
@@ -146,11 +165,44 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     _ChoiceCard(
                       selected: _level == level,
                       title: level.label(l10n),
-                      body: level.scaleHint(l10n),
-                      onTap: () => setState(() => _level = level),
+                      body: level.scaleHint(
+                        l10n,
+                        duration: _duration ?? OberstufeDuration.twoYears,
+                      ),
+                      onTap: () => setState(() {
+                        if (level != EducationLevel.sek2 ||
+                            _level != EducationLevel.sek2) {
+                          _duration = null;
+                        }
+                        _level = level;
+                      }),
                     ),
                     const SizedBox(height: 10),
                   ],
+                ],
+                if (showOberstufe) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.oberstufeDuration,
+                    style: AppTheme.body(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 10),
+                  _ChoiceCard(
+                    selected: _duration == OberstufeDuration.twoYears,
+                    title: l10n.oberstufeTwoYears,
+                    body: l10n.oberstufeTwoYearsHint,
+                    onTap: () =>
+                        setState(() => _duration = OberstufeDuration.twoYears),
+                  ),
+                  const SizedBox(height: 10),
+                  _ChoiceCard(
+                    selected: _duration == OberstufeDuration.threeYears,
+                    title: l10n.oberstufeThreeYears,
+                    body: l10n.oberstufeThreeYearsHint,
+                    onTap: () => setState(
+                      () => _duration = OberstufeDuration.threeYears,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 18),
                 Text(
@@ -160,10 +212,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 const SizedBox(height: 6),
                 Text(
                   l10n.federalStateHint,
-                  style: AppTheme.body(
-                    color: AppTheme.inkMuted,
-                    fontSize: 13,
-                  ),
+                  style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<GermanState>(

@@ -113,6 +113,9 @@ class GradeCalculator {
       case EducationLevel.sek1:
         return _sek1Subject(list, subject);
       case EducationLevel.sek2:
+        if (_isIntroPhase(list, period)) {
+          return _sek1Subject(list, subject);
+        }
         final raw = _sek2SubjectRaw(list, subject);
         if (raw == null) return null;
         // Halbjahresergebnis: ganzzahlige Punkte
@@ -121,6 +124,15 @@ class GradeCalculator {
         return _uniModuleAvg(list);
     }
   }
+
+  bool _isIntroPhase(List<GradeEntry> list, GradePeriod? period) {
+    if (period?.isIntroPhase == true) return true;
+    if (period != null) return false;
+    return list.isNotEmpty && list.every((g) => g.period.isIntroPhase);
+  }
+
+  int _courseMultiplier(String subject) =>
+      weightFor(subject).abiCourseMultiplier;
 
   double? _sek1Subject(List<GradeEntry> list, String subject) {
     final w = weightFor(subject);
@@ -203,20 +215,32 @@ class GradeCalculator {
   }
 
   /// Live Abitur prognosis (5-block / 900-point model).
+  ///
+  /// Einführungsphase (Klasse 11, 1–6) is excluded. Leistungskurse count
+  /// double in Block I.
   AbiPrognosis abiPrognosis() {
-    final courseGrades = [
-      for (final g in grades)
-        if (g.period.isSek2Course && g.value != null) g,
-    ];
-    final allPoints = [for (final g in courseGrades) g.value!];
-    final currentAvg = allPoints.isEmpty
-        ? null
-        : allPoints.reduce((a, b) => a + b) / allPoints.length;
+    var weightedSum = 0.0;
+    var weightSlots = 0.0;
+    for (final name in _subjectNames()) {
+      final m = _courseMultiplier(name).toDouble();
+      for (final p in const [
+        GradePeriod.q1,
+        GradePeriod.q2,
+        GradePeriod.q3,
+        GradePeriod.q4,
+      ]) {
+        final avg = subjectAverage(name, period: p);
+        if (avg == null) continue;
+        weightedSum += avg * m;
+        weightSlots += m;
+      }
+    }
+    final currentAvg = weightSlots <= 0 ? null : weightedSum / weightSlots;
 
     final klausurGrades = [
       for (final g in grades)
         if (g.category == GradeCategory.major &&
-            (g.isAbiSubject || g.period.isSek2Course) &&
+            g.period.isSek2Course &&
             g.value != null)
           g.value!,
     ];
@@ -225,6 +249,7 @@ class GradeCalculator {
       for (final g in grades)
         if (g.isAbiSubject &&
             g.category == GradeCategory.major &&
+            (g.period.isSek2Course || g.period == GradePeriod.abiExam) &&
             g.value != null)
           g.value!,
     ];
@@ -233,12 +258,12 @@ class GradeCalculator {
         ? currentAvg
         : examBaseList.reduce((a, b) => a + b) / examBaseList.length;
 
-    // Collected points so far: sum of rounded subject results per Q entry.
-    // Approximation: each entered grade contributes; better: per subject/period.
+    // Collected points so far: rounded subject results per Q, LK × 2.
     final collectedByBlock = List<double>.filled(5, 0);
     final countByBlock = List<int>.filled(5, 0);
 
     for (final name in _subjectNames()) {
+      final m = _courseMultiplier(name);
       for (final p in const [
         GradePeriod.q1,
         GradePeriod.q2,
@@ -248,7 +273,7 @@ class GradeCalculator {
         final avg = subjectAverage(name, period: p);
         if (avg == null) continue;
         final idx = p.sek2BlockIndex;
-        collectedByBlock[idx] += avg;
+        collectedByBlock[idx] += avg * m;
         countByBlock[idx]++;
       }
     }

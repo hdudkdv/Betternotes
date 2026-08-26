@@ -93,7 +93,9 @@ final firstPageProvider = FutureProvider.autoDispose.family<NotePage?, String>((
   notebookId,
 ) async {
   ref.watch(libraryEpochProvider);
-  final pages = await ref.watch(notebookRepositoryProvider).getPages(notebookId);
+  final pages = await ref
+      .watch(notebookRepositoryProvider)
+      .getPages(notebookId);
   if (pages.isEmpty) return null;
   final sorted = [...pages]..sort((a, b) => a.index.compareTo(b.index));
   return sorted.first;
@@ -111,6 +113,7 @@ class AppSettings {
     this.localeCode = 'system',
     this.pageBrowseMode = PageBrowseMode.swipeHorizontal,
     this.educationLevel = EducationLevel.sek1,
+    this.oberstufeDuration = OberstufeDuration.twoYears,
     this.germanState = GermanState.nw,
     this.targetEcts = 180,
     this.abiCourseCount = 40,
@@ -142,6 +145,10 @@ class AppSettings {
       educationLevel: EducationLevel.values.firstWhere(
         (e) => e.name == (prefs.getString('educationLevel') ?? ''),
         orElse: () => EducationLevel.sek1,
+      ),
+      oberstufeDuration: OberstufeDuration.values.firstWhere(
+        (d) => d.name == (prefs.getString('oberstufeDuration') ?? ''),
+        orElse: () => OberstufeDuration.twoYears,
       ),
       germanState: GermanState.values.firstWhere(
         (s) => s.name == (prefs.getString('germanState') ?? ''),
@@ -203,6 +210,7 @@ class AppSettings {
   final String localeCode;
   final PageBrowseMode pageBrowseMode;
   final EducationLevel educationLevel;
+  final OberstufeDuration oberstufeDuration;
   final GermanState germanState;
 
   final EditorGestureAction pencilDoubleTapAction;
@@ -257,6 +265,7 @@ class AppSettings {
     String? localeCode,
     PageBrowseMode? pageBrowseMode,
     EducationLevel? educationLevel,
+    OberstufeDuration? oberstufeDuration,
     GermanState? germanState,
     int? targetEcts,
     int? abiCourseCount,
@@ -280,6 +289,7 @@ class AppSettings {
       localeCode: localeCode ?? this.localeCode,
       pageBrowseMode: pageBrowseMode ?? this.pageBrowseMode,
       educationLevel: educationLevel ?? this.educationLevel,
+      oberstufeDuration: oberstufeDuration ?? this.oberstufeDuration,
       germanState: germanState ?? this.germanState,
       targetEcts: targetEcts ?? this.targetEcts,
       abiCourseCount: abiCourseCount ?? this.abiCourseCount,
@@ -336,6 +346,11 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> setEducationLevel(EducationLevel value) async {
     state = state.copyWith(educationLevel: value);
     await _prefs.setString('educationLevel', value.name);
+  }
+
+  Future<void> setOberstufeDuration(OberstufeDuration value) async {
+    state = state.copyWith(oberstufeDuration: value);
+    await _prefs.setString('oberstufeDuration', value.name);
   }
 
   Future<void> setGermanState(GermanState value) async {

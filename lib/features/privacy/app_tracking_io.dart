@@ -1,29 +1,11 @@
-import 'dart:io';
-
-import 'package:app_tracking_transparency/app_tracking_transparency.dart';
-import 'package:flutter/foundation.dart';
-
 import '../entitlements/rewarded_ad_service.dart';
 
-/// Shows the ATT dialog on a fresh iOS install, then starts ads.
+/// Starts ads after the first frame.
 ///
-/// Apple rejects the binary if ATT is linked but the prompt never appears
-/// (Guideline 2.1). The dialog must come after the first frame so the
-/// window is key, and before AdMob can read the IDFA.
+/// Consent order (Apple 5.1.1(iv)):
+/// 1. GDPR/UMP form first, but only if tracking was not already denied.
+/// 2. App Tracking Transparency once, only while status is notDetermined.
+/// 3. Never show a second tracking request after "Ask App Not to Track".
 Future<void> requestTrackingThenAds() async {
-  if (Platform.isIOS) {
-    try {
-      var status = await AppTrackingTransparency.trackingAuthorizationStatus;
-      if (status == TrackingStatus.notDetermined) {
-        await Future<void>.delayed(const Duration(milliseconds: 1200));
-        status = await AppTrackingTransparency.trackingAuthorizationStatus;
-        if (status == TrackingStatus.notDetermined) {
-          await AppTrackingTransparency.requestTrackingAuthorization();
-        }
-      }
-    } catch (error) {
-      debugPrint('ATT request failed: $error');
-    }
-  }
   await RewardedAdService.instance.initialize();
 }

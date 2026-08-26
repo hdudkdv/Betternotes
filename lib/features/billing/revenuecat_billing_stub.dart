@@ -53,6 +53,7 @@ class RevenueCatBilling extends ChangeNotifier {
   bool get hasNotisPro => false;
   bool get usesTestStore => false;
   bool get paywallSupported => false;
+  bool get hasStoreProducts => false;
 
   Offering? get currentOffering => null;
   Offering? offeringForAudience(Object audience) => null;

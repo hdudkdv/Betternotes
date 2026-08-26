@@ -108,9 +108,8 @@ abstract final class SchoolYearRollover {
     }
 
     result.sort(
-      (a, b) => a.source.title.toLowerCase().compareTo(
-        b.source.title.toLowerCase(),
-      ),
+      (a, b) =>
+          a.source.title.toLowerCase().compareTo(b.source.title.toLowerCase()),
     );
     return result;
   }

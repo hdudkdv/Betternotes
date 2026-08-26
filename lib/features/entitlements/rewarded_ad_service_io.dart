@@ -59,10 +59,13 @@ class RewardedAdService {
       if (await isAppStoreSandbox()) {
         _useTestAds = true;
       }
+      // Let the first frame become key before any system/UMP dialog.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
       await _gatherConsent();
+      await _requestTrackingAuthorization();
       await MobileAds.instance.initialize();
       _initialized = true;
-      // Review and missing GDPR configs must not leave the Watch-ad button dead.
+      // NPA ads are allowed without tracking. Never wait on UMP to fill.
       _canRequestAds = true;
       unawaited(_load());
     } catch (error) {
@@ -85,15 +88,40 @@ class RewardedAdService {
 
   Future<void> _gatherConsent() async {
     try {
-      await _gatherConsentInner().timeout(const Duration(seconds: 6));
-    } on TimeoutException {
-      debugPrint('Consent timed out; requesting ads anyway');
+      await _gatherConsentInner();
+    } catch (error) {
+      debugPrint('Consent failed: $error');
       _consentUpdateFailed = true;
       _canRequestAds = true;
     }
   }
 
+  Future<TrackingStatus> _attStatus() async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return TrackingStatus.notSupported;
+    }
+    try {
+      return await AppTrackingTransparency.trackingAuthorizationStatus;
+    } catch (error) {
+      debugPrint('ATT status failed: $error');
+      return TrackingStatus.notDetermined;
+    }
+  }
+
+  bool _trackingAlreadyRefused(TrackingStatus status) =>
+      status == TrackingStatus.denied || status == TrackingStatus.restricted;
+
   Future<void> _gatherConsentInner() async {
+    final att = await _attStatus();
+    // Apple 5.1.1(iv): after "Ask App Not to Track", do not present another
+    // form that asks to allow tracking (UMP personalized-ads consent).
+    if (_trackingAlreadyRefused(att)) {
+      debugPrint('ATT already refused; skipping advertising consent form');
+      _canRequestAds = true;
+      _privacyOptions = PrivacyOptionsRequirementStatus.notRequired;
+      return;
+    }
+
     final consent = ConsentInformation.instance;
     final updated = Completer<void>();
     consent.requestConsentInfoUpdate(
@@ -105,7 +133,21 @@ class RewardedAdService {
         if (!updated.isCompleted) updated.complete();
       },
     );
-    await updated.future;
+    try {
+      await updated.future.timeout(const Duration(seconds: 6));
+    } on TimeoutException {
+      debugPrint('Consent info update timed out');
+      _consentUpdateFailed = true;
+      _canRequestAds = true;
+      return;
+    }
+
+    // If ATT was denied while the info update ran, still do not show UMP.
+    if (_trackingAlreadyRefused(await _attStatus())) {
+      _canRequestAds = true;
+      _privacyOptions = PrivacyOptionsRequirementStatus.notRequired;
+      return;
+    }
 
     final dismissed = Completer<void>();
     await ConsentForm.loadAndShowConsentFormIfRequired((error) {
@@ -130,7 +172,12 @@ class RewardedAdService {
     try {
       final status = await AppTrackingTransparency.trackingAuthorizationStatus;
       if (status != TrackingStatus.notDetermined) return;
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      // Only prompt while still undetermined — never after a denial.
+      if (await AppTrackingTransparency.trackingAuthorizationStatus !=
+          TrackingStatus.notDetermined) {
+        return;
+      }
       await AppTrackingTransparency.requestTrackingAuthorization();
     } catch (error) {
       debugPrint('ATT request failed: $error');
@@ -139,6 +186,7 @@ class RewardedAdService {
 
   Future<void> showPrivacyOptions() async {
     if (!AdConfig.isSupported) return;
+    if (_trackingAlreadyRefused(await _attStatus())) return;
     final dismissed = Completer<void>();
     await ConsentForm.showPrivacyOptionsForm((error) {
       if (error != null) {
@@ -246,7 +294,6 @@ class RewardedAdService {
   Future<RewardedAdOutcome> show() async {
     if (!AdConfig.isSupported) return RewardedAdOutcome.unavailable;
     if (!_initialized) await initialize();
-    await _requestTrackingAuthorization();
     _canRequestAds = true;
 
     if (_ad == null) {

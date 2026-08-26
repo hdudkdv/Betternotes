@@ -5,6 +5,15 @@ import 'school_year.dart';
 /// School / study track — drives grade scale and exam vocabulary.
 enum EducationLevel { sek1, sek2, university }
 
+/// Length of the Gymnasium Oberstufe (Sek II).
+enum OberstufeDuration {
+  /// Qualifikationsphase only — points 0–15 from the first half-year.
+  twoYears,
+
+  /// Einführungsphase (Klasse 11, grades 1–6) plus Q-phase (12/13, 0–15).
+  threeYears,
+}
+
 /// German federal states for school holidays.
 enum GermanState {
   bw,
@@ -50,10 +59,28 @@ extension EducationLevelX on EducationLevel {
     EducationLevel.university => l10n.eduUniversity,
   };
 
-  String scaleHint(AppLocalizations l10n) => switch (this) {
+  String scaleHint(
+    AppLocalizations l10n, {
+    OberstufeDuration duration = OberstufeDuration.twoYears,
+  }) => switch (this) {
     EducationLevel.sek1 => l10n.eduScaleSek1Hint,
-    EducationLevel.sek2 => l10n.eduScaleSek2Hint,
+    EducationLevel.sek2 =>
+      duration == OberstufeDuration.threeYears
+          ? l10n.eduScaleSek2ThreeYearHint
+          : l10n.eduScaleSek2TwoYearHint,
     EducationLevel.university => l10n.eduScaleUniHint,
+  };
+}
+
+extension OberstufeDurationX on OberstufeDuration {
+  String label(AppLocalizations l10n) => switch (this) {
+    OberstufeDuration.twoYears => l10n.oberstufeTwoYears,
+    OberstufeDuration.threeYears => l10n.oberstufeThreeYears,
+  };
+
+  String hint(AppLocalizations l10n) => switch (this) {
+    OberstufeDuration.twoYears => l10n.oberstufeTwoYearsHint,
+    OberstufeDuration.threeYears => l10n.oberstufeThreeYearsHint,
   };
 }
 

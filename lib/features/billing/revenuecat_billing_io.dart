@@ -32,6 +32,22 @@ class RevenueCatBilling extends ChangeNotifier {
 
   Offering? get currentOffering => offerings?.current;
 
+  bool get hasStoreProducts {
+    for (final offering in offerings?.all.values ?? const <Offering>[]) {
+      if (offering.availablePackages.isNotEmpty) return true;
+    }
+    return (currentOffering?.availablePackages.isNotEmpty) ?? false;
+  }
+
+  Offering? _anyOfferingWithPackages() {
+    final current = currentOffering;
+    if (current != null && current.availablePackages.isNotEmpty) return current;
+    for (final offering in offerings?.all.values ?? const <Offering>[]) {
+      if (offering.availablePackages.isNotEmpty) return offering;
+    }
+    return null;
+  }
+
   Offering? offeringForAudience(PaywallAudience audience) {
     final all = offerings?.all ?? const <String, Offering>{};
     final aliases = audience == PaywallAudience.teacher
@@ -183,20 +199,16 @@ class RevenueCatBilling extends ChangeNotifier {
     try {
       _applyCustomerInfo(await Purchases.getCustomerInfo());
       offerings = await Purchases.getOfferings();
-      final current = offerings?.current;
-      final packages = current?.availablePackages ?? const <Package>[];
-      if (current == null) {
-        error = usesTestStore
-            ? 'Test-Store hat kein Current Offering. In RevenueCat unter Test Store ein Offering als Current markieren und eine Paywall anhängen — oder den Apple-Key (appl_) nutzen.'
-            : 'Kein Current Offering. In RevenueCat ein Offering als Current markieren und eine Paywall anhängen.';
-      } else if (packages.isEmpty) {
-        error =
-            'Die Abo-Produkte kommen vom App Store. Sideload- und unsigned Builds können keine StoreKit-Produkte laden — TestFlight oder App-Store-Build nutzen.';
-      } else {
-        error = null;
+      if (!hasStoreProducts) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+        offerings = await Purchases.getOfferings();
       }
+      // Never put dashboard / sideload copy in the UI — App Review treats
+      // that as a broken In-App Purchase screen (Guideline 2.1(b)).
+      error = null;
     } catch (exception) {
-      error = _friendlyError('$exception');
+      debugPrint('RevenueCat refresh failed: $exception');
+      error = null;
     }
     notifyListeners();
   }
@@ -242,8 +254,6 @@ class RevenueCatBilling extends ChangeNotifier {
       _ => currentOffering?.getPackage(packageId),
     };
     if (package == null) {
-      error = 'Produkt "$packageId" ist in der aktuellen Offering nicht da.';
-      notifyListeners();
       return PurchaseOutcome.unavailable;
     }
     return purchase(package);
@@ -252,26 +262,19 @@ class RevenueCatBilling extends ChangeNotifier {
   Future<PurchaseOutcome> presentPaywall({PaywallAudience? audience}) async {
     if (!configured) return PurchaseOutcome.unavailable;
     if (!paywallSupported) {
-      error = 'Paywall ist auf dieser Plattform nicht verfügbar.';
-      notifyListeners();
       return PurchaseOutcome.unavailable;
     }
     final offering = audience == null
-        ? currentOffering
-        : offeringForAudience(audience) ?? currentOffering;
-    if (offering == null) {
-      error = audience == PaywallAudience.teacher
-          ? 'Kein Lehrer-Offering. In RevenueCat das Offering „lehrer“ anlegen und eine Paywall anhängen.'
-          : 'Kein Schüler-Offering. In RevenueCat das Offering „schueler“ anlegen und eine Paywall anhängen.';
-      notifyListeners();
+        ? _anyOfferingWithPackages()
+        : offeringForAudience(audience) ?? _anyOfferingWithPackages();
+    if (offering == null || offering.availablePackages.isEmpty) {
       return PurchaseOutcome.unavailable;
     }
     try {
       final result = await presentRevenueCatPaywall(offering: offering);
       return _outcomeFromPaywall(result);
     } catch (exception) {
-      error = _friendlyError('$exception');
-      notifyListeners();
+      debugPrint('RevenueCat paywall failed: $exception');
       return PurchaseOutcome.error;
     }
   }
@@ -282,8 +285,6 @@ class RevenueCatBilling extends ChangeNotifier {
     if (!configured) return PurchaseOutcome.unavailable;
     if (hasNotisPro) return PurchaseOutcome.success;
     if (!paywallSupported) {
-      error = 'Paywall ist auf dieser Plattform nicht verfügbar.';
-      notifyListeners();
       return PurchaseOutcome.unavailable;
     }
     final offering = audience == null
@@ -298,8 +299,7 @@ class RevenueCatBilling extends ChangeNotifier {
       );
       return _outcomeFromPaywall(result);
     } catch (exception) {
-      error = '$exception';
-      notifyListeners();
+      debugPrint('RevenueCat paywallIfNeeded failed: $exception');
       return PurchaseOutcome.error;
     }
   }
@@ -325,8 +325,6 @@ class RevenueCatBilling extends ChangeNotifier {
       case PaywallResult.notPresented:
         return PurchaseOutcome.cancelled;
       case PaywallResult.error:
-        error = 'Paywall-Fehler.';
-        notifyListeners();
         return PurchaseOutcome.error;
     }
   }
@@ -339,8 +337,21 @@ class RevenueCatBilling extends ChangeNotifier {
       return PurchaseOutcome.cancelled;
     }
     error = exception.message ?? '$exception';
+    if (_looksLikeInternalCopy(error!)) {
+      error = null;
+    }
     notifyListeners();
     return PurchaseOutcome.error;
+  }
+
+  bool _looksLikeInternalCopy(String raw) {
+    final lower = raw.toLowerCase();
+    return lower.contains('offering') ||
+        lower.contains('sideload') ||
+        lower.contains('revenuecat') ||
+        lower.contains('test store') ||
+        lower.contains('test-store') ||
+        lower.contains('appl_');
   }
 
   Package? _package(
@@ -362,14 +373,14 @@ class RevenueCatBilling extends ChangeNotifier {
     final active = info.entitlements.active.keys.toSet();
     tier = active.intersection(RevenueCatConfig.teacherEntitlements).isNotEmpty
         ? AppTier.pro
-        : active.intersection(RevenueCatConfig.studentProEntitlements).isNotEmpty
-        ? AppTier.pro
         : active
-              .intersection({
-                ...RevenueCatConfig.teacherLiteEntitlements,
-                ...RevenueCatConfig.studentLiteEntitlements,
-              })
+              .intersection(RevenueCatConfig.studentProEntitlements)
               .isNotEmpty
+        ? AppTier.pro
+        : active.intersection({
+            ...RevenueCatConfig.teacherLiteEntitlements,
+            ...RevenueCatConfig.studentLiteEntitlements,
+          }).isNotEmpty
         ? AppTier.lite
         : AppTier.free;
     notifyListeners();
@@ -385,20 +396,6 @@ class RevenueCatBilling extends ChangeNotifier {
           RevenueCatConfig.studentProEntitlements.contains(id) ||
           RevenueCatConfig.studentLiteEntitlements.contains(id),
     );
-  }
-
-  String _friendlyError(String raw) {
-    final lower = raw.toLowerCase();
-    if (lower.contains('test store') || lower.contains('test_')) {
-      return 'RevenueCat Test-Store passt nicht zu den App-Store-Abos. Apple-Key (appl_) in RevenueCat kopieren und per --dart-define=REVENUECAT_IOS_API_KEY setzen.';
-    }
-    if (lower.contains('offering') ||
-        lower.contains('product') ||
-        lower.contains('storekit') ||
-        lower.contains('store problem')) {
-      return 'Die Abo-Produkte kommen vom App Store. Sideload-Builds sehen keine Pläne — TestFlight oder App-Store-Build nutzen. In RevenueCat müssen die Produkte am Current Offering und an den Entitlements hängen.';
-    }
-    return raw;
   }
 
   bool _offeringMatchesAudience(Offering offering, PaywallAudience audience) {

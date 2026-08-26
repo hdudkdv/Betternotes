@@ -1226,6 +1226,58 @@ class AppLocalizationsEn extends AppLocalizations {
       '0–15 points · Q1–Q4 + exams · 900-point projection.';
 
   @override
+  String get eduScaleSek2TwoYearHint =>
+      '2 years · 0–15 points from Q1 · 900-point projection.';
+
+  @override
+  String get eduScaleSek2ThreeYearHint =>
+      '3 years · grade 11 uses 1–6 · grades 12/13 count for Abitur (0–15).';
+
+  @override
+  String get oberstufeDuration => 'Upper secondary length';
+
+  @override
+  String get oberstufeTwoYears => '2 years';
+
+  @override
+  String get oberstufeThreeYears => '3 years';
+
+  @override
+  String get oberstufeTwoYearsHint =>
+      'Points 0–15 from the start (Q1–Q4 + final exams).';
+
+  @override
+  String get oberstufeThreeYearsHint =>
+      'Grade 11 uses marks 1–6. Grades 12 and 13 count toward Abitur with points 0–15.';
+
+  @override
+  String get periodE1 => 'E1 · grade 11';
+
+  @override
+  String get periodE2 => 'E2 · grade 11';
+
+  @override
+  String get periodQ1Class12 => 'Q1 · grade 12';
+
+  @override
+  String get periodQ2Class12 => 'Q2 · grade 12';
+
+  @override
+  String get periodQ3Class13 => 'Q3 · grade 13';
+
+  @override
+  String get periodQ4Class13 => 'Q4 · grade 13';
+
+  @override
+  String get leistungskurs => 'Advanced course';
+
+  @override
+  String get leistungskursShort => 'LK';
+
+  @override
+  String get leistungskursHint => 'Counts double in the Abitur projection.';
+
+  @override
   String get eduScaleUniHint => 'Grades 1.0–5.0 · ECTS-weighted GPA.';
 
   @override
@@ -1743,7 +1795,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adPrivacyOptions => 'Ad settings';
 
   @override
-  String get adPrivacyOptionsHint => 'Change your consent for personalised ads';
+  String get adPrivacyOptionsHint =>
+      'Choose how ads are shown without tracking you';
 
   @override
   String get rewardedAdLoading => 'Loading ad …';

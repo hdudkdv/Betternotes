@@ -54,7 +54,7 @@
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-5148114115565319~7652831090</string>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>Notis uses the advertising identifier only after you choose to watch a rewarded ad, so relevant ads can be shown. / Notis verwendet die Werbe-ID nur, wenn du eine Belohnungsanzeige anschaust.</string>
+	<string>Rewarded ads can be shown without tracking. If you allow tracking, an advertising identifier may be used to personalize those ads. If you choose Ask App Not to Track, we still show ads but they are not personalized and we do not track you. / Belohnungsanzeigen funktionieren auch ohne Tracking. Wenn du Tracking erlaubst, darf eine Werbe-ID für relevantere Anzeigen genutzt werden. Wählst du „App-Tracking nicht erlauben“, bleiben Anzeigen unpersonalisiert — wir tracken dich dann nicht.</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

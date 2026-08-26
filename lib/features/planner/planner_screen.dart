@@ -22,17 +22,63 @@ import 'grade_view_helpers.dart';
 import 'planner_model.dart';
 import 'school_year.dart';
 
-String periodLabel(GradePeriod period, AppLocalizations l10n) =>
-    switch (period) {
-      GradePeriod.h1 => l10n.periodH1,
-      GradePeriod.h2 => l10n.periodH2,
-      GradePeriod.q1 => l10n.periodQ1,
-      GradePeriod.q2 => l10n.periodQ2,
-      GradePeriod.q3 => l10n.periodQ3,
-      GradePeriod.q4 => l10n.periodQ4,
-      GradePeriod.abiExam => l10n.periodAbiExam,
-      GradePeriod.semester => l10n.periodSemester,
-    };
+String periodLabel(
+  GradePeriod period,
+  AppLocalizations l10n, {
+  OberstufeDuration duration = OberstufeDuration.twoYears,
+}) => switch (period) {
+  GradePeriod.h1 => l10n.periodH1,
+  GradePeriod.h2 => l10n.periodH2,
+  GradePeriod.e1 => l10n.periodE1,
+  GradePeriod.e2 => l10n.periodE2,
+  GradePeriod.q1 =>
+    duration == OberstufeDuration.threeYears
+        ? l10n.periodQ1Class12
+        : l10n.periodQ1,
+  GradePeriod.q2 =>
+    duration == OberstufeDuration.threeYears
+        ? l10n.periodQ2Class12
+        : l10n.periodQ2,
+  GradePeriod.q3 =>
+    duration == OberstufeDuration.threeYears
+        ? l10n.periodQ3Class13
+        : l10n.periodQ3,
+  GradePeriod.q4 =>
+    duration == OberstufeDuration.threeYears
+        ? l10n.periodQ4Class13
+        : l10n.periodQ4,
+  GradePeriod.abiExam => l10n.periodAbiExam,
+  GradePeriod.semester => l10n.periodSemester,
+};
+
+GradeScale scaleForLevelPeriod(EducationLevel level, GradePeriod period) {
+  if (level == EducationLevel.sek2 && period.isIntroPhase) {
+    return GradeScale.german;
+  }
+  return level.defaultScale;
+}
+
+String categoryMajorLabel(
+  EducationLevel level,
+  GradePeriod period,
+  AppLocalizations l10n,
+) {
+  if (level == EducationLevel.sek2 && period.isIntroPhase) {
+    return l10n.gradeKindWritten;
+  }
+  return level.majorLabel(l10n);
+}
+
+String categoryMinorLabel(
+  EducationLevel level,
+  GradePeriod period,
+  AppLocalizations l10n,
+) {
+  if (level == EducationLevel.sek2 && period.isIntroPhase) {
+    return l10n.gradeKindOral;
+  }
+  return level.minorLabel(l10n);
+}
 
 String _weekdayLabel(AppLocalizations l10n, int weekday) => switch (weekday) {
   DateTime.monday => l10n.weekdayMon,
@@ -302,14 +348,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final subject = event.subject.trim().isEmpty
         ? event.title.trim()
         : event.subject.trim();
+    final period = GradePeriodX.defaultFor(
+      settings.educationLevel,
+      duration: settings.oberstufeDuration,
+    );
     final grade = GradeEntry.create(
       value: null,
       date: event.start,
       subject: subject,
       title: event.title,
       category: GradeCategory.major,
-      scale: settings.educationLevel.defaultScale,
-      period: GradePeriodX.defaultFor(settings.educationLevel),
+      scale: scaleForLevelPeriod(settings.educationLevel, period),
+      period: period,
       educationLevel: settings.educationLevel,
       schoolYearStart: SchoolYear.fromDate(event.start).startYear,
       eventId: event.id,
@@ -341,9 +391,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       await scanIntoNotebook(
         context,
         ref,
-        suggestedTitle: event.title.trim().isEmpty
-            ? null
-            : event.title.trim(),
+        suggestedTitle: event.title.trim().isEmpty ? null : event.title.trim(),
       );
     }
   }
@@ -1218,10 +1266,13 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
     setState(() => _yearByLevel[level] = year);
   }
 
-  GradePeriod _activePeriod(EducationLevel level) {
-    final allowed = GradePeriodX.forLevel(level);
+  GradePeriod _activePeriod(
+    EducationLevel level, {
+    OberstufeDuration duration = OberstufeDuration.twoYears,
+  }) {
+    final allowed = GradePeriodX.forLevel(level, duration: duration);
     if (_period != null && allowed.contains(_period)) return _period!;
-    return GradePeriodX.defaultFor(level);
+    return GradePeriodX.defaultFor(level, duration: duration);
   }
 
   Future<void> _editGrade({
@@ -1249,7 +1300,10 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
       builder: (ctx) => _GradeEditorSheet(
         initial: existing,
         presetSubject: subject,
-        defaultPeriod: _activePeriod(level),
+        defaultPeriod: _activePeriod(
+          level,
+          duration: settings.oberstufeDuration,
+        ),
         forcedLevel: level,
         forcedYear: year,
       ),
@@ -1261,9 +1315,11 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
   Future<void> _editWeight(String subject, EducationLevel level) async {
     final planner = ref.read(plannerProvider);
     final l10n = AppLocalizations.of(context)!;
-    var percent = planner.weightFor(subject).majorPercent;
+    final current = planner.weightFor(subject);
+    var percent = current.majorPercent;
+    var isLk = current.isLeistungskurs;
 
-    final result = await showModalBottomSheet<int>(
+    final result = await showModalBottomSheet<SubjectWeight>(
       context: context,
       backgroundColor: AppTheme.paper,
       shape: const RoundedRectangleBorder(
@@ -1322,9 +1378,39 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                       color: AppTheme.ink,
                     ),
                   ),
+                  if (level == EducationLevel.sek2) ...[
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        l10n.leistungskurs,
+                        style: AppTheme.body(
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.ink,
+                        ),
+                      ),
+                      subtitle: Text(
+                        l10n.leistungskursHint,
+                        style: AppTheme.body(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: AppTheme.inkMuted,
+                        ),
+                      ),
+                      value: isLk,
+                      onChanged: (v) => setLocal(() => isLk = v),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   FilledButton(
-                    onPressed: () => Navigator.pop(ctx, percent),
+                    onPressed: () => Navigator.pop(
+                      ctx,
+                      SubjectWeight(
+                        subject: subject,
+                        majorPercent: percent,
+                        isLeistungskurs: isLk,
+                      ),
+                    ),
                     child: Text(l10n.save),
                   ),
                 ],
@@ -1335,11 +1421,7 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
       },
     );
     if (result == null) return;
-    await ref
-        .read(plannerProvider.notifier)
-        .setSubjectWeight(
-          SubjectWeight(subject: subject, majorPercent: result),
-        );
+    await ref.read(plannerProvider.notifier).setSubjectWeight(result);
   }
 
   GradeCalculator _calcFor({
@@ -1368,7 +1450,8 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
     final settings = ref.watch(settingsProvider);
     final level = _activeSection(settings.educationLevel);
     final year = _yearFor(level, planner);
-    final period = _activePeriod(level);
+    final duration = settings.oberstufeDuration;
+    final period = _activePeriod(level, duration: duration);
     final lessons = table.distinctLessons();
     final levelGrades = planner.gradesForLevelYear(level, year);
     final subjects = <String>[for (final l in lessons) l.subject.trim()];
@@ -1387,8 +1470,9 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
       settings: settings,
       subjects: subjects,
     );
-    final periods = GradePeriodX.forLevel(level);
+    final periods = GradePeriodX.forLevel(level, duration: duration);
     final knownYears = planner.yearsForLevel(level);
+    final introView = level == EducationLevel.sek2 && period.isIntroPhase;
 
     return Scaffold(
       appBar: AppBar(
@@ -1419,14 +1503,8 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'export',
-                child: Text(l10n.csvExportGrades),
-              ),
-              PopupMenuItem(
-                value: 'import',
-                child: Text(l10n.csvImportGrades),
-              ),
+              PopupMenuItem(value: 'export', child: Text(l10n.csvExportGrades)),
+              PopupMenuItem(value: 'import', child: Text(l10n.csvImportGrades)),
             ],
           ),
         ],
@@ -1531,7 +1609,7 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                             ChoiceChip(
                               visualDensity: VisualDensity.compact,
                               label: Text(
-                                periodLabel(p, l10n),
+                                periodLabel(p, l10n, duration: duration),
                                 style: AppTheme.body(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
@@ -1556,9 +1634,16 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          if (level == EducationLevel.sek2)
-            _AbiPrognosisCard(prognosis: calc.abiPrognosis())
-          else if (level == EducationLevel.university)
+          if (level == EducationLevel.sek2) ...[
+            _AbiPrognosisCard(prognosis: calc.abiPrognosis()),
+            if (introView &&
+                calc.overallSubjectAverage(period: period) != null) ...[
+              const SizedBox(height: 12),
+              _Sek1SummaryCard(
+                average: calc.overallSubjectAverage(period: period)!,
+              ),
+            ],
+          ] else if (level == EducationLevel.university)
             _UniPrognosisCard(prognosis: calc.uniPrognosis())
           else if (calc.overallSubjectAverage(period: period) != null)
             _Sek1SummaryCard(
@@ -1601,16 +1686,27 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                       year: year,
                     )
                     .length,
-                majorLabel: level.majorLabel(l10n),
-                minorLabel: level.minorLabel(l10n),
+                majorLabel: categoryMajorLabel(level, period, l10n),
+                minorLabel: categoryMinorLabel(level, period, l10n),
                 showWeight: level != EducationLevel.university,
-                level: level,
+                pointScale: level == EducationLevel.sek2 && !introView,
+                showLeistungskurs: level == EducationLevel.sek2,
                 onAdd: () => _editGrade(
                   subject: subject,
                   levelOverride: level,
                   yearOverride: year,
                 ),
                 onWeight: () => _editWeight(subject, level),
+                onToggleLeistungskurs: () {
+                  final current = planner.weightFor(subject);
+                  ref
+                      .read(plannerProvider.notifier)
+                      .setSubjectWeight(
+                        current.copyWith(
+                          isLeistungskurs: !current.isLeistungskurs,
+                        ),
+                      );
+                },
                 onOpen: () => _openSubject(subject, period, level, year),
               ),
         ],
@@ -1729,8 +1825,16 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                           title: Text(
                             g.title.trim().isEmpty
                                 ? (g.category == GradeCategory.major
-                                      ? level.majorLabel(l10n)
-                                      : level.minorLabel(l10n))
+                                      ? categoryMajorLabel(
+                                          level,
+                                          g.period,
+                                          l10n,
+                                        )
+                                      : categoryMinorLabel(
+                                          level,
+                                          g.period,
+                                          l10n,
+                                        ))
                                 : g.title,
                             style: AppTheme.body(
                               fontWeight: FontWeight.w700,
@@ -1740,8 +1844,8 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                           subtitle: Text(
                             [
                               g.category == GradeCategory.major
-                                  ? level.majorLabel(l10n)
-                                  : level.minorLabel(l10n),
+                                  ? categoryMajorLabel(level, g.period, l10n)
+                                  : categoryMinorLabel(level, g.period, l10n),
                               if (g.ects > 0)
                                 '${g.ects.toStringAsFixed(0)} ECTS',
                               if (g.semesterLabel.isNotEmpty) g.semesterLabel,
@@ -2031,9 +2135,11 @@ class _SubjectGradeCard extends StatelessWidget {
     required this.majorLabel,
     required this.minorLabel,
     required this.showWeight,
-    required this.level,
+    required this.pointScale,
+    required this.showLeistungskurs,
     required this.onAdd,
     required this.onWeight,
+    required this.onToggleLeistungskurs,
     required this.onOpen,
   });
 
@@ -2045,9 +2151,11 @@ class _SubjectGradeCard extends StatelessWidget {
   final String majorLabel;
   final String minorLabel;
   final bool showWeight;
-  final EducationLevel level;
+  final bool pointScale;
+  final bool showLeistungskurs;
   final VoidCallback onAdd;
   final VoidCallback onWeight;
+  final VoidCallback onToggleLeistungskurs;
   final VoidCallback onOpen;
 
   @override
@@ -2055,7 +2163,7 @@ class _SubjectGradeCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final avgText = average == null
         ? '—'
-        : level == EducationLevel.sek2
+        : pointScale
         ? average!.toStringAsFixed(0)
         : average!.toStringAsFixed(2);
     return Padding(
@@ -2094,6 +2202,25 @@ class _SubjectGradeCard extends StatelessWidget {
                               color: AppTheme.ink,
                             ),
                           ),
+                          if (showLeistungskurs) ...[
+                            const SizedBox(height: 4),
+                            FilterChip(
+                              visualDensity: VisualDensity.compact,
+                              label: Text(
+                                l10n.leistungskursShort,
+                                style: AppTheme.body(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12,
+                                  color: weight.isLeistungskurs
+                                      ? AppTheme.onAccent
+                                      : AppTheme.ink,
+                                ),
+                              ),
+                              selected: weight.isLeistungskurs,
+                              selectedColor: AppTheme.accent,
+                              onSelected: (_) => onToggleLeistungskurs(),
+                            ),
+                          ],
                           if (showWeight)
                             Text(
                               l10n.weightSummary(
@@ -2108,7 +2235,7 @@ class _SubjectGradeCard extends StatelessWidget {
                                 color: AppTheme.inkMuted,
                               ),
                             ),
-                          if (level == EducationLevel.sek2 && average != null)
+                          if (pointScale && average != null)
                             Text(
                               l10n.roundedPoints(average!.toStringAsFixed(0)),
                               style: AppTheme.body(
@@ -2406,7 +2533,7 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
               id: _gradeId,
               value: _value,
               date: _date,
-              scale: editLevel.defaultScale,
+              scale: scaleForLevelPeriod(editLevel, _period),
               subject: _subject,
             ),
           );
@@ -2456,8 +2583,8 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
           Center(
             child: Text(
               _category == GradeCategory.major
-                  ? editLevel.majorLabel(l10n)
-                  : editLevel.minorLabel(l10n),
+                  ? categoryMajorLabel(editLevel, _period, l10n)
+                  : categoryMinorLabel(editLevel, _period, l10n),
               style: AppTheme.body(
                 fontWeight: FontWeight.w700,
                 color: AppTheme.inkMuted,
@@ -2511,9 +2638,11 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
         widget.initial?.resolvedLevel ?? widget.forcedLevel ?? level;
     final editYear =
         widget.initial?.schoolYear ?? widget.forcedYear ?? SchoolYear.current();
-    final scale = editLevel.defaultScale;
+    final duration = ref.watch(settingsProvider).oberstufeDuration;
+    final scale = scaleForLevelPeriod(editLevel, _period);
     final lessons = table.distinctLessons();
-    final periods = GradePeriodX.forLevel(editLevel);
+    final periods = [...GradePeriodX.forLevel(editLevel, duration: duration)];
+    if (!periods.contains(_period)) periods.insert(0, _period);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     final semesters = semesterChoicesFor(
       editYear,
@@ -2626,7 +2755,7 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
                         for (final p in periods)
                           ChoiceChip(
                             label: Text(
-                              periodLabel(p, l10n),
+                              periodLabel(p, l10n, duration: duration),
                               style: AppTheme.body(
                                 fontWeight: FontWeight.w700,
                                 color: _period == p
@@ -2636,7 +2765,13 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
                             ),
                             selected: _period == p,
                             selectedColor: AppTheme.accent,
-                            onSelected: (_) => setState(() => _period = p),
+                            onSelected: (_) => setState(() {
+                              final wasIntro = _period.isIntroPhase;
+                              _period = p;
+                              if (wasIntro != p.isIntroPhase) {
+                                _value = null;
+                              }
+                            }),
                           ),
                       ],
                     ),
@@ -2647,11 +2782,15 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
                       segments: [
                         ButtonSegment(
                           value: GradeCategory.major,
-                          label: Text(editLevel.majorLabel(l10n)),
+                          label: Text(
+                            categoryMajorLabel(editLevel, _period, l10n),
+                          ),
                         ),
                         ButtonSegment(
                           value: GradeCategory.minor,
-                          label: Text(editLevel.minorLabel(l10n)),
+                          label: Text(
+                            categoryMinorLabel(editLevel, _period, l10n),
+                          ),
                         ),
                       ],
                       selected: {_category},
@@ -2659,7 +2798,8 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
                           setState(() => _category = s.first),
                     ),
                   ],
-                  if (editLevel == EducationLevel.sek2) ...[
+                  if (editLevel == EducationLevel.sek2 &&
+                      !_period.isIntroPhase) ...[
                     const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
@@ -2834,7 +2974,9 @@ class _GradeEditorSheetState extends ConsumerState<_GradeEditorSheet> {
                             ? _ects.toDouble()
                             : 0,
                         isAbiSubject:
-                            editLevel == EducationLevel.sek2 && _isAbiSubject,
+                            editLevel == EducationLevel.sek2 &&
+                            !_period.isIntroPhase &&
+                            _isAbiSubject,
                         semesterLabel: _semester?.trim() ?? '',
                         educationLevel: editLevel,
                         attachmentPaths: committed,

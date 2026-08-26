@@ -109,13 +109,6 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                 l10n.choosePlanHint,
                 style: AppTheme.body(color: AppTheme.inkMuted),
               ),
-              if (billing.error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  billing.error!,
-                  style: AppTheme.body(color: AppTheme.danger, fontSize: 13),
-                ),
-              ],
               const SizedBox(height: 16),
               if (packages.isNotEmpty)
                 for (final package in packages)
