@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app/launch_gates.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/coming_soon_sheet.dart';
 import '../legal/legal_urls.dart';
 import '../library/providers/library_providers.dart';
 import 'plan_catalog.dart';
@@ -14,6 +16,10 @@ Future<PurchaseOutcome> showSubscriptionPaywall(
   BuildContext context,
   WidgetRef ref,
 ) async {
+  if (!LaunchGates.commerceEnabled) {
+    await showComingSoonSheet(context);
+    return PurchaseOutcome.cancelled;
+  }
   final role = ref.read(settingsProvider).userRole ?? AppUserRole.student;
   final audience = role == AppUserRole.teacher
       ? PaywallAudience.teacher

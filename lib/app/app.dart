@@ -24,6 +24,7 @@ import '../features/lan_sync/lan_sync_protocol.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/marketplace/marketplace_screen.dart';
 import '../features/library/providers/library_providers.dart';
+import '../app/launch_gates.dart';
 import '../features/privacy/app_tracking.dart';
 import '../features/onboarding/profile_setup_screen.dart';
 import '../features/onboarding/role_onboarding_screen.dart';
@@ -228,9 +229,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/teacher/grades',
         name: 'teacherGrades',
-        builder: (context, state) => GradebookScreen(
-          initialClass: state.uri.queryParameters['class'],
-        ),
+        builder: (context, state) =>
+            GradebookScreen(initialClass: state.uri.queryParameters['class']),
       ),
       GoRoute(
         path: '/teacher/audio',
@@ -240,16 +240,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/teacher/assignment/:runId',
         name: 'teacherAssignmentResults',
-        builder: (context, state) => AssignmentResultsPage(
-          runId: state.pathParameters['runId']!,
-        ),
+        builder: (context, state) =>
+            AssignmentResultsPage(runId: state.pathParameters['runId']!),
       ),
       GoRoute(
         path: '/assignment/:runId',
         name: 'assignment',
-        builder: (context, state) => AssignmentPage(
-          runId: state.pathParameters['runId']!,
-        ),
+        builder: (context, state) =>
+            AssignmentPage(runId: state.pathParameters['runId']!),
       ),
     ],
   );
@@ -283,9 +281,10 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
       }());
       unawaited(() async {
         try {
-          await ref.read(revenueCatBillingProvider).initialize(
-            appUserId: ref.read(authProvider).user?.uid,
-          );
+          if (!LaunchGates.commerceEnabled) return;
+          await ref
+              .read(revenueCatBillingProvider)
+              .initialize(appUserId: ref.read(authProvider).user?.uid);
           final billing = ref.read(revenueCatBillingProvider);
           if (billing.configured) {
             await ref.read(entitlementProvider.notifier).setTier(billing.tier);
@@ -381,9 +380,7 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final settings = ref.watch(settingsProvider);
-    final autoConnectEnabled = ref.watch(
-      classroomAutoConnectEnabledProvider,
-    );
+    final autoConnectEnabled = ref.watch(classroomAutoConnectEnabledProvider);
     if (settings.userRole == AppUserRole.student &&
         autoConnectEnabled &&
         !_autoBrowsing &&
@@ -398,13 +395,14 @@ class _BetterNotesAppState extends ConsumerState<BetterNotesApp> {
         unawaited(ref.read(lanSyncProvider).stopBrowsing());
       });
     }
-    ref.listen<String?>(
-      authProvider.select((auth) => auth.user?.uid),
-      (previous, next) {
-        if (previous == next) return;
-        unawaited(ref.read(revenueCatBillingProvider).syncAppUser(next));
-      },
-    );
+    ref.listen<String?>(authProvider.select((auth) => auth.user?.uid), (
+      previous,
+      next,
+    ) {
+      if (previous == next) return;
+      if (!LaunchGates.commerceEnabled) return;
+      unawaited(ref.read(revenueCatBillingProvider).syncAppUser(next));
+    });
     ref.listen<AppTier>(
       revenueCatBillingProvider.select((billing) => billing.tier),
       (previous, next) {

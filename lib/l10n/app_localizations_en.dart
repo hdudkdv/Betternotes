@@ -1660,6 +1660,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'The App Store could not load subscription products. Try again or restore purchases.';
 
   @override
+  String get commerceComingSoonTitle => 'Coming soon';
+
+  @override
+  String get commerceComingSoonBody =>
+      'This first version includes notes, handwriting, timetable and grades for free. Purchases, coins, ads and the marketplace will arrive in a later update.';
+
+  @override
   String get choosePlan => 'Choose a plan';
 
   @override

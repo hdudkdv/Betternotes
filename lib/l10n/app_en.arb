@@ -736,6 +736,8 @@
   "paywallUnavailable": "The paywall is not available on this device.",
   "purchaseSuccess": "Purchase confirmed.",
   "storeProductsUnavailable": "The App Store could not load subscription products. Try again or restore purchases.",
+  "commerceComingSoonTitle": "Coming soon",
+  "commerceComingSoonBody": "This first version includes notes, handwriting, timetable and grades for free. Purchases, coins, ads and the marketplace will arrive in a later update.",
   "choosePlan": "Choose a plan",
   "choosePlanHint": "Student and teacher plans: Free, Lite and Pro. Subscriptions renew automatically until you cancel.",
   "subscriptionLengthYear": "Duration: 1 year, auto-renewing",

@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/launch_gates.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/coming_soon_sheet.dart';
 import '../entitlements/ad_config.dart';
 import '../entitlements/entitlement_model.dart';
 import '../entitlements/rewarded_ad_mock.dart';
@@ -25,6 +27,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!LaunchGates.commerceEnabled) return;
       if (ref.read(entitlementProvider).adsEnabled) {
         unawaited(ref.read(rewardedAdServiceProvider).preload());
       }
@@ -98,11 +101,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     }
   }
 
-  Future<void> _borrow(
-    BuildContext context,
-    WidgetRef ref,
-    String key,
-  ) async {
+  Future<void> _borrow(BuildContext context, WidgetRef ref, String key) async {
     final l10n = AppLocalizations.of(context)!;
     final entitlements = ref.read(entitlementProvider);
     if (entitlements.paidTier != PaidTier.pro) {
@@ -120,7 +119,9 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     final ok = await ref.read(entitlementProvider.notifier).borrowFeature(key);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? l10n.featureUnlocked : l10n.marketplaceLoanCap)),
+      SnackBar(
+        content: Text(ok ? l10n.featureUnlocked : l10n.marketplaceLoanCap),
+      ),
     );
     if (ok && key == FeatureKeys.aiAssistant && context.mounted) {
       await showGemmaSetupSheet(context);
@@ -158,6 +159,9 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    if (!LaunchGates.commerceEnabled) {
+      return ComingSoonPage(title: l10n.marketplace);
+    }
     final entitlements = ref.watch(entitlementProvider);
     final ads = ref.watch(rewardedAdServiceProvider);
     final gemmaOn = entitlements.hasAccess(FeatureKeys.aiAssistant);
@@ -498,7 +502,9 @@ class _AdsPremiumCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    showAds ? l10n.adsForCoinsTitle : l10n.coinsBalance(entitlements.coins),
+                    showAds
+                        ? l10n.adsForCoinsTitle
+                        : l10n.coinsBalance(entitlements.coins),
                     style: AppTheme.body(fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -507,9 +513,7 @@ class _AdsPremiumCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8, bottom: 8),
               child: Text(
-                showAds
-                    ? l10n.adsForCoinsHint
-                    : l10n.marketplaceLiteCoinsHint,
+                showAds ? l10n.adsForCoinsHint : l10n.marketplaceLiteCoinsHint,
                 style: AppTheme.body(
                   fontSize: 13,
                   color: AppTheme.inkMuted,

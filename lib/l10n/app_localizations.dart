@@ -3152,6 +3152,18 @@ abstract class AppLocalizations {
   /// **'The App Store could not load subscription products. Try again or restore purchases.'**
   String get storeProductsUnavailable;
 
+  /// No description provided for @commerceComingSoonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get commerceComingSoonTitle;
+
+  /// No description provided for @commerceComingSoonBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This first version includes notes, handwriting, timetable and grades for free. Purchases, coins, ads and the marketplace will arrive in a later update.'**
+  String get commerceComingSoonBody;
+
   /// No description provided for @choosePlan.
   ///
   /// In en, this message translates to:

@@ -1665,6 +1665,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Abo-Produkte konnten gerade nicht vom App Store geladen werden. Bitte erneut versuchen oder Käufe wiederherstellen.';
 
   @override
+  String get commerceComingSoonTitle => 'Bald verfügbar';
+
+  @override
+  String get commerceComingSoonBody =>
+      'In dieser ersten Version sind Notizen, Stift, Stundenplan und Noten kostenlos. Käufe, Coins, Werbung und der Marketplace folgen in einem späteren Update.';
+
+  @override
   String get choosePlan => 'Plan wählen';
 
   @override
