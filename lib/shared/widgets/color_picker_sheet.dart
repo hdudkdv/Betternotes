@@ -28,6 +28,28 @@ const kColorPresets = <int>[
   0xFF8B5E3C,
 ];
 
+/// Dense hue × brightness raster for one-tap colour picks.
+final kColorGrid = <int>[
+  for (final value in const [0.12, 0.28, 0.45, 0.62, 0.78, 0.92, 1.0])
+    HSVColor.fromAHSV(1, 0, 0, value).toColor().toARGB32(),
+  for (final value in const [0.35, 0.55, 0.75, 0.95])
+    for (final hue in const [
+      0.0,
+      20.0,
+      40.0,
+      60.0,
+      90.0,
+      140.0,
+      180.0,
+      200.0,
+      230.0,
+      260.0,
+      290.0,
+      330.0,
+    ])
+      HSVColor.fromAHSV(1, hue, 0.85, value).toColor().toARGB32(),
+];
+
 /// Opens the colour picker and resolves to the chosen ARGB value.
 ///
 /// Returns `null` when the sheet is dismissed without applying. Pass [onDelete]
@@ -156,6 +178,13 @@ class _ColorPickerSheetState extends State<_ColorPickerSheet> {
                   ),
                   _Preview(color: _color),
                 ],
+              ),
+              const SizedBox(height: 14),
+              _SectionLabel(l10n.colorGrid),
+              _ColorGrid(
+                values: kColorGrid,
+                selected: _color.toARGB32(),
+                onPick: _pickPreset,
               ),
               const SizedBox(height: 14),
               _SaturationValueField(
@@ -496,6 +525,50 @@ class _Thumb extends StatelessWidget {
           BoxShadow(color: Color(0x59000000), blurRadius: 5, spreadRadius: 1),
         ],
       ),
+    );
+  }
+}
+
+class _ColorGrid extends StatelessWidget {
+  const _ColorGrid({
+    required this.values,
+    required this.selected,
+    required this.onPick,
+  });
+
+  final List<int> values;
+  final int selected;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: values.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 12,
+        mainAxisSpacing: 3,
+        crossAxisSpacing: 3,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, index) {
+        final value = values[index];
+        final active = (value & 0x00FFFFFF) == (selected & 0x00FFFFFF);
+        return GestureDetector(
+          onTap: () => onPick(value),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color(value),
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(
+                color: active ? AppTheme.accent : AppTheme.outline,
+                width: active ? 2 : 1,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

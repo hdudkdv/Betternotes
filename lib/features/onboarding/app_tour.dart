@@ -7,6 +7,8 @@ import '../library/providers/library_providers.dart';
 
 final pendingAppTourProvider = StateProvider<bool>((ref) => false);
 
+final pendingEditorTourProvider = StateProvider<bool>((ref) => false);
+
 class AppTourStep {
   const AppTourStep({
     required this.title,
@@ -131,5 +133,32 @@ class AppTourOverlay extends StatelessWidget {
 
 Future<void> markTutorialSeen(WidgetRef ref) async {
   ref.read(pendingAppTourProvider.notifier).state = false;
-  await ref.read(sharedPreferencesProvider).setBool('tutorialCompleted', true);
+  final prefs = ref.read(sharedPreferencesProvider);
+  await prefs.setBool('tutorialCompleted', true);
+  if (prefs.getBool('editorTourCompleted') != true) {
+    ref.read(pendingEditorTourProvider.notifier).state = true;
+  }
+}
+
+Future<void> markEditorTourSeen(WidgetRef ref) async {
+  ref.read(pendingEditorTourProvider.notifier).state = false;
+  await ref.read(sharedPreferencesProvider).setBool('editorTourCompleted', true);
+}
+
+Future<void> restartAllTutorials(WidgetRef ref) async {
+  final prefs = ref.read(sharedPreferencesProvider);
+  await prefs.setBool('tutorialCompleted', false);
+  await prefs.setBool('editorTourCompleted', false);
+  for (final key in const [
+    'hint_calculator',
+    'hint_formula_book',
+    'hint_assistant',
+    'hint_color_picker',
+    'hint_scan_import',
+    'hint_html_import',
+  ]) {
+    await prefs.remove(key);
+  }
+  ref.read(pendingAppTourProvider.notifier).state = true;
+  ref.read(pendingEditorTourProvider.notifier).state = true;
 }

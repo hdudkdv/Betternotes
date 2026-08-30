@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
@@ -378,7 +380,7 @@ class SettingsScreen extends ConsumerWidget {
                 title: Text(l10n.tutorialStart, style: _label),
                 subtitle: Text(l10n.tutorialOfferBody, style: _body),
                 onTap: () {
-                  ref.read(pendingAppTourProvider.notifier).state = true;
+                  unawaited(restartAllTutorials(ref));
                   context.go('/');
                 },
               ),

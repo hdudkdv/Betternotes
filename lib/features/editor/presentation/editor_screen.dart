@@ -20,6 +20,7 @@ import '../../auth/current_uid.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/file_store.dart';
 import '../../../shared/utils/page_size.dart';
+import '../../../shared/widgets/image_import_choice.dart';
 import '../../lan_sync/lan_sync_controller.dart';
 import '../../lan_sync/lan_sync_protocol.dart';
 import '../../lan_sync/classroom_auto_connect.dart';
@@ -69,6 +70,9 @@ import 'widgets/ruler_overlay.dart';
 import 'widgets/tool_wheel.dart';
 import '../../flashcards/create_flashcard_dialog.dart';
 import '../../import_export/import_export_providers.dart';
+import '../../import_export/import_models.dart';
+import '../../onboarding/app_tour.dart';
+import '../../onboarding/feature_hints.dart';
 import '../../tools/calculator/calculator_panel.dart';
 import '../../tools/calculator/calculator_store.dart';
 import '../../tools/calculator/graph_studio_sheet.dart';
@@ -1294,33 +1298,67 @@ class EditorController extends ChangeNotifier {
   }
 
   Future<void> pickAndInsertImage() async {
-    final page = currentPage;
-    if (page == null) return;
+    await pickAndImportImages(asPages: false);
+  }
+
+  Future<int> pickAndImportImages({required bool asPages}) async {
     final result = await FilePicker.pickFiles(
       type: FileType.image,
+      allowMultiple: asPages,
       withData: kIsWeb,
     );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
+    if (result == null || result.files.isEmpty) return 0;
     final dir = await repository.resolveFilesDir();
-    final name = '${const Uuid().v4()}_${file.name}';
-    final dest = p.join(dir, 'images', name);
     final store = createFileStore();
-    if (kIsWeb) {
-      final bytes = file.bytes;
-      if (bytes == null) return;
-      await store.writeBytes(dest, bytes);
-    } else {
-      final path = file.path;
-      if (path == null) return;
-      final bytes = await createFileStore().readBytes(path);
-      await store.writeBytes(dest, bytes);
+    final dests = <String>[];
+    for (final file in result.files) {
+      final name = '${const Uuid().v4()}_${file.name}';
+      final dest = p.join(dir, 'images', name);
+      if (kIsWeb) {
+        final bytes = file.bytes;
+        if (bytes == null) continue;
+        await store.writeBytes(dest, bytes);
+      } else {
+        final path = file.path;
+        if (path == null) continue;
+        await store.writeBytes(dest, await store.readBytes(path));
+      }
+      dests.add(dest);
     }
+    if (dests.isEmpty) return 0;
+    if (asPages) return importScannedImages(dests);
+    var added = 0;
+    for (final dest in dests) {
+      await _insertStoredImage(dest, offset: added);
+      added++;
+    }
+    return added;
+  }
+
+  Future<int> insertImagesFromPaths(List<String> paths) async {
+    var added = 0;
+    final dir = await repository.resolveFilesDir();
+    final store = createFileStore();
+    for (final path in paths) {
+      final name = '${const Uuid().v4()}_${p.basename(path)}';
+      final dest = p.join(dir, 'images', name);
+      try {
+        await store.writeBytes(dest, await store.readBytes(path));
+        await _insertStoredImage(dest, offset: added);
+        added++;
+      } catch (_) {}
+    }
+    return added;
+  }
+
+  Future<void> _insertStoredImage(String dest, {int offset = 0}) async {
+    final page = currentPage;
+    if (page == null) return;
     final element = ImageElement.create(
       pageId: page.id,
       localPath: dest,
-      x: 80,
-      y: 100,
+      x: 80 + offset * 24,
+      y: 100 + offset * 24,
     );
     images = [...images, element];
     selectedImageId = element.id;
@@ -2020,6 +2058,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   bool _assistantPinned = false;
   String? _toolPageId;
   String? _bookChapterId;
+  int _editorTourIndex = 0;
 
   @override
   void initState() {
@@ -2105,30 +2144,41 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     }
   }
 
-  void _openCalculator(EditorController controller) {
+  void _openCalculator(EditorController controller, {bool forceOpen = false}) {
+    final opening = forceOpen ? true : !_calcOpen;
     setState(() {
-      _calcOpen = !_calcOpen;
+      _calcOpen = opening;
       if (_calcOpen) {
         _calcPinned = false;
         _toolPageId = controller.currentPage?.id;
-      } else if (!_bookOpen) {
+      } else if (!_bookOpen && !_assistantOpen) {
         _toolPageId = null;
         _calcPinned = false;
       }
     });
+    if (opening && mounted) {
+      unawaited(
+        maybeShowFeatureHint(context, ref, FeatureHintId.calculator),
+      );
+    }
   }
 
-  void _openFormulaBook(EditorController controller) {
-    if (_bookOpen) {
+  void _openFormulaBook(
+    EditorController controller, {
+    String? chapterId,
+    bool forceOpen = false,
+  }) {
+    if (_bookOpen && !forceOpen && chapterId == null) {
       setState(() {
         _bookOpen = false;
         _bookPinned = false;
-        if (!_calcOpen) _toolPageId = null;
+        if (!_calcOpen && !_assistantOpen) _toolPageId = null;
       });
       return;
     }
+    final plus = ref.read(entitlementProvider).hasAccess(FeatureKeys.formulaPack);
     final store = FormulaBookStore(ref.read(sharedPreferencesProvider));
-    final book = store.load();
+    final book = store.load(plus: plus);
     final last = store.lastChapterFor(controller.notebookId);
     final folders = ref.read(allFoldersProvider).valueOrNull ?? const [];
     final matched = FormulaBookStore.matchChapterId(
@@ -2136,21 +2186,146 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       subjectKey: controller.notebook?.subjectKey,
       folderPath: _folderPath(folders, controller.notebook?.folderId),
     );
-    final chapterId = last ?? matched;
-    if (chapterId != null) {
-      unawaited(store.setLastChapter(controller.notebookId, chapterId));
+    var resolved = chapterId ?? last ?? matched;
+    if (resolved != null && book.byId(resolved) == null) {
+      if (resolved == 'analysis') {
+        resolved = book.byId('funktionen')?.id ?? book.byId('mathematik')?.id;
+      } else {
+        resolved = book.byId('mathematik')?.id ?? book.chapters.firstOrNull?.id;
+      }
+    }
+    if (resolved != null) {
+      unawaited(store.setLastChapter(controller.notebookId, resolved));
     }
     setState(() {
       _bookOpen = true;
       _bookPinned = false;
-      _bookChapterId = chapterId;
+      _bookChapterId = resolved;
       _toolPageId = controller.currentPage?.id;
     });
+    if (mounted) {
+      unawaited(
+        maybeShowFeatureHint(context, ref, FeatureHintId.formulaBook),
+      );
+    }
+  }
+
+  void _handleEditorBack(EditorController controller) {
+    if (controller.presentationMode) {
+      controller.togglePresentationMode();
+      return;
+    }
+    if (_toolWheelOpen) {
+      setState(() => _toolWheelOpen = false);
+      return;
+    }
+    if ((_calcOpen && !_calcPinned) ||
+        (_bookOpen && !_bookPinned) ||
+        (_assistantOpen && !_assistantPinned)) {
+      _dismissUnpinnedTools();
+      return;
+    }
+    if (_sidebarOpen) {
+      setState(() => _sidebarOpen = false);
+      return;
+    }
+    final assignment = ref.read(studentAssignmentProvider);
+    final examLock =
+        assignment.active && assignment.testMode && !assignment.submitted;
+    if (examLock) {
+      unawaited(ref.read(studentAssignmentProvider.notifier).leave('home'));
+    }
+    refreshLibraryLists(ref);
+    if (mounted) context.go('/');
+  }
+
+  Future<void> _importImages(EditorController controller) async {
+    await maybeShowFeatureHint(context, ref, FeatureHintId.scanImport);
+    if (!mounted) return;
+    final mode = await showImageImportChoice(context);
+    if (mode == null || !mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    if (mode == ImageImportMode.asPage) {
+      final added = await controller.pickAndImportImages(asPages: true);
+      if (!mounted || added == 0) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.scanAddedPages(added))));
+    } else {
+      final added = await controller.pickAndImportImages(asPages: false);
+      if (!mounted || added == 0) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.imagesInserted(added))));
+    }
+  }
+
+  Future<void> _importHtml(
+    BuildContext context,
+    EditorController controller,
+    AppLocalizations l10n,
+  ) async {
+    await maybeShowFeatureHint(context, ref, FeatureHintId.htmlImport);
+    if (!context.mounted) return;
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['html', 'htm', 'xhtml'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    Uint8List? bytes = file.bytes;
+    if (bytes == null && file.path != null) {
+      bytes = await createFileStore().readBytes(file.path!);
+    }
+    if (bytes == null) return;
+    try {
+      await controller.persistForSearchIndex();
+      final imported = await ref.read(importPipelineProvider).importFile(
+        notebookId: widget.notebookId,
+        file: InboxFile(
+          path: file.path ?? file.name,
+          name: file.name,
+          bytes: bytes,
+          mimeType: 'text/html',
+        ),
+      );
+      await controller.reloadFromRemote(pageId: imported.firstPageId);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.htmlImported(imported.pageIds.length))),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.htmlImportFailed)));
+    }
+  }
+
+  List<AppTourStep> _editorTourSteps(AppLocalizations l10n) {
+    return [
+      AppTourStep(
+        title: l10n.editorTourWelcomeTitle,
+        body: l10n.editorTourWelcomeBody,
+      ),
+      AppTourStep(title: l10n.editorTourToolsTitle, body: l10n.editorTourToolsBody),
+      AppTourStep(title: l10n.editorTourPagesTitle, body: l10n.editorTourPagesBody),
+      AppTourStep(
+        title: l10n.editorTourImportTitle,
+        body: l10n.editorTourImportBody,
+      ),
+      AppTourStep(
+        title: l10n.editorTourAssistTitle,
+        body: l10n.editorTourAssistBody,
+      ),
+    ];
   }
 
   void _openAssistant(EditorController controller) {
+    final opening = !_assistantOpen;
     setState(() {
-      _assistantOpen = !_assistantOpen;
+      _assistantOpen = opening;
       if (_assistantOpen) {
         _assistantPinned = false;
         _toolPageId = controller.currentPage?.id;
@@ -2159,6 +2334,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         _assistantPinned = false;
       }
     });
+    if (opening && mounted) {
+      unawaited(maybeShowFeatureHint(context, ref, FeatureHintId.assistant));
+    }
   }
 
   Future<bool> _insertFunctionPlot(
@@ -2254,7 +2432,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       case EditorGestureAction.fitZoom:
         _canvasKey.currentState?.fitToViewport();
       case EditorGestureAction.goBack:
-        if (context.canPop()) context.pop();
+        _handleEditorBack(c);
     }
   }
 
@@ -2853,7 +3031,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                       text: '',
                     );
                   },
-                  onPickImage: controller.pickAndInsertImage,
+                  onPickImage: () => _importImages(controller),
                   onPickSticker: () => _pickSticker(controller),
                   hasSelectedSticker: controller.selectedStickerId != null,
                   onDeleteSticker: controller.selectedStickerId == null
@@ -3247,6 +3425,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     if (image.pageId == controller.currentPage?.id)
                       image.localPath,
                 ],
+                onOpenCalculator: () =>
+                    _openCalculator(controller, forceOpen: true),
+                onOpenFormulaBook: (chapterId) => _openFormulaBook(
+                  controller,
+                  chapterId: chapterId,
+                  forceOpen: true,
+                ),
               ),
             ),
           ),
@@ -3293,7 +3478,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       ],
     );
 
-    return Scaffold(
+    final editorTour = ref.watch(pendingEditorTourProvider) && !presenting;
+    final editorSteps = _editorTourSteps(l10n);
+    final scaffold = Scaffold(
       backgroundColor: EditorChrome.workspace,
       body: SafeArea(
         child: Column(
@@ -3352,7 +3539,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     setState(() => _sidebarOpen = !_sidebarOpen),
                 onSearch: () => context.push('/search'),
                 onOutline: () => _openOutline(context, controller, l10n),
-                onPickImage: controller.pickAndInsertImage,
+                onPickImage: () => _importImages(controller),
                 onPickSticker: () => _pickSticker(controller),
                 onCalculator: () => _openCalculator(controller),
                 onFormulaBook: () => _openFormulaBook(controller),
@@ -3388,6 +3575,41 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
           ],
         ),
       ),
+    );
+
+    Widget body = scaffold;
+    if (editorTour) {
+      final index = _editorTourIndex.clamp(0, editorSteps.length - 1);
+      body = Stack(
+        children: [
+          scaffold,
+          AppTourOverlay(
+            steps: editorSteps,
+            index: index,
+            onSkip: () {
+              setState(() => _editorTourIndex = 0);
+              unawaited(markEditorTourSeen(ref));
+            },
+            onNext: () {
+              if (index >= editorSteps.length - 1) {
+                setState(() => _editorTourIndex = 0);
+                unawaited(markEditorTourSeen(ref));
+              } else {
+                setState(() => _editorTourIndex = index + 1);
+              }
+            },
+          ),
+        ],
+      );
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleEditorBack(controller);
+      },
+      child: body,
     );
   }
 
@@ -3477,19 +3699,35 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       case EditorMenuAction.scanPages:
         if (!context.mounted) return;
         try {
+          await maybeShowFeatureHint(context, ref, FeatureHintId.scanImport);
+          if (!context.mounted) return;
           final paths = await const DocumentScannerService().scanPages();
           if (paths.isEmpty) return;
-          final added = await controller.importScannedImages(paths);
           if (!context.mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.scanAddedPages(added))));
+          final mode = await showImageImportChoice(context);
+          if (mode == null || !context.mounted) return;
+          if (mode == ImageImportMode.asPage) {
+            final added = await controller.importScannedImages(paths);
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.scanAddedPages(added))));
+          } else {
+            final added = await controller.insertImagesFromPaths(paths);
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.imagesInserted(added))));
+          }
         } catch (_) {
           if (!context.mounted) return;
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(l10n.scanFailed)));
         }
+      case EditorMenuAction.importHtml:
+        if (!context.mounted) return;
+        await _importHtml(context, controller, l10n);
       case EditorMenuAction.settings:
         if (context.mounted) context.push('/settings');
       case EditorMenuAction.collaborate:

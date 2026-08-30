@@ -78,6 +78,21 @@ void main() {
     expect(tutor.replyLeaks(reply.text), isFalse);
   });
 
+  test('opens the calculator for a linear equation', () {
+    final tutor = GemmaTutor(german: true);
+    final reply = tutor.respond('2x+3=11');
+    expect(reply.toolAction, GemmaToolAction.calculator);
+    expect(reply.chips, contains('Taschenrechner'));
+  });
+
+  test('opens the formula book for a derivative', () {
+    final tutor = GemmaTutor(german: true);
+    final reply = tutor.respond('ableitung von x^2');
+    expect(reply.toolAction, GemmaToolAction.formulaBook);
+    expect(reply.formulaChapterId, 'analysis');
+    expect(reply.chips, contains('Tafelwerk'));
+  });
+
   test('explains a named caricature symbol', () {
     final tutor = GemmaTutor(german: true);
     tutor.respond('Karikatur');

@@ -17,6 +17,7 @@ enum EditorMenuAction {
   paperCreator,
   importPdf,
   scanPages,
+  importHtml,
   importAnyFile,
   settings,
   collaborate,

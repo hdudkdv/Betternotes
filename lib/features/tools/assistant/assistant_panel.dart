@@ -28,10 +28,14 @@ class AssistantPanel extends ConsumerStatefulWidget {
     super.key,
     required this.unlocked,
     this.pageImagePaths = const [],
+    this.onOpenCalculator,
+    this.onOpenFormulaBook,
   });
 
   final bool unlocked;
   final List<String> pageImagePaths;
+  final VoidCallback? onOpenCalculator;
+  final ValueChanged<String?>? onOpenFormulaBook;
 
   @override
   ConsumerState<AssistantPanel> createState() => _AssistantPanelState();
@@ -81,6 +85,7 @@ class _AssistantPanelState extends ConsumerState<AssistantPanel> {
     final text = (preset ?? _input.text).trim();
     if (text.isEmpty || _thinking) return;
     if (preset == null) _input.clear();
+    final routed = _coach.respond(text);
     final runtime = ref.read(gemmaRuntimeProvider);
     if (runtime.isReady) {
       setState(() {
@@ -99,16 +104,16 @@ class _AssistantPanelState extends ConsumerState<AssistantPanel> {
         _messages.add(
           AssistantMessage(
             fromUser: false,
-            text: (reply == null || reply.isEmpty)
-                ? _coach.respond(text).text
-                : reply,
+            text: (reply == null || reply.isEmpty) ? routed.text : reply,
           ),
         );
+        _chips = routed.chips;
       });
+      _applyTools(routed);
       _scrollToEnd();
       return;
     }
-    _push(text, _coach.respond(text));
+    _push(text, routed);
   }
 
   void _push(String userText, GemmaReply reply, {String? imagePath}) {
@@ -119,7 +124,19 @@ class _AssistantPanelState extends ConsumerState<AssistantPanel> {
       _messages.add(AssistantMessage(fromUser: false, text: reply.text));
       _chips = reply.chips;
     });
+    _applyTools(reply);
     _scrollToEnd();
+  }
+
+  void _applyTools(GemmaReply reply) {
+    switch (reply.toolAction) {
+      case GemmaToolAction.calculator:
+        widget.onOpenCalculator?.call();
+      case GemmaToolAction.formulaBook:
+        widget.onOpenFormulaBook?.call(reply.formulaChapterId);
+      case GemmaToolAction.none:
+        break;
+    }
   }
 
   void _scrollToEnd() {
@@ -187,6 +204,7 @@ class _AssistantPanelState extends ConsumerState<AssistantPanel> {
       label: l10n.assistantImageAttached,
     );
     _push(l10n.assistantImageAttached, reply, imagePath: path);
+    _applyTools(reply);
   }
 
   Future<String?> _chooseImage(AppLocalizations l10n) async {

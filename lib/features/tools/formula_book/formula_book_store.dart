@@ -51,10 +51,38 @@ class FormulaBookStore {
     final hay = '${subjectKey ?? ''} ${folderPath ?? ''}'.toLowerCase();
     if (hay.trim().isEmpty) return null;
     const aliases = <String, List<String>>{
-      'mathematik': ['mathe', 'math', 'maths'],
-      'physik': ['physics'],
-      'chemie': ['chemistry'],
-      'biologie': ['bio', 'biology'],
+      'funktionen': [
+        'funktion',
+        'sin',
+        'cos',
+        'tan',
+        'ableit',
+        'analysis',
+        'integral',
+      ],
+      'analysis': [
+        'ableit',
+        'differen',
+        'integral',
+        'grenzwert',
+        'kettenregel',
+        "f'",
+        'd/dx',
+      ],
+      'mathematik': [
+        'mathe',
+        'math',
+        'maths',
+        'pythagoras',
+        'prozent',
+        'percent',
+        'gleichung',
+        'fläche',
+        'kreis',
+      ],
+      'physik': ['physics', 'kraft', 'geschwindigkeit', 'arbeit'],
+      'chemie': ['chemistry', 'dichte', 'stoffmenge'],
+      'biologie': ['bio', 'biology', 'fotosynthese'],
       'geschichte': ['history', 'geo-geschichte'],
       'deutsch': ['german', 'de'],
       'englisch': ['english', 'en', 'eng'],
@@ -72,6 +100,13 @@ class FormulaBookStore {
       if (extra.any(hay.contains)) return chapter.id;
     }
     return null;
+  }
+
+  static String? matchChapterFromQuery({
+    required FormulaBook book,
+    required String query,
+  }) {
+    return matchChapterId(book: book, subjectKey: query, folderPath: query);
   }
 
   FormulaBook _mergeSeeded(FormulaBook stored) {

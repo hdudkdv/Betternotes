@@ -3,16 +3,38 @@ import '../calculator/expression_diff.dart';
 import '../calculator/plot_series.dart';
 import 'gemma_topics.dart';
 
+enum GemmaToolAction { none, calculator, formulaBook }
+
 class GemmaReply {
   const GemmaReply({
     required this.text,
     this.chips = const [],
     this.solved = false,
+    this.toolAction = GemmaToolAction.none,
+    this.formulaChapterId,
   });
 
   final String text;
   final List<String> chips;
   final bool solved;
+  final GemmaToolAction toolAction;
+  final String? formulaChapterId;
+
+  GemmaReply copyWith({
+    String? text,
+    List<String>? chips,
+    bool? solved,
+    GemmaToolAction? toolAction,
+    String? formulaChapterId,
+  }) {
+    return GemmaReply(
+      text: text ?? this.text,
+      chips: chips ?? this.chips,
+      solved: solved ?? this.solved,
+      toolAction: toolAction ?? this.toolAction,
+      formulaChapterId: formulaChapterId ?? this.formulaChapterId,
+    );
+  }
 }
 
 /// Socratic on-device coach. Knows the secret result only to check the
@@ -44,6 +66,17 @@ class GemmaTutor {
   GemmaReply respond(String raw) {
     final text = raw.trim();
     if (text.isEmpty) return GemmaReply(text: _t('empty'));
+
+    if (_isOpenCalcChip(text)) {
+      return GemmaReply(text: _t('openCalc'), toolAction: GemmaToolAction.calculator);
+    }
+    if (_isOpenBookChip(text)) {
+      return GemmaReply(
+        text: _t('openBook'),
+        toolAction: GemmaToolAction.formulaBook,
+        formulaChapterId: _chapterForKind(),
+      );
+    }
 
     if (_isMathKind && _wantsExplain(text) && !_isHumanities(text)) {
       return GemmaReply(
@@ -145,7 +178,67 @@ class GemmaTutor {
       _buildOther();
     }
 
-    return GemmaReply(text: _opening() + _currentHint(), chips: _stepChips());
+    return _lessonReply();
+  }
+
+  GemmaReply _lessonReply() {
+    return GemmaReply(
+      text: _opening() + _currentHint(),
+      chips: [..._stepChips(), ..._toolChips()],
+      toolAction: _toolActionForKind(),
+      formulaChapterId: _chapterForKind(),
+    );
+  }
+
+  GemmaToolAction _toolActionForKind() {
+    return switch (_kind) {
+      _Kind.linear ||
+      _Kind.equation ||
+      _Kind.expression ||
+      _Kind.trig ||
+      _Kind.percent => GemmaToolAction.calculator,
+      _Kind.derivative => GemmaToolAction.formulaBook,
+      _ => GemmaToolAction.none,
+    };
+  }
+
+  String? _chapterForKind() {
+    return switch (_kind) {
+      _Kind.derivative => 'analysis',
+      _Kind.trig => 'funktionen',
+      _Kind.percent ||
+      _Kind.linear ||
+      _Kind.equation ||
+      _Kind.expression => 'mathematik',
+      _Kind.history => 'geschichte',
+      _ => null,
+    };
+  }
+
+  List<String> _toolChips() {
+    return switch (_toolActionForKind()) {
+      GemmaToolAction.calculator =>
+        german ? const ['Taschenrechner'] : const ['Calculator'],
+      GemmaToolAction.formulaBook =>
+        german ? const ['Tafelwerk'] : const ['Formula book'],
+      GemmaToolAction.none => const [],
+    };
+  }
+
+  bool _isOpenCalcChip(String text) {
+    final s = text.toLowerCase();
+    return s == 'taschenrechner' ||
+        s == 'calculator' ||
+        s.contains('taschenrechner öffnen') ||
+        s.contains('open calculator');
+  }
+
+  bool _isOpenBookChip(String text) {
+    final s = text.toLowerCase();
+    return s == 'tafelwerk' ||
+        s == 'formula book' ||
+        s.contains('tafelwerk öffnen') ||
+        s.contains('open formula');
   }
 
   void _buildEquation(String src) {
@@ -784,6 +877,10 @@ class GemmaTutor {
       'goodStep': 'Der Schritt passt. Weiter.',
       'solved': 'Dein Ergebnis stimmt. Gut, dass du selbst gerechnet hast.',
       'stayWithStep': 'Bleib bei diesem Schritt:',
+      'openCalc':
+          'Der Taschenrechner ist offen. Tippe die Rechnung selbst — ich prüfe nur.',
+      'openBook':
+          'Das Tafelwerk ist offen auf der passenden Seite. Die Regel holst du dir selbst.',
     };
     const en = {
       'empty': 'Write the problem or the next step.',
@@ -798,6 +895,10 @@ class GemmaTutor {
       'goodStep': 'That step is right. Next.',
       'solved': 'Your result is correct. Good that you calculated it yourself.',
       'stayWithStep': 'Stay with this step:',
+      'openCalc':
+          'The calculator is open. Type the calculation yourself — I will only check.',
+      'openBook':
+          'The formula book is open on the matching page. Fetch the rule yourself.',
     };
     return (german ? de : en)[key] ?? key;
   }

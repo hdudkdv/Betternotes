@@ -664,6 +664,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get presetColors => 'Suggestions';
 
   @override
+  String get colorGrid => 'Quick colors';
+
+  @override
   String get customColor => 'Custom color';
 
   @override
@@ -3498,7 +3501,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanPagesHint =>
-      'System document scanner — sheets become notebook pages.';
+      'Scanner or photo — then insert as a page or as an image.';
+
+  @override
+  String get imageImportTitle => 'Add this image';
+
+  @override
+  String get imageImportBody =>
+      'As a full notebook page or as a movable image on the current page.';
+
+  @override
+  String get importAsPage => 'Import as page';
+
+  @override
+  String get importAsPageHint =>
+      'Creates a new page with the scan as the background.';
+
+  @override
+  String get importAsImage => 'Import as image';
+
+  @override
+  String get importAsImageHint => 'Places a movable image on the current page.';
+
+  @override
+  String imagesInserted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count images',
+      one: 'Added 1 image',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importHtml => 'Import HTML';
+
+  @override
+  String get importHtmlHint =>
+      'An HTML file becomes PDF pages in this notebook.';
+
+  @override
+  String htmlImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pages from HTML',
+      one: '1 page from HTML',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get htmlImportFailed => 'Could not import the HTML file.';
+
+  @override
+  String get gemmaOpenCalculator => 'Open calculator';
+
+  @override
+  String get gemmaOpenFormulaBook => 'Open formula book';
 
   @override
   String get scanExam => 'Scan the exam?';
@@ -3818,6 +3879,156 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tourEditorBody =>
       'The toolbar has pen, eraser, calculator, and the formula book. Swipe to change pages.';
+
+  @override
+  String get tourPensTitle => 'Pens and colors';
+
+  @override
+  String get tourPensBody =>
+      'Pick pen, marker, or eraser. Tap a colour or open the grid for a quick pick.';
+
+  @override
+  String get tourPagesTitle => 'Pages';
+
+  @override
+  String get tourPagesBody =>
+      'Swipe to the next page. Plus adds one; the sidebar jumps between them.';
+
+  @override
+  String get tourScanTitle => 'Scan and images';
+
+  @override
+  String get tourScanBody =>
+      'Scans and photos can become a full page or an image on the current page.';
+
+  @override
+  String get tourImportTitle => 'Import files';
+
+  @override
+  String get tourImportBody =>
+      'PDF, Office, HTML, and images become pages. HTML is converted to PDF first.';
+
+  @override
+  String get tourGemmaTitle => 'Gemma';
+
+  @override
+  String get tourGemmaBody =>
+      'The coach explains steps. For calculations she opens the calculator; for formulas, the formula book.';
+
+  @override
+  String get tourCalcTitle => 'Calculator';
+
+  @override
+  String get tourCalcBody =>
+      'Do the intermediate steps yourself. Graphs can be placed on the page as an image.';
+
+  @override
+  String get tourBookTitle => 'Formula book';
+
+  @override
+  String get tourBookBody =>
+      'Formulas by subject. Gemma jumps to the matching page when you need a derivative or rule.';
+
+  @override
+  String get tourColorsTitle => 'Colour grid';
+
+  @override
+  String get tourColorsBody =>
+      'The colour picker starts with a grid — one tap sets the colour.';
+
+  @override
+  String get tourHtmlTitle => 'HTML to page';
+
+  @override
+  String get tourHtmlBody =>
+      'Under More → Import HTML, an HTML file becomes PDF pages in this notebook.';
+
+  @override
+  String get tourPresentTitle => 'Present';
+
+  @override
+  String get tourPresentBody =>
+      'Start presentation from More. Back or a double-tap exits it.';
+
+  @override
+  String get editorTourWelcomeTitle => 'Notebook';
+
+  @override
+  String get editorTourWelcomeBody =>
+      'This is where you write. The bar has tools; Home returns to the library.';
+
+  @override
+  String get editorTourToolsTitle => 'Tools';
+
+  @override
+  String get editorTourToolsBody =>
+      'Calculator, formula book, and Gemma sit in the bar. Back closes open tools first.';
+
+  @override
+  String get editorTourPagesTitle => 'Browsing';
+
+  @override
+  String get editorTourPagesBody =>
+      'Swipe horizontally. Zoom snaps less aggressively so you stay where you were.';
+
+  @override
+  String get editorTourImportTitle => 'Import';
+
+  @override
+  String get editorTourImportBody =>
+      'Image: page or overlay. Same for a scan. HTML becomes pages.';
+
+  @override
+  String get editorTourAssistTitle => 'Help with maths';
+
+  @override
+  String get editorTourAssistBody =>
+      'Gemma opens the calculator or formula book when the problem needs it.';
+
+  @override
+  String get hintCalculatorTitle => 'Calculator';
+
+  @override
+  String get hintCalculatorBody =>
+      'Type the calculation yourself. Gemma checks intermediate steps and will not compute for you.';
+
+  @override
+  String get hintFormulaBookTitle => 'Formula book';
+
+  @override
+  String get hintFormulaBookBody =>
+      'Chapters by subject. A formula can go into the graph or onto the page.';
+
+  @override
+  String get hintAssistantTitle => 'Gemma';
+
+  @override
+  String get hintAssistantBody =>
+      'Send a problem or attach an image. For maths she opens the calculator or formula book.';
+
+  @override
+  String get hintColorsTitle => 'Colours';
+
+  @override
+  String get hintColorsBody =>
+      'The grid at the top is the quick pick. Below it: square, hue, and hex for fine tuning.';
+
+  @override
+  String get hintScanTitle => 'Scan and image';
+
+  @override
+  String get hintScanBody =>
+      'As a page: a new sheet with the scan as background. As an image: movable on the current page.';
+
+  @override
+  String get hintHtmlTitle => 'Import HTML';
+
+  @override
+  String get hintHtmlBody =>
+      'Headings and paragraphs become PDF pages you can annotate like a scanned sheet.';
+
+  @override
+  String get hintGotIt => 'Got it';
 
   @override
   String get teacherAssignments => 'Assignments';

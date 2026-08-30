@@ -12,6 +12,7 @@ import '../../shared/utils/file_store.dart';
 import '../../shared/utils/page_size.dart';
 import '../editor/domain/ink_models.dart';
 import '../pdf/pdf_service.dart';
+import 'html_document.dart';
 import 'import_models.dart';
 import 'inbox_service.dart';
 
@@ -314,6 +315,28 @@ class ImportPipeline {
       );
     }
     final raw = _decodeText(bytes);
+    if (ext == '.html' || ext == '.htm' || ext == '.xhtml') {
+      try {
+        final pdfBytes = await HtmlDocument.toPdfBytes(
+          raw,
+          title: HtmlDocument.titleOf(
+            raw,
+            fallback: p.basenameWithoutExtension(name),
+          ),
+        );
+        final pages = await _pdf.importPdfFromBytes(
+          notebookId: notebookId,
+          bytes: pdfBytes,
+        );
+        if (pages.isNotEmpty) {
+          return ImportResult(
+            notebookId: notebookId,
+            pageIds: [for (final page in pages) page.id],
+            message: 'html_pdf',
+          );
+        }
+      } catch (_) {}
+    }
     final text = switch (ext) {
       '.html' || '.htm' || '.xhtml' => _htmlToText(raw),
       '.rtf' => _rtfToText(raw),

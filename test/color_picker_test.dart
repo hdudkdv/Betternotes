@@ -60,6 +60,11 @@ void main() {
     expect(find.text('1D4E89'), findsOneWidget);
     expect(find.text('Farbton'), findsOneWidget);
     expect(find.text('Deckkraft'), findsOneWidget);
+    expect(find.text('SCHNELLWAHL'), findsOneWidget);
+  });
+
+  test('colour grid offers a dense raster', () {
+    expect(kColorGrid.length, greaterThan(30));
   });
 
   testWidgets('hides opacity when the caller does not allow it', (

@@ -666,6 +666,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get presetColors => 'Vorschläge';
 
   @override
+  String get colorGrid => 'Schnellwahl';
+
+  @override
   String get customColor => 'Eigene Farbe';
 
   @override
@@ -3518,7 +3521,65 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get scanPagesHint =>
-      'System-Dokumentenscanner — Blätter werden zu Seiten.';
+      'Scanner oder Foto — danach als Seite oder als Bild einfügen.';
+
+  @override
+  String get imageImportTitle => 'Bild übernehmen';
+
+  @override
+  String get imageImportBody =>
+      'Als eigene Seite (ganzes Blatt) oder als Bild auf der aktuellen Seite.';
+
+  @override
+  String get importAsPage => 'Als Seite importieren';
+
+  @override
+  String get importAsPageHint =>
+      'Wird eine neue Notizbuchseite mit dem Scan als Hintergrund.';
+
+  @override
+  String get importAsImage => 'Als Bild importieren';
+
+  @override
+  String get importAsImageHint =>
+      'Liegt als verschiebbares Bild auf der aktuellen Seite.';
+
+  @override
+  String imagesInserted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Bilder eingefügt',
+      one: '1 Bild eingefügt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importHtml => 'HTML importieren';
+
+  @override
+  String get importHtmlHint => 'HTML-Datei wird zu PDF-Seiten in diesem Heft.';
+
+  @override
+  String htmlImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Seiten aus HTML',
+      one: '1 Seite aus HTML',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get htmlImportFailed => 'HTML konnte nicht importiert werden.';
+
+  @override
+  String get gemmaOpenCalculator => 'Taschenrechner öffnen';
+
+  @override
+  String get gemmaOpenFormulaBook => 'Tafelwerk öffnen';
 
   @override
   String get scanExam => 'Klausur scannen?';
@@ -3841,6 +3902,156 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get tourEditorBody =>
       'Oben liegen Stift, Radierer, Taschenrechner und Tafelwerk. Seiten wischst du zur Seite.';
+
+  @override
+  String get tourPensTitle => 'Stifte und Farben';
+
+  @override
+  String get tourPensBody =>
+      'Wähle Stift, Marker oder Radierer. Tippe eine Farbe an oder öffne das Raster für die Schnellwahl.';
+
+  @override
+  String get tourPagesTitle => 'Seiten';
+
+  @override
+  String get tourPagesBody =>
+      'Wische zur nächsten Seite. Über Plus legst du eine neue an, über die Seitenleiste springst du.';
+
+  @override
+  String get tourScanTitle => 'Scannen und Bilder';
+
+  @override
+  String get tourScanBody =>
+      'Scans und Fotos kannst du als ganze Seite oder als Bild auf der aktuellen Seite einfügen.';
+
+  @override
+  String get tourImportTitle => 'Dateien importieren';
+
+  @override
+  String get tourImportBody =>
+      'PDF, Office, HTML und Bilder werden zu Seiten. HTML wird zuerst in ein PDF umgewandelt.';
+
+  @override
+  String get tourGemmaTitle => 'Gemma';
+
+  @override
+  String get tourGemmaBody =>
+      'Die Lernhilfe erklärt Schritte. Bei Rechnungen öffnet sie den Taschenrechner, bei Formeln das Tafelwerk.';
+
+  @override
+  String get tourCalcTitle => 'Taschenrechner';
+
+  @override
+  String get tourCalcBody =>
+      'Rechne Zwischenschritte selbst. Graphen kannst du als Bild auf die Seite setzen.';
+
+  @override
+  String get tourBookTitle => 'Tafelwerk';
+
+  @override
+  String get tourBookBody =>
+      'Formeln nach Fach. Gemma springt zur passenden Seite, wenn du eine Ableitung oder Formel brauchst.';
+
+  @override
+  String get tourColorsTitle => 'Farbraster';
+
+  @override
+  String get tourColorsBody =>
+      'Im Farbwähler liegt oben ein Raster — einmal tippen, Farbe sitzt.';
+
+  @override
+  String get tourHtmlTitle => 'HTML zu Seite';
+
+  @override
+  String get tourHtmlBody =>
+      'Unter Mehr → HTML importieren wird eine HTML-Datei zu PDF-Seiten in diesem Heft.';
+
+  @override
+  String get tourPresentTitle => 'Präsentieren';
+
+  @override
+  String get tourPresentBody =>
+      'Unter Mehr startest du die Präsentation. Zurück oder Doppeltipp beendet sie.';
+
+  @override
+  String get editorTourWelcomeTitle => 'Notizbuch';
+
+  @override
+  String get editorTourWelcomeBody =>
+      'Hier schreibst du. Die Leiste oben hat Werkzeuge, Home führt zurück in die Bibliothek.';
+
+  @override
+  String get editorTourToolsTitle => 'Werkzeuge';
+
+  @override
+  String get editorTourToolsBody =>
+      'Taschenrechner, Tafelwerk und Gemma sitzen in der Leiste. Zurück schließt zuerst offene Werkzeuge.';
+
+  @override
+  String get editorTourPagesTitle => 'Blättern';
+
+  @override
+  String get editorTourPagesBody =>
+      'Wische horizontal. Zoom rastet lockerer ein, damit du nicht ständig zurückspringst.';
+
+  @override
+  String get editorTourImportTitle => 'Import';
+
+  @override
+  String get editorTourImportBody =>
+      'Bild: Seite oder Overlay. Scan ebenso. HTML wird zu Seiten.';
+
+  @override
+  String get editorTourAssistTitle => 'Hilfe beim Rechnen';
+
+  @override
+  String get editorTourAssistBody =>
+      'Gemma öffnet Rechner oder Tafelwerk, wenn die Aufgabe das braucht.';
+
+  @override
+  String get hintCalculatorTitle => 'Taschenrechner';
+
+  @override
+  String get hintCalculatorBody =>
+      'Tippe die Rechnung selbst. Gemma prüft Zwischenschritte, rechnet aber nicht vor.';
+
+  @override
+  String get hintFormulaBookTitle => 'Tafelwerk';
+
+  @override
+  String get hintFormulaBookBody =>
+      'Kapitel nach Fach. Eine Formel kannst du in den Graphen oder auf die Seite übernehmen.';
+
+  @override
+  String get hintAssistantTitle => 'Gemma';
+
+  @override
+  String get hintAssistantBody =>
+      'Aufgabe schicken oder Bild anhängen. Bei Mathe öffnet sie Rechner oder Tafelwerk.';
+
+  @override
+  String get hintColorsTitle => 'Farben';
+
+  @override
+  String get hintColorsBody =>
+      'Das Raster oben ist die Schnellwahl. Darunter Feintuning über Quadrat, Farbton und Hex.';
+
+  @override
+  String get hintScanTitle => 'Scan und Bild';
+
+  @override
+  String get hintScanBody =>
+      'Als Seite: neues Blatt mit Scan als Hintergrund. Als Bild: auf der aktuellen Seite verschiebbar.';
+
+  @override
+  String get hintHtmlTitle => 'HTML importieren';
+
+  @override
+  String get hintHtmlBody =>
+      'Überschriften und Absätze werden zu PDF-Seiten, die du wie ein eingescanntes Blatt weiterbeschreiben kannst.';
+
+  @override
+  String get hintGotIt => 'Verstanden';
 
   @override
   String get teacherAssignments => 'Aufgaben';

@@ -1088,7 +1088,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       ),
     );
 
-    if (!tourActive) return scaffold;
+    if (!tourActive) {
+      return PopScope(
+        canPop: folderId == null,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          ref.read(currentFolderIdProvider.notifier).state =
+              currentFolder?.parentId;
+        },
+        child: scaffold,
+      );
+    }
     final steps = [
       AppTourStep(title: l10n.tourLibraryTitle, body: l10n.tourLibraryBody),
       AppTourStep(
@@ -1113,9 +1123,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           key: _teacherButtonKey,
         ),
       AppTourStep(title: l10n.tourEditorTitle, body: l10n.tourEditorBody),
+      AppTourStep(title: l10n.tourPensTitle, body: l10n.tourPensBody),
+      AppTourStep(title: l10n.tourPagesTitle, body: l10n.tourPagesBody),
+      AppTourStep(title: l10n.tourScanTitle, body: l10n.tourScanBody),
+      AppTourStep(title: l10n.tourImportTitle, body: l10n.tourImportBody),
+      AppTourStep(title: l10n.tourGemmaTitle, body: l10n.tourGemmaBody),
+      AppTourStep(title: l10n.tourCalcTitle, body: l10n.tourCalcBody),
+      AppTourStep(title: l10n.tourBookTitle, body: l10n.tourBookBody),
+      AppTourStep(title: l10n.tourColorsTitle, body: l10n.tourColorsBody),
+      AppTourStep(title: l10n.tourHtmlTitle, body: l10n.tourHtmlBody),
+      AppTourStep(title: l10n.tourPresentTitle, body: l10n.tourPresentBody),
     ];
     final index = _tourIndex.clamp(0, steps.length - 1);
-    return Stack(
+    final page = Stack(
       children: [
         scaffold,
         AppTourOverlay(
@@ -1135,6 +1155,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           },
         ),
       ],
+    );
+    return PopScope(
+      canPop: folderId == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        ref.read(currentFolderIdProvider.notifier).state =
+            currentFolder?.parentId;
+      },
+      child: page,
     );
   }
 }

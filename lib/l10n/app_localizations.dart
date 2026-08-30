@@ -1346,6 +1346,12 @@ abstract class AppLocalizations {
   /// **'Suggestions'**
   String get presetColors;
 
+  /// No description provided for @colorGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick colors'**
+  String get colorGrid;
+
   /// No description provided for @customColor.
   ///
   /// In en, this message translates to:
@@ -6437,8 +6443,86 @@ abstract class AppLocalizations {
   /// No description provided for @scanPagesHint.
   ///
   /// In en, this message translates to:
-  /// **'System document scanner — sheets become notebook pages.'**
+  /// **'Scanner or photo — then insert as a page or as an image.'**
   String get scanPagesHint;
+
+  /// No description provided for @imageImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this image'**
+  String get imageImportTitle;
+
+  /// No description provided for @imageImportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'As a full notebook page or as a movable image on the current page.'**
+  String get imageImportBody;
+
+  /// No description provided for @importAsPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Import as page'**
+  String get importAsPage;
+
+  /// No description provided for @importAsPageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Creates a new page with the scan as the background.'**
+  String get importAsPageHint;
+
+  /// No description provided for @importAsImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Import as image'**
+  String get importAsImage;
+
+  /// No description provided for @importAsImageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Places a movable image on the current page.'**
+  String get importAsImageHint;
+
+  /// No description provided for @imagesInserted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 image} other{Added {count} images}}'**
+  String imagesInserted(int count);
+
+  /// No description provided for @importHtml.
+  ///
+  /// In en, this message translates to:
+  /// **'Import HTML'**
+  String get importHtml;
+
+  /// No description provided for @importHtmlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'An HTML file becomes PDF pages in this notebook.'**
+  String get importHtmlHint;
+
+  /// No description provided for @htmlImported.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 page from HTML} other{{count} pages from HTML}}'**
+  String htmlImported(int count);
+
+  /// No description provided for @htmlImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import the HTML file.'**
+  String get htmlImportFailed;
+
+  /// No description provided for @gemmaOpenCalculator.
+  ///
+  /// In en, this message translates to:
+  /// **'Open calculator'**
+  String get gemmaOpenCalculator;
+
+  /// No description provided for @gemmaOpenFormulaBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Open formula book'**
+  String get gemmaOpenFormulaBook;
 
   /// No description provided for @scanExam.
   ///
@@ -6997,6 +7081,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The toolbar has pen, eraser, calculator, and the formula book. Swipe to change pages.'**
   String get tourEditorBody;
+
+  /// No description provided for @tourPensTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pens and colors'**
+  String get tourPensTitle;
+
+  /// No description provided for @tourPensBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick pen, marker, or eraser. Tap a colour or open the grid for a quick pick.'**
+  String get tourPensBody;
+
+  /// No description provided for @tourPagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pages'**
+  String get tourPagesTitle;
+
+  /// No description provided for @tourPagesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to the next page. Plus adds one; the sidebar jumps between them.'**
+  String get tourPagesBody;
+
+  /// No description provided for @tourScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan and images'**
+  String get tourScanTitle;
+
+  /// No description provided for @tourScanBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Scans and photos can become a full page or an image on the current page.'**
+  String get tourScanBody;
+
+  /// No description provided for @tourImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import files'**
+  String get tourImportTitle;
+
+  /// No description provided for @tourImportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF, Office, HTML, and images become pages. HTML is converted to PDF first.'**
+  String get tourImportBody;
+
+  /// No description provided for @tourGemmaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma'**
+  String get tourGemmaTitle;
+
+  /// No description provided for @tourGemmaBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The coach explains steps. For calculations she opens the calculator; for formulas, the formula book.'**
+  String get tourGemmaBody;
+
+  /// No description provided for @tourCalcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculator'**
+  String get tourCalcTitle;
+
+  /// No description provided for @tourCalcBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Do the intermediate steps yourself. Graphs can be placed on the page as an image.'**
+  String get tourCalcBody;
+
+  /// No description provided for @tourBookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Formula book'**
+  String get tourBookTitle;
+
+  /// No description provided for @tourBookBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Formulas by subject. Gemma jumps to the matching page when you need a derivative or rule.'**
+  String get tourBookBody;
+
+  /// No description provided for @tourColorsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour grid'**
+  String get tourColorsTitle;
+
+  /// No description provided for @tourColorsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The colour picker starts with a grid — one tap sets the colour.'**
+  String get tourColorsBody;
+
+  /// No description provided for @tourHtmlTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'HTML to page'**
+  String get tourHtmlTitle;
+
+  /// No description provided for @tourHtmlBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Under More → Import HTML, an HTML file becomes PDF pages in this notebook.'**
+  String get tourHtmlBody;
+
+  /// No description provided for @tourPresentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Present'**
+  String get tourPresentTitle;
+
+  /// No description provided for @tourPresentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Start presentation from More. Back or a double-tap exits it.'**
+  String get tourPresentBody;
+
+  /// No description provided for @editorTourWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notebook'**
+  String get editorTourWelcomeTitle;
+
+  /// No description provided for @editorTourWelcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This is where you write. The bar has tools; Home returns to the library.'**
+  String get editorTourWelcomeBody;
+
+  /// No description provided for @editorTourToolsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get editorTourToolsTitle;
+
+  /// No description provided for @editorTourToolsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculator, formula book, and Gemma sit in the bar. Back closes open tools first.'**
+  String get editorTourToolsBody;
+
+  /// No description provided for @editorTourPagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browsing'**
+  String get editorTourPagesTitle;
+
+  /// No description provided for @editorTourPagesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe horizontally. Zoom snaps less aggressively so you stay where you were.'**
+  String get editorTourPagesBody;
+
+  /// No description provided for @editorTourImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get editorTourImportTitle;
+
+  /// No description provided for @editorTourImportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Image: page or overlay. Same for a scan. HTML becomes pages.'**
+  String get editorTourImportBody;
+
+  /// No description provided for @editorTourAssistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Help with maths'**
+  String get editorTourAssistTitle;
+
+  /// No description provided for @editorTourAssistBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma opens the calculator or formula book when the problem needs it.'**
+  String get editorTourAssistBody;
+
+  /// No description provided for @hintCalculatorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculator'**
+  String get hintCalculatorTitle;
+
+  /// No description provided for @hintCalculatorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the calculation yourself. Gemma checks intermediate steps and will not compute for you.'**
+  String get hintCalculatorBody;
+
+  /// No description provided for @hintFormulaBookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Formula book'**
+  String get hintFormulaBookTitle;
+
+  /// No description provided for @hintFormulaBookBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapters by subject. A formula can go into the graph or onto the page.'**
+  String get hintFormulaBookBody;
+
+  /// No description provided for @hintAssistantTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemma'**
+  String get hintAssistantTitle;
+
+  /// No description provided for @hintAssistantBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a problem or attach an image. For maths she opens the calculator or formula book.'**
+  String get hintAssistantBody;
+
+  /// No description provided for @hintColorsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Colours'**
+  String get hintColorsTitle;
+
+  /// No description provided for @hintColorsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The grid at the top is the quick pick. Below it: square, hue, and hex for fine tuning.'**
+  String get hintColorsBody;
+
+  /// No description provided for @hintScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan and image'**
+  String get hintScanTitle;
+
+  /// No description provided for @hintScanBody.
+  ///
+  /// In en, this message translates to:
+  /// **'As a page: a new sheet with the scan as background. As an image: movable on the current page.'**
+  String get hintScanBody;
+
+  /// No description provided for @hintHtmlTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import HTML'**
+  String get hintHtmlTitle;
+
+  /// No description provided for @hintHtmlBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Headings and paragraphs become PDF pages you can annotate like a scanned sheet.'**
+  String get hintHtmlBody;
+
+  /// No description provided for @hintGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get hintGotIt;
 
   /// No description provided for @teacherAssignments.
   ///
