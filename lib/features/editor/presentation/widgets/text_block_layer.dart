@@ -16,6 +16,9 @@ import 'overlay_hit_stack.dart';
 const double _freeInsetX = 10;
 const double _freeInsetY = 6;
 
+/// Extra hit box so the close / move / resize knobs sit inside the layer.
+const double _handleHitPad = 18;
+
 /// Resolves a run into a concrete text style, honouring the paper grid for
 /// line-bound blocks.
 TextStyle resolveRunStyle({
@@ -201,20 +204,28 @@ class TextBlockLayer extends StatelessWidget {
             Positioned(
               left: block.layoutMode == TextLayoutMode.lineBound
                   ? metrics.marginLeft
-                  : block.x,
+                  : block.x -
+                        (selectedId == block.id ? _handleHitPad : 0),
               top: block.layoutMode == TextLayoutMode.lineBound
                   ? block.y - baselineOffset
-                  : block.y,
+                  : block.y -
+                        (selectedId == block.id ? _handleHitPad : 0),
               width: block.layoutMode == TextLayoutMode.lineBound
                   ? metrics.contentWidth
-                  : block.width,
+                  : block.width +
+                        (selectedId == block.id ? _handleHitPad * 2 : 0),
               height: block.layoutMode == TextLayoutMode.lineBound
                   ? math.max(
                       metrics.lineSpacing,
                       metrics.pageHeight - (block.y - baselineOffset) - 16,
                     )
                   : null,
-              child: Material(
+              child: Padding(
+                padding: selectedId == block.id &&
+                        block.layoutMode != TextLayoutMode.lineBound
+                    ? const EdgeInsets.all(_handleHitPad)
+                    : EdgeInsets.zero,
+                child: Material(
                 type: MaterialType.transparency,
                 child: _TextBlockWidget(
                   key: ValueKey(block.id),
@@ -230,6 +241,7 @@ class TextBlockLayer extends StatelessWidget {
                   onChanged: onChanged,
                   onDelete: () => onDelete(block),
                   onCaretPagePoint: onCaretPagePoint,
+                ),
                 ),
               ),
             ),
@@ -570,7 +582,7 @@ class _TextBlockWidgetState extends State<_TextBlockWidget> {
         child: _Handle(
           icon: Icons.close_rounded,
           color: const Color(0xFFB42318),
-          onTap: widget.onDelete,
+          onTapDown: widget.onDelete,
         ),
       ),
       Positioned(
@@ -588,7 +600,7 @@ class _Handle extends StatelessWidget {
     this.onDrag,
     this.onDragStart,
     this.onDragEnd,
-    this.onTap,
+    this.onTapDown,
     this.color,
   });
 
@@ -596,7 +608,7 @@ class _Handle extends StatelessWidget {
   final ValueChanged<Offset>? onDrag;
   final VoidCallback? onDragStart;
   final VoidCallback? onDragEnd;
-  final VoidCallback? onTap;
+  final VoidCallback? onTapDown;
 
   /// Defaults to the editor selection accent.
   final Color? color;
@@ -606,14 +618,14 @@ class _Handle extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       dragStartBehavior: DragStartBehavior.down,
-      onTap: onTap,
+      onTapDown: onTapDown == null ? null : (_) => onTapDown!(),
       onPanStart: onDrag == null ? null : (_) => onDragStart?.call(),
       onPanUpdate: onDrag == null ? null : (d) => onDrag!(d.delta),
       onPanEnd: onDrag == null ? null : (_) => onDragEnd?.call(),
       onPanCancel: onDrag == null ? null : () => onDragEnd?.call(),
       child: Container(
-        width: 26,
-        height: 26,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
           color: color ?? EditorChrome.selected,
           shape: BoxShape.circle,

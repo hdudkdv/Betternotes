@@ -25,7 +25,9 @@ class ToolOptionsBar extends ConsumerWidget {
     required this.onTextLayoutModeChanged,
     required this.onAddText,
     this.onAddSticky,
+    this.onDeleteText,
     required this.onPickImage,
+    this.onScanPages,
     this.onPickSticker,
     this.onDeleteImage,
     this.onDeleteSticker,
@@ -51,7 +53,9 @@ class ToolOptionsBar extends ConsumerWidget {
   final ValueChanged<TextLayoutMode> onTextLayoutModeChanged;
   final VoidCallback onAddText;
   final VoidCallback? onAddSticky;
+  final VoidCallback? onDeleteText;
   final VoidCallback onPickImage;
+  final VoidCallback? onScanPages;
   final VoidCallback? onPickSticker;
   final VoidCallback? onDeleteImage;
   final VoidCallback? onDeleteSticker;
@@ -381,6 +385,12 @@ class ToolOptionsBar extends ConsumerWidget {
               label: l10n.stickyNote,
               onTap: onAddSticky!,
             ),
+          if (onDeleteText != null)
+            _pillAction(
+              icon: Icons.delete_outline_rounded,
+              label: l10n.delete,
+              onTap: onDeleteText!,
+            ),
         ];
       case InkTool.shape:
         return [
@@ -431,6 +441,12 @@ class ToolOptionsBar extends ConsumerWidget {
         ];
       case InkTool.image:
         return [
+          if (onScanPages != null)
+            _pillAction(
+              icon: Icons.document_scanner_outlined,
+              label: l10n.scanPages,
+              onTap: onScanPages!,
+            ),
           _pillAction(
             icon: Icons.add_photo_alternate_outlined,
             label: l10n.insertImage,

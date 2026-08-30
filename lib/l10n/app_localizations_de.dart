@@ -220,7 +220,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fingerPanZoom => 'Nur Stift malt (Finger schiebt)';
 
   @override
-  String get fingerPanZoomHint => 'An: nur Stift malt, Finger schiebt.';
+  String get fingerPanZoomHint =>
+      'An (Standard): nur Stift malt, Finger blättert und zoomt.';
 
   @override
   String get mouseAsPenHint =>
@@ -2126,6 +2127,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get deletePage => 'Seite löschen';
 
   @override
+  String get deletePageTitle => 'Diese Seite löschen?';
+
+  @override
+  String get deletePageBody =>
+      'Die aktuelle Seite wird entfernt. Das lässt sich nicht rückgängig machen.';
+
+  @override
   String get lastPageHint => 'Ein Notizbuch benötigt mindestens eine Seite.';
 
   @override
@@ -3524,25 +3532,25 @@ class AppLocalizationsDe extends AppLocalizations {
       'Scanner oder Foto — danach als Seite oder als Bild einfügen.';
 
   @override
-  String get imageImportTitle => 'Bild übernehmen';
+  String get imageImportTitle => 'Scan einfügen';
 
   @override
   String get imageImportBody =>
-      'Als eigene Seite (ganzes Blatt) oder als Bild auf der aktuellen Seite.';
+      'Klein und verschiebbar auf dieser Seite, oder groß als eigenes Blatt.';
 
   @override
-  String get importAsPage => 'Als Seite importieren';
+  String get importAsPage => 'Als eigene Seite';
 
   @override
   String get importAsPageHint =>
-      'Wird eine neue Notizbuchseite mit dem Scan als Hintergrund.';
+      'Neues Blatt — der Scan füllt die ganze Seite.';
 
   @override
-  String get importAsImage => 'Als Bild importieren';
+  String get importAsImage => 'Als Bild auf dieser Seite';
 
   @override
   String get importAsImageHint =>
-      'Liegt als verschiebbares Bild auf der aktuellen Seite.';
+      'Klein und beweglich, du kannst es verschieben und skalieren.';
 
   @override
   String imagesInserted(int count) {

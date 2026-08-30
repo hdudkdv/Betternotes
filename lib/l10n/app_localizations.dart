@@ -485,7 +485,7 @@ abstract class AppLocalizations {
   /// No description provided for @fingerPanZoomHint.
   ///
   /// In en, this message translates to:
-  /// **'On: stylus draws, finger pans.'**
+  /// **'On (default): stylus draws, finger pans and zooms.'**
   String get fingerPanZoomHint;
 
   /// No description provided for @mouseAsPenHint.
@@ -3986,6 +3986,18 @@ abstract class AppLocalizations {
   /// **'Delete page'**
   String get deletePage;
 
+  /// No description provided for @deletePageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this page?'**
+  String get deletePageTitle;
+
+  /// No description provided for @deletePageBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The current page will be removed. This cannot be undone.'**
+  String get deletePageBody;
+
   /// No description provided for @lastPageHint.
   ///
   /// In en, this message translates to:
@@ -6449,37 +6461,37 @@ abstract class AppLocalizations {
   /// No description provided for @imageImportTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add this image'**
+  /// **'Insert scan'**
   String get imageImportTitle;
 
   /// No description provided for @imageImportBody.
   ///
   /// In en, this message translates to:
-  /// **'As a full notebook page or as a movable image on the current page.'**
+  /// **'Small and movable on this page, or large as its own sheet.'**
   String get imageImportBody;
 
   /// No description provided for @importAsPage.
   ///
   /// In en, this message translates to:
-  /// **'Import as page'**
+  /// **'As its own page'**
   String get importAsPage;
 
   /// No description provided for @importAsPageHint.
   ///
   /// In en, this message translates to:
-  /// **'Creates a new page with the scan as the background.'**
+  /// **'A new sheet — the scan fills the whole page.'**
   String get importAsPageHint;
 
   /// No description provided for @importAsImage.
   ///
   /// In en, this message translates to:
-  /// **'Import as image'**
+  /// **'As an image on this page'**
   String get importAsImage;
 
   /// No description provided for @importAsImageHint.
   ///
   /// In en, this message translates to:
-  /// **'Places a movable image on the current page.'**
+  /// **'Small and movable. You can drag and resize it.'**
   String get importAsImageHint;
 
   /// No description provided for @imagesInserted.

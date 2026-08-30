@@ -108,7 +108,7 @@ enum TeacherTrack { studying, qualified }
 
 class AppSettings {
   const AppSettings({
-    this.fingerPanZoom = false,
+    this.fingerPanZoom = true,
     this.defaultTemplate = PageTemplate.lined,
     this.localeCode = 'system',
     this.pageBrowseMode = PageBrowseMode.swipeHorizontal,
@@ -132,7 +132,7 @@ class AppSettings {
 
   factory AppSettings.fromPrefs(SharedPreferences prefs) {
     return AppSettings(
-      fingerPanZoom: prefs.getBool('fingerPanZoomV2') ?? false,
+      fingerPanZoom: prefs.getBool('fingerPanZoomV2') ?? true,
       defaultTemplate: PageTemplate.values.firstWhere(
         (t) => t.name == (prefs.getString('defaultTemplate') ?? 'lined'),
         orElse: () => PageTemplate.lined,

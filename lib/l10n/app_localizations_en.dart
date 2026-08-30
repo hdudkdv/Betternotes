@@ -219,7 +219,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fingerPanZoom => 'Stylus only (finger pans)';
 
   @override
-  String get fingerPanZoomHint => 'On: stylus draws, finger pans.';
+  String get fingerPanZoomHint =>
+      'On (default): stylus draws, finger pans and zooms.';
 
   @override
   String get mouseAsPenHint =>
@@ -2117,6 +2118,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deletePage => 'Delete page';
 
   @override
+  String get deletePageTitle => 'Delete this page?';
+
+  @override
+  String get deletePageBody =>
+      'The current page will be removed. This cannot be undone.';
+
+  @override
   String get lastPageHint => 'A notebook needs at least one page.';
 
   @override
@@ -3504,24 +3512,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Scanner or photo — then insert as a page or as an image.';
 
   @override
-  String get imageImportTitle => 'Add this image';
+  String get imageImportTitle => 'Insert scan';
 
   @override
   String get imageImportBody =>
-      'As a full notebook page or as a movable image on the current page.';
+      'Small and movable on this page, or large as its own sheet.';
 
   @override
-  String get importAsPage => 'Import as page';
+  String get importAsPage => 'As its own page';
 
   @override
-  String get importAsPageHint =>
-      'Creates a new page with the scan as the background.';
+  String get importAsPageHint => 'A new sheet — the scan fills the whole page.';
 
   @override
-  String get importAsImage => 'Import as image';
+  String get importAsImage => 'As an image on this page';
 
   @override
-  String get importAsImageHint => 'Places a movable image on the current page.';
+  String get importAsImageHint =>
+      'Small and movable. You can drag and resize it.';
 
   @override
   String imagesInserted(int count) {

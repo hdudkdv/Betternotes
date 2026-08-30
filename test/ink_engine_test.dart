@@ -27,6 +27,22 @@ void main() {
     expect(engine.strokes, hasLength(1));
   });
 
+  test('a huge jump starts a new stroke instead of a stray line', () {
+    final engine = InkEngine()
+      ..setTool(InkTool.pen)
+      ..setColor(0xFF000000)
+      ..setWidth(3);
+
+    engine.beginStroke(const Offset(10, 10));
+    engine.appendStroke(const Offset(18, 14));
+    engine.appendStroke(const Offset(400, 500));
+    engine.endStroke();
+
+    expect(engine.strokes, hasLength(2));
+    expect(engine.strokes.first.points.last.x, closeTo(18, 0.01));
+    expect(engine.strokes.last.points.first.x, closeTo(400, 0.01));
+  });
+
   test('stroke hit testing works', () {
     final stroke = InkStroke(
       id: '1',

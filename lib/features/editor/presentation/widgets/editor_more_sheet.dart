@@ -224,6 +224,11 @@ class _EditorMoreSheetState extends State<_EditorMoreSheet> {
           onTap: () => _close(EditorMenuAction.restoreSnapshot),
         ),
         EditorSheetTile(
+          icon: Icons.delete_outline_rounded,
+          label: l10n.deletePage,
+          onTap: () => _close(EditorMenuAction.deletePage),
+        ),
+        EditorSheetTile(
           icon: Icons.list_alt_rounded,
           label: l10n.outline,
           onTap: () => _close(EditorMenuAction.outline),

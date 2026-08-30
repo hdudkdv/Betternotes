@@ -17,6 +17,7 @@ enum EditorMenuAction {
   paperCreator,
   importPdf,
   scanPages,
+  deletePage,
   importHtml,
   importAnyFile,
   settings,
@@ -69,6 +70,7 @@ class EditorTopBar extends StatelessWidget {
     required this.onSearch,
     required this.onOutline,
     required this.onPickImage,
+    this.onScanPages,
     this.onPickSticker,
     required this.onCalculator,
     required this.onFormulaBook,
@@ -109,6 +111,7 @@ class EditorTopBar extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onOutline;
   final VoidCallback onPickImage;
+  final VoidCallback? onScanPages;
   final VoidCallback? onPickSticker;
   final VoidCallback onCalculator;
   final VoidCallback onFormulaBook;
@@ -228,6 +231,7 @@ class EditorTopBar extends StatelessWidget {
                 locked: locked,
                 studyMode: studyMode,
                 onPickImage: onPickImage,
+                onScanPages: onScanPages,
                 onPickSticker: onPickSticker,
                 onCalculator: onCalculator,
                 onFormulaBook: onFormulaBook,
@@ -274,6 +278,7 @@ class _ToolDock extends StatelessWidget {
     required this.locked,
     required this.studyMode,
     required this.onPickImage,
+    this.onScanPages,
     this.onPickSticker,
     required this.onCalculator,
     required this.onFormulaBook,
@@ -296,6 +301,7 @@ class _ToolDock extends StatelessWidget {
   final bool locked;
   final bool studyMode;
   final VoidCallback onPickImage;
+  final VoidCallback? onScanPages;
   final VoidCallback? onPickSticker;
   final VoidCallback onCalculator;
   final VoidCallback onFormulaBook;
@@ -448,6 +454,14 @@ class _ToolDock extends StatelessWidget {
               enabled: enabled,
               compact: vertical,
               onTap: onOpenPacks,
+            ),
+          if (onScanPages != null)
+            _BarIcon(
+              icon: Icons.document_scanner_outlined,
+              tooltip: l10n.scanPages,
+              enabled: enabled,
+              compact: vertical,
+              onTap: onScanPages,
             ),
           _BarIcon(
             icon: Icons.add_photo_alternate_outlined,

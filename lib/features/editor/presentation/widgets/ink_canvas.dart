@@ -369,6 +369,7 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _snapToFitIfNeeded() {
+    if (_drawing) return;
     if (widget.canvasMode == CanvasMode.infinite) return;
     if (!_isUsableViewport(_viewportSize)) return;
     final scale = _transform.value.getMaxScaleOnAxis();
@@ -574,7 +575,10 @@ class InkCanvasState extends State<InkCanvas>
       return false;
     }
     if (widget.engine.tool == InkTool.text) {
-      return true; // tap to place text
+      if (widget.fingerPanZoom && !PointerRouting.drawsLikeStylus(event)) {
+        return false;
+      }
+      return true;
     }
     if (PointerRouting.drawsLikeStylus(event)) return true;
     // Stylus-only mode (normal notebook pages): fingers navigate.
@@ -712,14 +716,12 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   bool _shouldDeferDraw(PointerEvent event) {
+    if (widget.engine.tool == InkTool.text) return true;
     if (widget.canvasMode == CanvasMode.infinite) return false;
     if (widget.fingerPanZoom) return false;
     if (_isZoomed) return false;
     if (PointerRouting.drawsLikeStylus(event)) return false;
-    if (widget.engine.tool == InkTool.text ||
-        widget.engine.tool == InkTool.lasso) {
-      return false;
-    }
+    if (widget.engine.tool == InkTool.lasso) return false;
     return _isTouch(event);
   }
 
@@ -744,6 +746,13 @@ class InkCanvasState extends State<InkCanvas>
     _drawIsStylus = isStylus;
     _clearDrawPending();
     _updateScrollLock();
+  }
+
+  void _forwardDrawMove(PointerMoveEvent event) {
+    widget.onPointerMove(
+      _toPageLocal(event.localPosition),
+      pressure: event.pressure == 0 ? 0.5 : event.pressure,
+    );
   }
 
   void _beginStroke(
@@ -899,14 +908,20 @@ class InkCanvasState extends State<InkCanvas>
     }
 
     if (_drawing && event.pointer == _drawPointer) {
-      widget.onPointerMove(
-        _toPageLocal(event.localPosition),
-        pressure: event.pressure == 0 ? 0.5 : event.pressure,
-      );
+      _forwardDrawMove(event);
       return;
     }
 
     if (_drawPending && event.pointer == _pendingPointer) {
+      if (widget.engine.tool == InkTool.text) {
+        final slop = event.position - (_pendingGlobal ?? event.position);
+        if (slop.distance >= 12) {
+          _clearDrawPending();
+          _handleNavPan(event.position - (_panLastFocal ?? event.position));
+          _panLastFocal = event.position;
+        }
+        return;
+      }
       final slop = event.position - (_pendingGlobal ?? event.position);
       if (_isPageSwipeSlop(slop)) {
         // Finger/mouse swipe on the page. Lock the viewport so both
@@ -962,7 +977,22 @@ class InkCanvasState extends State<InkCanvas>
     if (_drawPending && event.pointer == _pendingPointer) {
       final startGlobal = _pendingGlobal ?? event.position;
       final slop = event.position - startGlobal;
-      if (_isPageSwipeSlop(slop) ||
+      if (widget.engine.tool == InkTool.text) {
+        if (slop.distance < 14) {
+          final local = _pendingLocal ?? event.localPosition;
+          _beginStroke(
+            event.pointer,
+            local,
+            isStylus: PointerRouting.drawsLikeStylus(event),
+            pressure: _pendingPressure,
+          );
+          _stopDrawing(commit: true);
+          consumedAsDraw = true;
+          setState(() {});
+        } else {
+          _clearDrawPending();
+        }
+      } else if (_isPageSwipeSlop(slop) ||
           (slop.distance >= 24 && _isPageSwipeAxis(slop))) {
         _clearDrawPending();
       } else {

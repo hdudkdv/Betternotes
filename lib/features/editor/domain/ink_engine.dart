@@ -366,6 +366,15 @@ class InkEngine extends ChangeNotifier {
     final minDist2 = tool == InkTool.pencil ? 0.36 : 0.16;
     if (dx * dx + dy * dy < minDist2) return;
 
+    // Fast writing or a dropped pointer can jump tens of millimetres. A
+    // straight connector across that gap looks like a stray line — start a
+    // fresh stroke instead.
+    if (dx * dx + dy * dy > 96 * 96) {
+      endStroke();
+      beginStroke(point, pressure: pressure, t: t);
+      return;
+    }
+
     active.points.add(
       StrokePoint(x: point.dx, y: point.dy, pressure: p, t: t),
     );

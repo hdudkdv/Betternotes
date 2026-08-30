@@ -2239,6 +2239,70 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     if (mounted) context.go('/');
   }
 
+  Future<void> _deleteCurrentPage(
+    BuildContext context,
+    EditorController controller,
+    AppLocalizations l10n,
+  ) async {
+    if (controller.pages.length <= 1) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.lastPageHint)));
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.deletePageTitle),
+        content: Text(l10n.deletePageBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await controller.deletePage(controller.pageIndex);
+  }
+
+  Future<void> _scanAndInsert(EditorController controller) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await maybeShowFeatureHint(context, ref, FeatureHintId.scanImport);
+      if (!mounted) return;
+      final paths = await const DocumentScannerService().scanPages();
+      if (paths.isEmpty) return;
+      if (!mounted) return;
+      final mode = await showImageImportChoice(context);
+      if (mode == null || !mounted) return;
+      if (mode == ImageImportMode.asPage) {
+        final added = await controller.importScannedImages(paths);
+        if (!mounted || added == 0) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.scanAddedPages(added))));
+      } else {
+        final added = await controller.insertImagesFromPaths(paths);
+        if (!mounted || added == 0) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.imagesInserted(added))));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.scanFailed)));
+    }
+  }
+
   Future<void> _importImages(EditorController controller) async {
     await maybeShowFeatureHint(context, ref, FeatureHintId.scanImport);
     if (!mounted) return;
@@ -3024,6 +3088,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   onShapeKindChanged: controller.setShapeKind,
                   onTextLayoutModeChanged: controller.setTextLayoutMode,
                   onAddText: () => controller.addTextBlock(text: l10n.newText),
+                  onDeleteText: controller.selectedTextId == null
+                      ? null
+                      : () {
+                          final id = controller.selectedTextId;
+                          final block = controller.textBlocks
+                              .where((b) => b.id == id)
+                              .firstOrNull;
+                          if (block != null) controller.deleteTextBlock(block);
+                        },
                   onAddSticky: () {
                     controller.setTextLayoutMode(TextLayoutMode.sticky);
                     controller.addTextBlock(
@@ -3032,6 +3105,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     );
                   },
                   onPickImage: () => _importImages(controller),
+                  onScanPages: () => _scanAndInsert(controller),
                   onPickSticker: () => _pickSticker(controller),
                   hasSelectedSticker: controller.selectedStickerId != null,
                   onDeleteSticker: controller.selectedStickerId == null
@@ -3540,6 +3614,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 onSearch: () => context.push('/search'),
                 onOutline: () => _openOutline(context, controller, l10n),
                 onPickImage: () => _importImages(controller),
+                onScanPages: () => _scanAndInsert(controller),
                 onPickSticker: () => _pickSticker(controller),
                 onCalculator: () => _openCalculator(controller),
                 onFormulaBook: () => _openFormulaBook(controller),
@@ -3698,33 +3773,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         }
       case EditorMenuAction.scanPages:
         if (!context.mounted) return;
-        try {
-          await maybeShowFeatureHint(context, ref, FeatureHintId.scanImport);
-          if (!context.mounted) return;
-          final paths = await const DocumentScannerService().scanPages();
-          if (paths.isEmpty) return;
-          if (!context.mounted) return;
-          final mode = await showImageImportChoice(context);
-          if (mode == null || !context.mounted) return;
-          if (mode == ImageImportMode.asPage) {
-            final added = await controller.importScannedImages(paths);
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(l10n.scanAddedPages(added))));
-          } else {
-            final added = await controller.insertImagesFromPaths(paths);
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(l10n.imagesInserted(added))));
-          }
-        } catch (_) {
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.scanFailed)));
-        }
+        await _scanAndInsert(controller);
+      case EditorMenuAction.deletePage:
+        if (!context.mounted) return;
+        await _deleteCurrentPage(context, controller, l10n);
       case EditorMenuAction.importHtml:
         if (!context.mounted) return;
         await _importHtml(context, controller, l10n);
