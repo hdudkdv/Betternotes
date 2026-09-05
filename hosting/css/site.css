@@ -156,6 +156,14 @@ a:hover { color: var(--accent-deep); }
   background: #fff;
 }
 
+.btn-soon {
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  background: #ececf1;
+  cursor: default;
+  pointer-events: none;
+}
+
 .hero-card {
   background: var(--desk);
   border-radius: 22px;

@@ -33,14 +33,48 @@ void main() {
       ..setColor(0xFF000000)
       ..setWidth(3);
 
-    engine.beginStroke(const Offset(10, 10));
-    engine.appendStroke(const Offset(18, 14));
-    engine.appendStroke(const Offset(400, 500));
+    engine.beginStroke(const Offset(10, 10), t: 1000);
+    engine.appendStroke(const Offset(18, 14), t: 1008);
+    engine.appendStroke(const Offset(400, 500), t: 1016);
     engine.endStroke();
 
     expect(engine.strokes, hasLength(2));
     expect(engine.strokes.first.points.last.x, closeTo(18, 0.01));
     expect(engine.strokes.last.points.first.x, closeTo(400, 0.01));
+  });
+
+  test('a short pause then a nearby landing starts a new stroke', () {
+    final engine = InkEngine()
+      ..setTool(InkTool.pen)
+      ..setColor(0xFF000000)
+      ..setWidth(3);
+
+    engine.beginStroke(const Offset(20, 20), t: 1000);
+    engine.appendStroke(const Offset(28, 22), t: 1008);
+    engine.appendStroke(const Offset(36, 24), t: 1016);
+    // Lift, then land on the next letter ~20px away after 70ms.
+    engine.appendStroke(const Offset(56, 26), t: 1086);
+    engine.endStroke();
+
+    expect(engine.strokes, hasLength(2));
+    expect(engine.strokes.first.points.last.x, closeTo(36, 0.01));
+    expect(engine.strokes.last.points.first.x, closeTo(56, 0.01));
+  });
+
+  test('fast continuous writing does not split mid-stroke', () {
+    final engine = InkEngine()
+      ..setTool(InkTool.pen)
+      ..setColor(0xFF000000)
+      ..setWidth(3);
+
+    engine.beginStroke(const Offset(10, 10), t: 1000);
+    engine.appendStroke(const Offset(22, 14), t: 1008);
+    engine.appendStroke(const Offset(36, 20), t: 1016);
+    engine.appendStroke(const Offset(52, 28), t: 1024);
+    engine.endStroke();
+
+    expect(engine.strokes, hasLength(1));
+    expect(engine.strokes.single.points, hasLength(4));
   });
 
   test('stroke hit testing works', () {

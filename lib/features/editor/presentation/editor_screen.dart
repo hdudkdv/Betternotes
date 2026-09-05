@@ -1793,6 +1793,7 @@ class EditorController extends ChangeNotifier {
     Offset pagePoint, {
     required bool isStylus,
     double pressure = 0.5,
+    int t = 0,
   }) {
     if (interactionMode == InteractionMode.read) return;
 
@@ -1842,13 +1843,13 @@ class EditorController extends ChangeNotifier {
     }
     _shapeHoldTimer?.cancel();
     _convertedByHold = false;
-    ink.beginStroke(pagePoint, pressure: pressure);
+    ink.beginStroke(pagePoint, pressure: pressure, t: t);
     if (ink.tool == InkTool.eraser) {
       _erasePageObjects(pagePoint);
     }
   }
 
-  void onPointerMove(Offset pagePoint, {double pressure = 0.5}) {
+  void onPointerMove(Offset pagePoint, {double pressure = 0.5, int t = 0}) {
     if (interactionMode == InteractionMode.read) return;
 
     if (_shapeStart != null && draftShape != null) {
@@ -1869,7 +1870,7 @@ class EditorController extends ChangeNotifier {
       }
       return;
     }
-    ink.appendStroke(pagePoint, pressure: pressure);
+    ink.appendStroke(pagePoint, pressure: pressure, t: t);
     if (ink.tool == InkTool.eraser) {
       _erasePageObjects(pagePoint);
     }
@@ -2917,12 +2918,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                         );
                       },
                       onPointerDown:
-                          (point, {required isStylus, pressure = 0.5}) {
+                          (point, {required isStylus, pressure = 0.5, t = 0}) {
                             _dismissUnpinnedTools();
                             controller.onPointerDown(
                               point,
                               isStylus: isStylus,
                               pressure: pressure,
+                              t: t,
                             );
                           },
                       onPointerMove: controller.onPointerMove,

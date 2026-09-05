@@ -292,6 +292,7 @@ class InkEngine extends ChangeNotifier {
 
     final p = _effectivePressure(pressure);
     final start = _constrained(point);
+    final now = t > 0 ? t : DateTime.now().millisecondsSinceEpoch;
     _guideOrigin = start;
     _activeStroke = InkStroke(
       id: _uuid.v4(),
@@ -300,7 +301,7 @@ class InkEngine extends ChangeNotifier {
       width: width,
       style: tool.isFreehand ? strokeStyle : StrokeStyle.solid,
       points: <StrokePoint>[
-        StrokePoint(x: start.dx, y: start.dy, pressure: p, t: t),
+        StrokePoint(x: start.dx, y: start.dy, pressure: p, t: now),
       ],
     );
     _notifyNow();
@@ -362,23 +363,33 @@ class InkEngine extends ChangeNotifier {
     final last = active.points.last;
     final dx = point.dx - last.x;
     final dy = point.dy - last.y;
+    final dist2 = dx * dx + dy * dy;
     // Pencil keeps a slightly coarser sample than pen so grain stays cheap.
     final minDist2 = tool == InkTool.pencil ? 0.36 : 0.16;
-    if (dx * dx + dy * dy < minDist2) return;
+    if (dist2 < minDist2) return;
 
-    // Fast writing or a dropped pointer can jump tens of millimetres. A
-    // straight connector across that gap looks like a stray line — start a
-    // fresh stroke instead.
-    if (dx * dx + dy * dy > 96 * 96) {
+    final now = t > 0 ? t : DateTime.now().millisecondsSinceEpoch;
+    if (_isLiftGap(last, dist2, now)) {
       endStroke();
-      beginStroke(point, pressure: pressure, t: t);
+      beginStroke(point, pressure: pressure, t: now);
       return;
     }
 
     active.points.add(
-      StrokePoint(x: point.dx, y: point.dy, pressure: p, t: t),
+      StrokePoint(x: point.dx, y: point.dy, pressure: p, t: now),
     );
     _notifyPaint();
+  }
+
+  /// Lift-and-land (new letter / word) arrives as one pointer stream. A
+  /// pause plus movement is a new contact — do not draw the air gap.
+  /// A huge jump in one sample is a dropped pointer, not handwriting.
+  bool _isLiftGap(StrokePoint last, double dist2, int now) {
+    final prevT = last.t;
+    final dt = (now > 0 && prevT > 0 && now > prevT) ? now - prevT : 0;
+    if (dt >= 32 && dist2 >= 6 * 6) return true;
+    if (dist2 >= 48 * 48) return true;
+    return false;
   }
 
   void cancelStroke() {

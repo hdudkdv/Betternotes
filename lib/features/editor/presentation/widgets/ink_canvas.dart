@@ -87,9 +87,10 @@ class InkCanvas extends StatefulWidget {
     Offset pagePoint, {
     required bool isStylus,
     double pressure,
+    int t,
   })
   onPointerDown;
-  final void Function(Offset pagePoint, {double pressure}) onPointerMove;
+  final void Function(Offset pagePoint, {double pressure, int t}) onPointerMove;
   final VoidCallback onPointerUp;
 
   /// Hit-tests page objects. When this returns true the pointer is tracked as
@@ -137,6 +138,7 @@ class InkCanvasState extends State<InkCanvas>
   Offset? _pendingGlobal;
   Offset? _pendingLocal;
   double _pendingPressure = 0.5;
+  int _pendingT = 0;
 
   /// Set once the fit matrix has been written to [_transform]. Until then the
   /// controller is still identity (scale=1), which must NOT count as zoomed —
@@ -713,7 +715,19 @@ class InkCanvasState extends State<InkCanvas>
     _pendingGlobal = null;
     _pendingLocal = null;
     _pendingPressure = 0.5;
+    _pendingT = 0;
   }
+
+  /// Devices without a pressure axis always report 0; a real pencil at 0
+  /// has left the page.
+  double _inkPressure(PointerEvent event) {
+    if (event.pressureMax > 1.0) {
+      return event.pressure.clamp(0.0, 1.0);
+    }
+    return event.pressure == 0 ? 0.5 : event.pressure;
+  }
+
+  int _eventTime(PointerEvent event) => event.timeStamp.inMilliseconds;
 
   bool _shouldDeferDraw(PointerEvent event) {
     if (widget.engine.tool == InkTool.text) return true;
@@ -749,9 +763,15 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _forwardDrawMove(PointerMoveEvent event) {
+    if (PointerRouting.stylusIsInAir(event)) {
+      _stopDrawing(commit: true);
+      setState(() {});
+      return;
+    }
     widget.onPointerMove(
       _toPageLocal(event.localPosition),
-      pressure: event.pressure == 0 ? 0.5 : event.pressure,
+      pressure: _inkPressure(event),
+      t: _eventTime(event),
     );
   }
 
@@ -760,13 +780,20 @@ class InkCanvasState extends State<InkCanvas>
     Offset local, {
     required bool isStylus,
     required double pressure,
+    int t = 0,
   }) {
     _armPointerTracking(pointer, isStylus: isStylus);
     widget.onPointerDown(
       _toPageLocal(local),
       isStylus: isStylus,
       pressure: pressure,
+      t: t,
     );
+  }
+
+  void _finishOpenStroke() {
+    if (!_drawing) return;
+    _stopDrawing(commit: true);
   }
 
   void _stopDrawing({required bool commit}) {
@@ -784,9 +811,19 @@ class InkCanvasState extends State<InkCanvas>
 
   void _handlePointerDown(PointerDownEvent event) {
     final rightMouse = PointerRouting.isRightMouse(event);
-    // Palm rejection: ignore touch / right-mouse while a stylus stroke is active.
-    if (_drawing && _drawIsStylus && (_isTouch(event) || rightMouse)) {
+    final stylusLike =
+        PointerRouting.drawsLikeStylus(event) && !rightMouse;
+    // Palm rejection: ignore fingers / right-mouse while a stylus writes.
+    // Do not use kind==touch here — some pencils arrive as a small touch.
+    if (_drawing && _drawIsStylus && !stylusLike) {
       return;
+    }
+
+    // New contact while a stroke is still open (missed up / hover): commit
+    // the old ink so the next samples cannot draw a connector line.
+    if (_drawing && stylusLike) {
+      _finishOpenStroke();
+      _pointerGlobal.removeWhere((id, _) => id != event.pointer);
     }
 
     _pointerGlobal[event.pointer] = event.position;
@@ -798,9 +835,24 @@ class InkCanvasState extends State<InkCanvas>
     // A second finger cancels ink and starts pinch-zoom — unless the
     // active stroke is from a stylus (then the extra touch is treated as palm).
     if (_pointerGlobal.length >= 2) {
-      if (_drawing && _drawIsStylus) {
+      if (_drawing && _drawIsStylus && !stylusLike) {
         _pointerGlobal.remove(event.pointer);
         _updateScrollLock();
+        return;
+      }
+      if (_drawing && stylusLike) {
+        _finishOpenStroke();
+        _pointerGlobal.removeWhere((id, _) => id != event.pointer);
+        if (_canDrawWith(event)) {
+          setState(() {});
+          _beginStroke(
+            event.pointer,
+            event.localPosition,
+            isStylus: true,
+            pressure: _inkPressure(event),
+            t: _eventTime(event),
+          );
+        }
         return;
       }
       if (_drawing) {
@@ -853,7 +905,8 @@ class InkCanvasState extends State<InkCanvas>
         _pendingPointer = event.pointer;
         _pendingGlobal = event.position;
         _pendingLocal = event.localPosition;
-        _pendingPressure = event.pressure == 0 ? 0.5 : event.pressure;
+        _pendingPressure = _inkPressure(event);
+        _pendingT = _eventTime(event);
         _panLastFocal = event.position;
         return;
       }
@@ -862,7 +915,8 @@ class InkCanvasState extends State<InkCanvas>
         event.pointer,
         event.localPosition,
         isStylus: PointerRouting.drawsLikeStylus(event),
-        pressure: event.pressure == 0 ? 0.5 : event.pressure,
+        pressure: _inkPressure(event),
+        t: _eventTime(event),
       );
       return;
     }
@@ -912,6 +966,11 @@ class InkCanvasState extends State<InkCanvas>
       return;
     }
 
+    // Hover / residual moves after a lift must not pan or keep inking.
+    if (PointerRouting.isActiveStylus(event) && !_drawing) {
+      return;
+    }
+
     if (_drawPending && event.pointer == _pendingPointer) {
       if (widget.engine.tool == InkTool.text) {
         final slop = event.position - (_pendingGlobal ?? event.position);
@@ -945,10 +1004,12 @@ class InkCanvasState extends State<InkCanvas>
           local,
           isStylus: false,
           pressure: _pendingPressure,
+          t: _pendingT,
         );
         widget.onPointerMove(
           _toPageLocal(event.localPosition),
-          pressure: event.pressure == 0 ? 0.5 : event.pressure,
+          pressure: _inkPressure(event),
+          t: _eventTime(event),
         );
         return;
       }
@@ -985,6 +1046,7 @@ class InkCanvasState extends State<InkCanvas>
             local,
             isStylus: PointerRouting.drawsLikeStylus(event),
             pressure: _pendingPressure,
+            t: _pendingT,
           );
           _stopDrawing(commit: true);
           consumedAsDraw = true;
@@ -1002,11 +1064,13 @@ class InkCanvasState extends State<InkCanvas>
           local,
           isStylus: false,
           pressure: _pendingPressure,
+          t: _pendingT,
         );
         if (slop.distance > 2) {
           widget.onPointerMove(
             _toPageLocal(event.localPosition),
-            pressure: event.pressure == 0 ? 0.5 : event.pressure,
+            pressure: _inkPressure(event),
+            t: _eventTime(event),
           );
         }
         _stopDrawing(commit: true);
@@ -1066,6 +1130,21 @@ class InkCanvasState extends State<InkCanvas>
     }
     _updateScrollLock();
     setState(() {});
+  }
+
+  void _handlePointerHover(PointerHoverEvent event) {
+    final wasDrawing =
+        _drawing &&
+        (event.pointer == _drawPointer || _drawIsStylus);
+    if (wasDrawing) {
+      _stopDrawing(commit: true);
+    }
+    if (_pointerGlobal.remove(event.pointer) != null) {
+      _updateScrollLock();
+    }
+    if (wasDrawing) {
+      setState(() {});
+    }
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
@@ -1148,6 +1227,7 @@ class InkCanvasState extends State<InkCanvas>
                   behavior: HitTestBehavior.opaque,
                   onPointerDown: _handlePointerDown,
                   onPointerMove: _handlePointerMove,
+                  onPointerHover: _handlePointerHover,
                   onPointerUp: _handlePointerUp,
                   onPointerCancel: _handlePointerCancel,
                   child: Center(

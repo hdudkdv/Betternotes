@@ -25,6 +25,14 @@ abstract final class PointerRouting {
       (event.kind == PointerDeviceKind.touch &&
           (event.pressureMax > 1.0 || (event.size > 0 && event.size < 0.08)));
 
+  /// Pencil in the air: hover, a missed up, or contact pressure gone.
+  /// Mouse / finger never match — they have no hover-while-drawing path.
+  static bool stylusIsInAir(PointerEvent event) {
+    if (!isActiveStylus(event)) return false;
+    if (!event.down) return true;
+    return event.pressureMax > 1.0 && event.pressure < 0.02;
+  }
+
   /// Immediate ink: real stylus, or left mouse (no swipe slop).
   static bool drawsLikeStylus(PointerEvent event) {
     if (isRightMouse(event)) return false;

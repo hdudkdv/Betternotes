@@ -35,6 +35,8 @@ Future<PurchaseOutcome> showSubscriptionPaywall(
         native == PurchaseOutcome.cancelled) {
       return native;
     }
+    // Native paywall error / empty offering: show the in-app sheet
+    // instead of returning an error to Settings (App Review 2.1).
   }
   if (!context.mounted) return PurchaseOutcome.cancelled;
   final outcome = await showModalBottomSheet<PurchaseOutcome>(
@@ -132,7 +134,7 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
               else ...[
                 Text(
                   l10n.storeProductsUnavailable,
-                  style: AppTheme.body(color: AppTheme.danger, fontSize: 13),
+                  style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
                 for (final plan in plans) _CatalogPlanCard(plan: plan),

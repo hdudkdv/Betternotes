@@ -1,7 +1,6 @@
-/// 1.0 ships the core notebook app only.
+/// Feature flags that can stay compiled in while a surface is hidden.
 ///
-/// Store purchases, coins, ads-for-coins and marketplace unlocks stay in
-/// the binary but are not offered. Flip this when IAP is ready for review.
+/// Commerce (IAP, coins, ads-for-coins, marketplace) is on after 1.0 review.
 abstract final class LaunchGates {
-  static const commerceEnabled = false;
+  static const commerceEnabled = true;
 }

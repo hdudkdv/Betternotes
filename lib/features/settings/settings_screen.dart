@@ -250,21 +250,17 @@ class SettingsScreen extends ConsumerWidget {
 
   Future<void> _handlePurchaseOutcome(
     BuildContext context,
-    WidgetRef ref,
     PurchaseOutcome outcome,
   ) async {
     if (outcome == PurchaseOutcome.cancelled) return;
     final l10n = AppLocalizations.of(context)!;
-    final billing = ref.read(revenueCatBillingProvider);
     final message = switch (outcome) {
       PurchaseOutcome.success => l10n.purchaseSuccess,
       PurchaseOutcome.cancelled => l10n.purchaseCancelled,
-      PurchaseOutcome.unavailable => l10n.paywallUnavailable,
-      PurchaseOutcome.error => l10n.purchaseFailed(
-        (billing.error ?? '').trim().isEmpty
-            ? l10n.storeProductsUnavailable
-            : billing.error!,
-      ),
+      PurchaseOutcome.unavailable => l10n.storeProductsUnavailable,
+      // Never surface raw store / RevenueCat copy — that looked like a
+      // broken screen to App Review (2.1) last time.
+      PurchaseOutcome.error => l10n.storeProductsUnavailable,
     };
     if (!context.mounted) return;
     ScaffoldMessenger.of(
@@ -801,7 +797,7 @@ class SettingsScreen extends ConsumerWidget {
                     }
                     final outcome = await showSubscriptionPaywall(context, ref);
                     if (!context.mounted) return;
-                    await _handlePurchaseOutcome(context, ref, outcome);
+                    await _handlePurchaseOutcome(context, outcome);
                   },
                 ),
                 if (billing.configured && billing.hasNotisPro)
@@ -827,7 +823,7 @@ class SettingsScreen extends ConsumerWidget {
                         );
                         return;
                       }
-                      await _handlePurchaseOutcome(context, ref, outcome);
+                      await _handlePurchaseOutcome(context, outcome);
                     },
                   ),
                 if (entitlements.adsEnabled)

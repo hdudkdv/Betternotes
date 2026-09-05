@@ -217,4 +217,47 @@ void main() {
     await tester.tapAt(const Offset(200, 300));
     expect(downs, 1);
   });
+
+  test('stylus hover and zero pressure count as in air', () {
+    expect(
+      PointerRouting.stylusIsInAir(
+        const PointerHoverEvent(
+          kind: PointerDeviceKind.stylus,
+          position: Offset.zero,
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      PointerRouting.stylusIsInAir(
+        const PointerMoveEvent(
+          kind: PointerDeviceKind.stylus,
+          position: Offset.zero,
+          pressure: 0.4,
+          pressureMax: 4.0,
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      PointerRouting.stylusIsInAir(
+        const PointerMoveEvent(
+          kind: PointerDeviceKind.stylus,
+          position: Offset.zero,
+          pressure: 0,
+          pressureMax: 4.0,
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      PointerRouting.stylusIsInAir(
+        const PointerMoveEvent(
+          kind: PointerDeviceKind.mouse,
+          position: Offset.zero,
+        ),
+      ),
+      isFalse,
+    );
+  });
 }
