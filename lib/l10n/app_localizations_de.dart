@@ -1618,14 +1618,24 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sectionGeneral => 'Allgemein';
 
   @override
-  String get sectionSubscription => 'Abo & Coins';
+  String get sectionSubscription => 'In-App-Käufe';
+
+  @override
+  String get inAppPurchases => 'In-App-Käufe';
+
+  @override
+  String get inAppPurchasesHint =>
+      'Lite- und Pro-Abos öffnen. Sandbox-Apple-IDs funktionieren hier.';
+
+  @override
+  String get retryStoreProducts => 'App-Store-Produkte laden';
 
   @override
   String get upgradeToNotisPro => 'Notis Pro holen';
 
   @override
   String get upgradeToNotisProHint =>
-      'Monatlich, jährlich oder einmalig — gesteuert über RevenueCat.';
+      'Monatliche, jährliche oder einmalige App-Store-Abos.';
 
   @override
   String get notisProActive => 'Notis Pro ist aktiv';
@@ -3895,7 +3905,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get tourSettingsBody =>
-      'Rolle, Bundesland, Stift-Gesten und das Tutorial findest du hier wieder.';
+      'In-App-Käufe stehen ganz oben in den Einstellungen. Rolle, Bundesland und Stift-Gesten findest du hier ebenfalls.';
 
   @override
   String get tourTeacherTitle => 'Lehrerbereich';

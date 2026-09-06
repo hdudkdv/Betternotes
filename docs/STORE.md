@@ -114,6 +114,30 @@ Then **Reply to App Review** that the EULA is in the description, as a custom
 license, and on the subscription group. Attach a screen recording of the
 paywall (title, duration, price, Privacy + EULA taps).
 
+### Guideline 2.1(b) — how to find In-App Purchases
+
+No storefront or device lock. Sandbox Apple IDs work. Paid Apps Agreement
+must be **Active** or Buy fails in review.
+
+**Reply to App Review** (after this build is live):
+
+```
+How to locate In-App Purchases (sandbox):
+
+1. Launch Notis. Allow or deny the tracking prompt.
+2. Choose Student or Teacher, then complete the short profile
+   (school type + German state). You can skip the optional tutorial.
+3. After the home library opens, the In-App Purchases screen is shown
+   once. You can also tap the crown icon, the “In-App Purchases” card
+   under search, Settings → In-App Purchases, or Marketplace →
+   In-App Purchases. The page title is “In-App Purchases”.
+4. Lite and Pro StoreKit products are listed with prices. Tap a price
+   to buy with the sandbox Apple ID. Restore is on the same screen.
+
+In-App Purchases are not limited by storefront or device. They use
+Apple’s sandbox. The Account Holder has accepted the Paid Apps Agreement.
+```
+
 ### Paid Apps Agreement (required for sandbox IAP)
 
 App Store Connect → **Business** → **Paid Apps Agreement** must be **Active**.

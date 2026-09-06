@@ -10,6 +10,7 @@ import 'package:collection/collection.dart';
 import '../features/auth/auth_repository.dart';
 import '../features/auth/web_login_screen.dart';
 import '../features/billing/revenuecat_billing.dart';
+import '../features/billing/subscription_paywall_sheet.dart';
 import '../features/editor/presentation/editor_screen.dart';
 import '../features/entitlements/entitlement_model.dart';
 import '../features/collaboration/collaboration_screen.dart';
@@ -172,6 +173,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/iap',
+        name: 'iap',
+        builder: (context, state) => const InAppPurchasesScreen(),
       ),
       GoRoute(
         path: '/marketplace',

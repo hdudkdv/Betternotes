@@ -7,6 +7,7 @@ import '../../app/launch_gates.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/coming_soon_sheet.dart';
+import '../billing/subscription_paywall_sheet.dart';
 import '../entitlements/ad_config.dart';
 import '../entitlements/entitlement_model.dart';
 import '../entitlements/rewarded_ad_mock.dart';
@@ -172,6 +173,21 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.workspace_premium_outlined),
+            title: Text(
+              l10n.inAppPurchases,
+              style: AppTheme.body(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text(
+              l10n.inAppPurchasesHint,
+              style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => presentInAppPurchases(context, ref),
+          ),
+          const SizedBox(height: 8),
           Text(
             l10n.marketplaceHint,
             style: AppTheme.body(color: AppTheme.inkMuted),

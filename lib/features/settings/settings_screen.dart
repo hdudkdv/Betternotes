@@ -13,7 +13,6 @@ import '../../app/theme.dart';
 import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_repository.dart';
-import '../billing/plan_catalog.dart';
 import '../billing/revenuecat_billing.dart';
 import '../billing/subscription_paywall_sheet.dart';
 import '../editor/domain/editor_gestures.dart';
@@ -248,26 +247,6 @@ class SettingsScreen extends ConsumerWidget {
     covered.dispose();
   }
 
-  Future<void> _handlePurchaseOutcome(
-    BuildContext context,
-    PurchaseOutcome outcome,
-  ) async {
-    if (outcome == PurchaseOutcome.cancelled) return;
-    final l10n = AppLocalizations.of(context)!;
-    final message = switch (outcome) {
-      PurchaseOutcome.success => l10n.purchaseSuccess,
-      PurchaseOutcome.cancelled => l10n.purchaseCancelled,
-      PurchaseOutcome.unavailable => l10n.storeProductsUnavailable,
-      // Never surface raw store / RevenueCat copy — that looked like a
-      // broken screen to App Review (2.1) last time.
-      PurchaseOutcome.error => l10n.storeProductsUnavailable,
-    };
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -282,6 +261,149 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
         children: [
+          _SettingsSection(
+            title: l10n.sectionSubscription,
+            titleStyle: _sectionTitle,
+            initiallyExpanded: true,
+            children: [
+              if (!LaunchGates.commerceEnabled) ...[
+                Text(
+                  l10n.marketplaceSoonBadge,
+                  style: AppTheme.body(
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.accent,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(l10n.commerceComingSoonTitle, style: _label),
+                const SizedBox(height: 4),
+                Text(l10n.commerceComingSoonBody, style: _body),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.workspace_premium_outlined),
+                  title: Text(l10n.inAppPurchases, style: _label),
+                  subtitle: Text(l10n.commerceComingSoonTitle, style: _body),
+                  onTap: () => showComingSoonSheet(context),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.storefront_outlined),
+                  title: Text(l10n.marketplace, style: _label),
+                  subtitle: Text(l10n.marketplaceComingSoon, style: _body),
+                  onTap: () => context.push('/marketplace'),
+                ),
+              ] else ...[
+                if (kDebugMode) ...[
+                  Text(l10n.developerTools, style: _label),
+                  const SizedBox(height: 2),
+                  Text(l10n.developerTierHint, style: _body),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final tier in const [
+                        AppTier.free,
+                        AppTier.lite,
+                        AppTier.pro,
+                      ])
+                        ChoiceChip(
+                          label: Text(
+                            _tierLabel(l10n, tier),
+                            style: AppTheme.body(
+                              fontWeight: FontWeight.w700,
+                              color: entitlements.tier == tier
+                                  ? AppTheme.onAccent
+                                  : AppTheme.ink,
+                            ),
+                          ),
+                          selected: entitlements.tier == tier,
+                          selectedColor: AppTheme.accent,
+                          onSelected: (_) => ref
+                              .read(entitlementProvider.notifier)
+                              .setTier(tier),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                if (billing.configured && !billing.hasStoreProducts) ...[
+                  Text(
+                    l10n.storeProductsUnavailable,
+                    style: AppTheme.body(
+                      color: AppTheme.inkMuted,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () => billing.refresh(),
+                    icon: const Icon(Icons.storefront_outlined),
+                    label: Text(l10n.retryStoreProducts),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    billing.hasNotisPro
+                        ? Icons.workspace_premium
+                        : Icons.workspace_premium_outlined,
+                  ),
+                  title: Text(l10n.inAppPurchases, style: _label),
+                  subtitle: Text(
+                    billing.hasNotisPro
+                        ? l10n.notisProActive
+                        : l10n.inAppPurchasesHint,
+                    style: _body,
+                  ),
+                  onTap: () => presentInAppPurchases(context, ref),
+                ),
+                if (billing.configured && billing.hasNotisPro)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.manage_accounts_outlined),
+                    title: Text(l10n.manageSubscription, style: _label),
+                    subtitle: Text(l10n.manageSubscriptionHint, style: _body),
+                    onTap: () => billing.presentCustomerCenter(),
+                  ),
+                if (billing.configured)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.restore),
+                    title: Text(l10n.restorePurchases, style: _label),
+                    onTap: () async {
+                      final outcome = await billing.restorePurchases();
+                      if (!context.mounted) return;
+                      if (outcome == PurchaseOutcome.success &&
+                          !ref.read(revenueCatBillingProvider).hasNotisPro) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.restorePurchasesEmpty)),
+                        );
+                        return;
+                      }
+                      await showPurchaseOutcomeMessage(context, outcome);
+                    },
+                  ),
+                if (entitlements.adsEnabled)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.smart_display_outlined),
+                    title: Text(l10n.adsForCoinsTitle, style: _label),
+                    subtitle: Text(l10n.adsForCoinsHint, style: _body),
+                    onTap: () => context.push('/marketplace'),
+                  ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.storefront_outlined),
+                  title: Text(l10n.marketplace, style: _label),
+                  subtitle: Text(l10n.marketplaceHint, style: _body),
+                  onTap: () => context.push('/marketplace'),
+                ),
+              ],
+            ],
+          ),
           _SettingsSection(
             title: l10n.sectionGeneral,
             titleStyle: _sectionTitle,
@@ -408,7 +530,6 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsSection(
             title: l10n.appearance,
             titleStyle: _sectionTitle,
-            initiallyExpanded: true,
             children: [
               Text(l10n.appearanceHint, style: _body),
               const SizedBox(height: 12),
@@ -689,159 +810,6 @@ class SettingsScreen extends ConsumerWidget {
                   }
                 },
               ),
-            ],
-          ),
-          _SettingsSection(
-            title: l10n.sectionSubscription,
-            titleStyle: _sectionTitle,
-            initiallyExpanded: true,
-            children: [
-              if (!LaunchGates.commerceEnabled) ...[
-                Text(
-                  l10n.marketplaceSoonBadge,
-                  style: AppTheme.body(
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.accent,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(l10n.commerceComingSoonTitle, style: _label),
-                const SizedBox(height: 4),
-                Text(l10n.commerceComingSoonBody, style: _body),
-                const SizedBox(height: 8),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.workspace_premium_outlined),
-                  title: Text(l10n.sectionSubscription, style: _label),
-                  subtitle: Text(l10n.commerceComingSoonTitle, style: _body),
-                  onTap: () => showComingSoonSheet(context),
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.storefront_outlined),
-                  title: Text(l10n.marketplace, style: _label),
-                  subtitle: Text(l10n.marketplaceComingSoon, style: _body),
-                  onTap: () => context.push('/marketplace'),
-                ),
-              ] else ...[
-                if (kDebugMode) ...[
-                  Text(l10n.developerTools, style: _label),
-                  const SizedBox(height: 2),
-                  Text(l10n.developerTierHint, style: _body),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final tier in const [
-                        AppTier.free,
-                        AppTier.lite,
-                        AppTier.pro,
-                      ])
-                        ChoiceChip(
-                          label: Text(
-                            _tierLabel(l10n, tier),
-                            style: AppTheme.body(
-                              fontWeight: FontWeight.w700,
-                              color: entitlements.tier == tier
-                                  ? AppTheme.onAccent
-                                  : AppTheme.ink,
-                            ),
-                          ),
-                          selected: entitlements.tier == tier,
-                          selectedColor: AppTheme.accent,
-                          onSelected: (_) => ref
-                              .read(entitlementProvider.notifier)
-                              .setTier(tier),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                ],
-                if (billing.configured && !billing.hasStoreProducts) ...[
-                  Text(
-                    l10n.storeProductsUnavailable,
-                    style: AppTheme.body(
-                      color: AppTheme.inkMuted,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    billing.hasNotisPro
-                        ? Icons.workspace_premium
-                        : Icons.workspace_premium_outlined,
-                  ),
-                  title: Text(
-                    PlanCatalog.resolve(
-                      role: settings.userRole ?? AppUserRole.student,
-                      paid: entitlements.paidTier,
-                    ).title(
-                      Localizations.localeOf(context).languageCode == 'de',
-                    ),
-                    style: _label,
-                  ),
-                  subtitle: Text(
-                    billing.hasNotisPro
-                        ? l10n.manageSubscriptionHint
-                        : l10n.choosePlanHint,
-                    style: _body,
-                  ),
-                  onTap: () async {
-                    if (billing.hasNotisPro) {
-                      await billing.presentCustomerCenter();
-                      return;
-                    }
-                    final outcome = await showSubscriptionPaywall(context, ref);
-                    if (!context.mounted) return;
-                    await _handlePurchaseOutcome(context, outcome);
-                  },
-                ),
-                if (billing.configured && billing.hasNotisPro)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.manage_accounts_outlined),
-                    title: Text(l10n.manageSubscription, style: _label),
-                    subtitle: Text(l10n.manageSubscriptionHint, style: _body),
-                    onTap: () => billing.presentCustomerCenter(),
-                  ),
-                if (billing.configured)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.restore),
-                    title: Text(l10n.restorePurchases, style: _label),
-                    onTap: () async {
-                      final outcome = await billing.restorePurchases();
-                      if (!context.mounted) return;
-                      if (outcome == PurchaseOutcome.success &&
-                          !ref.read(revenueCatBillingProvider).hasNotisPro) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.restorePurchasesEmpty)),
-                        );
-                        return;
-                      }
-                      await _handlePurchaseOutcome(context, outcome);
-                    },
-                  ),
-                if (entitlements.adsEnabled)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.smart_display_outlined),
-                    title: Text(l10n.adsForCoinsTitle, style: _label),
-                    subtitle: Text(l10n.adsForCoinsHint, style: _body),
-                    onTap: () => context.push('/marketplace'),
-                  ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.storefront_outlined),
-                  title: Text(l10n.marketplace, style: _label),
-                  subtitle: Text(l10n.marketplaceHint, style: _body),
-                  onTap: () => context.push('/marketplace'),
-                ),
-              ],
             ],
           ),
           _SettingsSection(

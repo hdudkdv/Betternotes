@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/launch_gates.dart';
@@ -11,6 +12,39 @@ import '../library/providers/library_providers.dart';
 import 'plan_catalog.dart';
 import 'revenuecat_billing.dart';
 import 'revenuecat_config.dart';
+
+Future<void> presentInAppPurchases(BuildContext context, WidgetRef ref) async {
+  if (!LaunchGates.commerceEnabled) {
+    await showComingSoonSheet(context);
+    return;
+  }
+  final billing = ref.read(revenueCatBillingProvider);
+  if (billing.configured) {
+    await billing.refresh();
+  }
+  if (!context.mounted) return;
+  if (billing.hasNotisPro) {
+    await billing.presentCustomerCenter();
+    return;
+  }
+  context.push('/iap');
+}
+
+Future<void> showPurchaseOutcomeMessage(
+  BuildContext context,
+  PurchaseOutcome outcome,
+) async {
+  if (outcome == PurchaseOutcome.cancelled) return;
+  final l10n = AppLocalizations.of(context)!;
+  final message = switch (outcome) {
+    PurchaseOutcome.success => l10n.purchaseSuccess,
+    PurchaseOutcome.cancelled => l10n.purchaseCancelled,
+    PurchaseOutcome.unavailable => l10n.storeProductsUnavailable,
+    PurchaseOutcome.error => l10n.storeProductsUnavailable,
+  };
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
 
 Future<PurchaseOutcome> showSubscriptionPaywall(
   BuildContext context,
@@ -29,16 +63,9 @@ Future<PurchaseOutcome> showSubscriptionPaywall(
     await billing.refresh();
   }
   if (!context.mounted) return PurchaseOutcome.cancelled;
-  if (billing.configured && billing.paywallSupported) {
-    final native = await billing.presentPaywall(audience: audience);
-    if (native == PurchaseOutcome.success ||
-        native == PurchaseOutcome.cancelled) {
-      return native;
-    }
-    // Native paywall error / empty offering: show the in-app sheet
-    // instead of returning an error to Settings (App Review 2.1).
-  }
-  if (!context.mounted) return PurchaseOutcome.cancelled;
+  // Always show the in-app product list. The native RevenueCat paywall
+  // can present empty in App Review sandbox and then return "cancelled",
+  // which hid In-App Purchases (Guideline 2.1(b)).
   final outcome = await showModalBottomSheet<PurchaseOutcome>(
     context: context,
     isScrollControlled: true,
@@ -49,6 +76,26 @@ Future<PurchaseOutcome> showSubscriptionPaywall(
     builder: (ctx) => _SubscriptionPaywallSheet(audience: audience),
   );
   return outcome ?? PurchaseOutcome.cancelled;
+}
+
+/// Full page App Review can find: title is exactly "In-App Purchases".
+class InAppPurchasesScreen extends ConsumerWidget {
+  const InAppPurchasesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final role = ref.watch(settingsProvider).userRole ?? AppUserRole.student;
+    final audience = role == AppUserRole.teacher
+        ? PaywallAudience.teacher
+        : PaywallAudience.student;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.inAppPurchases, style: AppTheme.headline()),
+      ),
+      body: _SubscriptionPaywallSheet(audience: audience, asPage: true),
+    );
+  }
 }
 
 class _PlanCopy {
@@ -64,9 +111,13 @@ class _PlanCopy {
 }
 
 class _SubscriptionPaywallSheet extends ConsumerWidget {
-  const _SubscriptionPaywallSheet({required this.audience});
+  const _SubscriptionPaywallSheet({
+    required this.audience,
+    this.asPage = false,
+  });
 
   final PaywallAudience audience;
+  final bool asPage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -86,6 +137,14 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
         ),
     ];
 
+    Future<void> finish(PurchaseOutcome outcome) async {
+      if (asPage) {
+        await showPurchaseOutcomeMessage(context, outcome);
+        return;
+      }
+      if (context.mounted) Navigator.pop(context, outcome);
+    }
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -93,19 +152,21 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.outline,
-                    borderRadius: BorderRadius.circular(99),
+              if (!asPage) ...[
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.outline,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
               Text(
-                l10n.choosePlan,
+                asPage ? l10n.inAppPurchases : l10n.choosePlan,
                 style: AppTheme.headline(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -114,7 +175,7 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                l10n.choosePlanHint,
+                asPage ? l10n.inAppPurchasesHint : l10n.choosePlanHint,
                 style: AppTheme.body(color: AppTheme.inkMuted),
               ),
               const SizedBox(height: 16),
@@ -127,7 +188,7 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                       if (!context.mounted) return;
                       if (outcome == PurchaseOutcome.success ||
                           outcome == PurchaseOutcome.cancelled) {
-                        Navigator.pop(context, outcome);
+                        await finish(outcome);
                       }
                     },
                   )
@@ -137,6 +198,14 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                   style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: billing.configured
+                      ? () => billing.refresh()
+                      : null,
+                  icon: const Icon(Icons.storefront_outlined),
+                  label: Text(l10n.retryStoreProducts),
+                ),
+                const SizedBox(height: 12),
                 for (final plan in plans) _CatalogPlanCard(plan: plan),
               ],
               const SizedBox(height: 12),
@@ -178,16 +247,17 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                     ? () async {
                         final outcome = await billing.restorePurchases();
                         if (!context.mounted) return;
-                        Navigator.pop(context, outcome);
+                        await finish(outcome);
                       }
                     : null,
                 child: Text(l10n.restorePurchases),
               ),
-              TextButton(
-                onPressed: () =>
-                    Navigator.pop(context, PurchaseOutcome.cancelled),
-                child: Text(l10n.cancel),
-              ),
+              if (!asPage)
+                TextButton(
+                  onPressed: () =>
+                      Navigator.pop(context, PurchaseOutcome.cancelled),
+                  child: Text(l10n.cancel),
+                ),
             ],
           ),
         ),

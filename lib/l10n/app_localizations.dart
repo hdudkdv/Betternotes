@@ -3071,8 +3071,26 @@ abstract class AppLocalizations {
   /// No description provided for @sectionSubscription.
   ///
   /// In en, this message translates to:
-  /// **'Plan & coins'**
+  /// **'In-App Purchases'**
   String get sectionSubscription;
+
+  /// No description provided for @inAppPurchases.
+  ///
+  /// In en, this message translates to:
+  /// **'In-App Purchases'**
+  String get inAppPurchases;
+
+  /// No description provided for @inAppPurchasesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Lite and Pro subscriptions. Sandbox Apple IDs work here.'**
+  String get inAppPurchasesHint;
+
+  /// No description provided for @retryStoreProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Load App Store products'**
+  String get retryStoreProducts;
 
   /// No description provided for @upgradeToNotisPro.
   ///
@@ -3083,7 +3101,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgradeToNotisProHint.
   ///
   /// In en, this message translates to:
-  /// **'Monthly, yearly, or lifetime — managed through RevenueCat.'**
+  /// **'Monthly, yearly, or lifetime App Store subscriptions.'**
   String get upgradeToNotisProHint;
 
   /// No description provided for @notisProActive.
@@ -7067,7 +7085,7 @@ abstract class AppLocalizations {
   /// No description provided for @tourSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'Role, state, stylus gestures, and this tutorial are here.'**
+  /// **'In-App Purchases are at the top of Settings. Role, state, and stylus gestures are here too.'**
   String get tourSettingsBody;
 
   /// No description provided for @tourTeacherTitle.

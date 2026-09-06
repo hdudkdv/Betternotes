@@ -1613,14 +1613,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sectionGeneral => 'General';
 
   @override
-  String get sectionSubscription => 'Plan & coins';
+  String get sectionSubscription => 'In-App Purchases';
+
+  @override
+  String get inAppPurchases => 'In-App Purchases';
+
+  @override
+  String get inAppPurchasesHint =>
+      'Open Lite and Pro subscriptions. Sandbox Apple IDs work here.';
+
+  @override
+  String get retryStoreProducts => 'Load App Store products';
 
   @override
   String get upgradeToNotisPro => 'Get Notis Pro';
 
   @override
   String get upgradeToNotisProHint =>
-      'Monthly, yearly, or lifetime — managed through RevenueCat.';
+      'Monthly, yearly, or lifetime App Store subscriptions.';
 
   @override
   String get notisProActive => 'Notis Pro is active';
@@ -3872,7 +3882,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tourSettingsBody =>
-      'Role, state, stylus gestures, and this tutorial are here.';
+      'In-App Purchases are at the top of Settings. Role, state, and stylus gestures are here too.';
 
   @override
   String get tourTeacherTitle => 'Teacher tools';

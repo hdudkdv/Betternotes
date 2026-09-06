@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/launch_gates.dart';
 import '../../../app/theme.dart';
 import '../../../data/models/content_models.dart';
 import '../../../data/models/notebook.dart';
@@ -20,6 +21,8 @@ import '../../planner/school_year_rollover.dart';
 import '../../lan_sync/lan_sync_controller.dart';
 import '../../lan_sync/lan_sync_discovery.dart';
 import '../../lan_sync/nearby_sync_screen.dart';
+import '../../billing/revenuecat_billing.dart';
+import '../../billing/subscription_paywall_sheet.dart';
 import '../../entitlements/entitlement_model.dart';
 import '../../sync/cloud_sync_selection.dart';
 import '../../timetable/timetable_screen.dart';
@@ -61,12 +64,27 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         debugPrint('Nearby browse skipped: $error');
       }
       final paid = ref.read(entitlementProvider).paidTier;
-      await ref.read(cloudSyncSelectionProvider).ensureInitialized(
+      await ref
+          .read(cloudSyncSelectionProvider)
+          .ensureInitialized(
             paid: paid,
-            notebooks:
-                await ref.read(notebookRepositoryProvider).getNotebooks(),
+            notebooks: await ref
+                .read(notebookRepositoryProvider)
+                .getNotebooks(),
           );
+      await _maybePresentInAppPurchases();
     });
+  }
+
+  Future<void> _maybePresentInAppPurchases() async {
+    if (!LaunchGates.commerceEnabled) return;
+    if (ref.read(pendingAppTourProvider)) return;
+    if (ref.read(revenueCatBillingProvider).hasNotisPro) return;
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (prefs.getBool('iap_home_entry_shown') == true) return;
+    await prefs.setBool('iap_home_entry_shown', true);
+    if (!mounted) return;
+    await presentInAppPurchases(context, ref);
   }
 
   @override
@@ -263,7 +281,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ),
                   title: Text(
                     l10n.delete,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                   onTap: () => Navigator.pop(context, 'delete'),
                 ),
@@ -336,7 +356,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           hit.subtitle!.isNotEmpty &&
           hit.subtitle != hit.path)
         hit.subtitle,
-      if (hit.notebookTitle != null && hit.kind != 'notebook') hit.notebookTitle,
+      if (hit.notebookTitle != null && hit.kind != 'notebook')
+        hit.notebookTitle,
     ].whereType<String>().toSet().join(' · ');
   }
 
@@ -369,7 +390,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   Future<void> _ensureLiveFolder() async {
     final l10n = AppLocalizations.of(context)!;
-    await ref.read(notebookRepositoryProvider).createFolder(
+    await ref
+        .read(notebookRepositoryProvider)
+        .createFolder(
           id: kLiveFolderId,
           name: l10n.liveFolder,
           colorValue: kLiveFolderColor,
@@ -399,9 +422,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
     final ok = await selection.add(notebook.id, paid);
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.cloudSyncLimitReached)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.cloudSyncLimitReached)));
     }
   }
 
@@ -585,7 +608,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final l10n = AppLocalizations.of(context)!;
     final query = ref.watch(libraryQueryProvider);
     final parsedQuery = ParsedSearchQuery.parse(query);
-    final searching = parsedQuery.hasFilters || parsedQuery.text.trim().length >= 2;
+    final searching =
+        parsedQuery.hasFilters || parsedQuery.text.trim().length >= 2;
     final folderId = ref.watch(currentFolderIdProvider);
     final allFolders = ref.watch(allFoldersProvider).valueOrNull ?? [];
     LibraryFolder? currentFolder;
@@ -687,11 +711,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   onPressed: () => context.push('/marketplace'),
                   icon: const Icon(Icons.storefront_outlined),
                 ),
+                if (LaunchGates.commerceEnabled)
+                  IconButton(
+                    tooltip: l10n.inAppPurchases,
+                    onPressed: () => presentInAppPurchases(context, ref),
+                    icon: const Icon(Icons.workspace_premium_outlined),
+                  ),
                 IconButton(
                   key: _settingsButtonKey,
                   tooltip: l10n.settings,
                   onPressed: () => context.push('/settings'),
-                  icon: const Icon(Icons.tune_rounded),
+                  icon: const Icon(Icons.settings_outlined),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -721,7 +751,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             : IconButton(
                                 onPressed: () {
                                   _searchController.clear();
-                                  ref.read(libraryQueryProvider.notifier).state =
+                                  ref
+                                          .read(libraryQueryProvider.notifier)
+                                          .state =
                                       '';
                                   _dismissSearchFocus();
                                   setState(() {});
@@ -738,12 +770,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       onInsert: (next) {
                         _searchController.value = TextEditingValue(
                           text: next,
-                          selection: TextSelection.collapsed(offset: next.length),
+                          selection: TextSelection.collapsed(
+                            offset: next.length,
+                          ),
                         );
                         ref.read(libraryQueryProvider.notifier).state = next;
                         setState(() {});
                       },
                     ),
+                    if (folderId == null && LaunchGates.commerceEnabled) ...[
+                      const SizedBox(height: 12),
+                      const _InAppPurchasesCard(),
+                    ],
                     if (folderId == null && !kIsWeb) ...[
                       const SizedBox(height: 12),
                       _NearbyJoinCard(
@@ -811,11 +849,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 error: (e, st) =>
                     const SliverToBoxAdapter(child: SizedBox.shrink()),
                 data: (folders) {
-                  final ordered = [...folders]..sort((a, b) {
-                    if (a.id == kLiveFolderId) return -1;
-                    if (b.id == kLiveFolderId) return 1;
-                    return 0;
-                  });
+                  final ordered = [...folders]
+                    ..sort((a, b) {
+                      if (a.id == kLiveFolderId) return -1;
+                      if (b.id == kLiveFolderId) return 1;
+                      return 0;
+                    });
                   if (ordered.isEmpty) {
                     return const SliverToBoxAdapter(child: SizedBox.shrink());
                   }
@@ -1033,8 +1072,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 onDismiss: () => _dismissRollover(candidate),
                               );
                             }
-                            final notebook =
-                                visible[index - rollovers.length];
+                            final notebook = visible[index - rollovers.length];
                             return NotebookCover(
                               notebook: notebook,
                               onOpen: () async {
@@ -1168,6 +1206,70 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 }
 
+class _InAppPurchasesCard extends ConsumerWidget {
+  const _InAppPurchasesCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final billing = ref.watch(revenueCatBillingProvider);
+    return Card(
+      color: AppTheme.accentSoft,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => presentInAppPurchases(context, ref),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    billing.hasNotisPro
+                        ? Icons.workspace_premium
+                        : Icons.workspace_premium_outlined,
+                    color: AppTheme.accent,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l10n.inAppPurchases,
+                      style: AppTheme.body(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                billing.hasNotisPro
+                    ? l10n.notisProActive
+                    : l10n.inAppPurchasesHint,
+                style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: () => presentInAppPurchases(context, ref),
+                icon: const Icon(Icons.shopping_bag_outlined),
+                label: Text(
+                  billing.hasNotisPro
+                      ? l10n.manageSubscription
+                      : l10n.upgradeToNotisPro,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _NearbyJoinCard extends ConsumerWidget {
   const _NearbyJoinCard({
     required this.onOpen,
@@ -1237,4 +1339,3 @@ class _NearbyJoinCard extends ConsumerWidget {
     );
   }
 }
-
