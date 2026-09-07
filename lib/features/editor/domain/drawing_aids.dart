@@ -25,7 +25,11 @@ class DrawingAidsController extends ChangeNotifier {
   void bindPage(String pageId, {bool notify = true}) {
     final previous = _pageId;
     _pageId = pageId;
-    clearUnfixed();
+    // Same-page rebinds (tool refresh) must not drop an unpinned ruler
+    // the user is still dragging.
+    if (previous != pageId) {
+      clearUnfixed();
+    }
     final current = compass;
     if (current != null &&
         current.fixed &&

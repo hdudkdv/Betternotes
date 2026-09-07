@@ -12,12 +12,14 @@ Future<PageLocalSnapshot?> showPageSnapshotsSheet(
   BuildContext context, {
   required NotebookRepository repository,
   required String pageId,
+  Future<void> Function()? onSave,
 }) {
   return showEditorSheet<PageLocalSnapshot>(
     context,
     builder: (context) => _PageSnapshotsSheet(
       repository: repository,
       pageId: pageId,
+      onSave: onSave,
     ),
   );
 }
@@ -26,10 +28,12 @@ class _PageSnapshotsSheet extends StatefulWidget {
   const _PageSnapshotsSheet({
     required this.repository,
     required this.pageId,
+    this.onSave,
   });
 
   final NotebookRepository repository;
   final String pageId;
+  final Future<void> Function()? onSave;
 
   @override
   State<_PageSnapshotsSheet> createState() => _PageSnapshotsSheetState();
@@ -56,8 +60,20 @@ class _PageSnapshotsSheetState extends State<_PageSnapshotsSheet> {
     final format = DateFormat.yMMMd().add_Hm();
 
     return EditorSheet(
-      title: l10n.restoreSnapshot,
+      title: l10n.snapshots,
       children: [
+        if (widget.onSave != null) ...[
+          EditorSheetTile(
+            icon: Icons.bookmark_add_outlined,
+            label: l10n.saveSnapshot,
+            chevron: false,
+            onTap: () async {
+              await widget.onSave!();
+              if (mounted) await _reload();
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
         FutureBuilder<List<PageLocalSnapshot>>(
           future: _future,
           builder: (context, snapshot) {

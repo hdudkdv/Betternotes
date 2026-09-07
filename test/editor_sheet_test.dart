@@ -82,7 +82,9 @@ Future<void> _openShareSheet(
 void main() {
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  testWidgets('more sheet fits a short screen and scrolls', (tester) async {
+  testWidgets('more sheet stays compact and hides duplicate actions', (
+    tester,
+  ) async {
     await _openMoreSheet(
       tester,
       canvasMode: CanvasMode.page,
@@ -90,16 +92,12 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-
-    // The last entry starts off screen and scrolls into view.
-    final before = tester.getTopLeft(find.text('Einstellungen')).dy;
-    expect(before, greaterThan(560));
-
-    await tester.drag(find.text('Papier-Editor'), const Offset(0, -700));
-    await tester.pumpAndSettle();
-
-    expect(tester.getTopLeft(find.text('Einstellungen')).dy, lessThan(560));
-    expect(tester.takeException(), isNull);
+    expect(find.text('Einstellungen'), findsOneWidget);
+    expect(find.text('Importieren'), findsOneWidget);
+    expect(find.text('Versionen'), findsOneWidget);
+    expect(find.text('PDF importieren'), findsNothing);
+    expect(find.text('Gliederung'), findsNothing);
+    expect(find.text('Teilen & exportieren'), findsNothing);
   });
 
   testWidgets('page notebooks cannot be turned into infinite ones', (

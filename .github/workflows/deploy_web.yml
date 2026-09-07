@@ -1,14 +1,16 @@
-# Deploy the Flutter web app to Firebase Hosting (notis-notizbuecher).
+# Web hosting is deployed locally — do not run this on push to main.
 #
-# Required repository secret:
-#   FIREBASE_TOKEN  from `firebase login:ci`
+#   powershell -File tool/deploy_web.ps1
+#
+# That script uploads both sites:
+#   https://notis-notizbuecher.web.app
+#   https://notis-2dee0.web.app
+#
+# This workflow stays as a manual fallback only.
 
 name: Deploy Web
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 concurrency:
@@ -17,7 +19,7 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    name: Build Flutter web and deploy hosting
+    name: Build Flutter web and deploy both hosting sites
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -27,7 +29,7 @@ jobs:
       - name: Check Firebase token
         run: |
           if [ -z "$FIREBASE_TOKEN" ]; then
-            echo "Missing secret FIREBASE_TOKEN. Add it under GitHub → Settings → Secrets."
+            echo "Missing secret FIREBASE_TOKEN. Prefer local: powershell -File tool/deploy_web.ps1"
             exit 1
           fi
 
@@ -52,7 +54,7 @@ jobs:
           mkdir -p hosting/app
           cp -R build/web/. hosting/app/
 
-      - name: Deploy Firebase Hosting
-        run: npx firebase-tools@13 deploy --only hosting:notis-notizbuecher --project notis-2dee0 --non-interactive
+      - name: Deploy Firebase Hosting (both sites)
+        run: npx firebase-tools@13 deploy --only hosting:notis-notizbuecher,hosting:notis-2dee0 --project notis-2dee0 --non-interactive
         env:
           FIREBASE_TOKEN: ${{ env.FIREBASE_TOKEN }}

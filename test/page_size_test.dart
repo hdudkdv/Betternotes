@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:betternotes/data/models/notebook.dart';
 import 'package:betternotes/features/editor/domain/ink_models.dart';
+import 'package:betternotes/shared/utils/image_dimensions.dart';
 import 'package:betternotes/shared/utils/page_size.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,5 +50,20 @@ void main() {
     expect(notebook.defaultTemplate, PageTemplate.blank);
     expect(page.paperFormat, PaperFormat.a4);
     expect(page.orientation, PageOrientation.portrait);
+  });
+
+  test('bestForImage follows the scan aspect ratio', () {
+    final portrait = NotePageSize.bestForImage(const Size(1200, 1800));
+    expect(portrait.orientation, PageOrientation.portrait);
+    final landscape = NotePageSize.bestForImage(const Size(1800, 1200));
+    expect(landscape.orientation, PageOrientation.landscape);
+    expect(landscape.format, portrait.format);
+  });
+
+  test('fitImageOnPage keeps the source aspect ratio', () {
+    final box = fitImageOnPage(const Size(4000, 2000), const Size(595, 842));
+    expect(box.width / box.height, closeTo(2, 0.01));
+    expect(box.width, lessThanOrEqualTo(595 * 0.72 + 0.01));
+    expect(box.height, lessThanOrEqualTo(842 * 0.72 + 0.01));
   });
 }

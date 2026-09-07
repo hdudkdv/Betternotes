@@ -33,4 +33,31 @@ class NotePageSize {
         ? portrait
         : Size(portrait.height, portrait.width);
   }
+
+  /// Closest standard paper to [image] pixels, matching landscape/portrait.
+  static ({PaperFormat format, PageOrientation orientation}) bestForImage(
+    Size image,
+  ) {
+    final landscape = image.width >= image.height;
+    final imageAr = landscape
+        ? image.width / image.height
+        : image.height / image.width;
+    var best = PaperFormat.a4;
+    var bestDiff = double.infinity;
+    for (final format in PaperFormat.values) {
+      final size = resolve(format, PageOrientation.portrait);
+      final formatAr = size.height / size.width;
+      final diff = (formatAr - imageAr).abs();
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = format;
+      }
+    }
+    return (
+      format: best,
+      orientation: landscape
+          ? PageOrientation.landscape
+          : PageOrientation.portrait,
+    );
+  }
 }

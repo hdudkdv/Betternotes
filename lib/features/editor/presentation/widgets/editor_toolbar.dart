@@ -441,22 +441,22 @@ class ToolOptionsBar extends ConsumerWidget {
         ];
       case InkTool.image:
         return [
-          if (onScanPages != null)
-            _pillAction(
-              icon: Icons.document_scanner_outlined,
-              label: l10n.scanPages,
-              onTap: onScanPages!,
-            ),
           _pillAction(
             icon: Icons.add_photo_alternate_outlined,
             label: l10n.insertImage,
             onTap: onPickImage,
           ),
-          if (hasSelectedImage && onDeleteImage != null)
-            _pillAction(
-              icon: Icons.delete_outline_rounded,
-              label: l10n.delete,
-              onTap: onDeleteImage!,
+          if (hasSelectedImage)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Text(
+                l10n.cropImageHint,
+                style: TextStyle(
+                  color: EditorChrome.onDarkMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
         ];
       case InkTool.sticker:

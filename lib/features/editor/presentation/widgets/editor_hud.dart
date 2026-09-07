@@ -140,16 +140,17 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: EditorChrome.floating,
-      elevation: 0,
-      borderRadius: BorderRadius.circular(EditorChrome.pillRadius),
-      clipBehavior: Clip.antiAlias,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(EditorChrome.pillRadius),
-          border: Border.all(color: EditorChrome.floatingBorder),
-        ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: EditorChrome.floating,
+        borderRadius: BorderRadius.circular(EditorChrome.pillRadius),
+        border: Border.all(color: EditorChrome.floatingBorder),
+        boxShadow: EditorChrome.pillShadow,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: BorderRadius.circular(EditorChrome.pillRadius),
+        clipBehavior: Clip.antiAlias,
         child: child,
       ),
     );

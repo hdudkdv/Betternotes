@@ -498,6 +498,20 @@ class InkEngine extends ChangeNotifier {
     _redo.clear();
   }
 
+  /// Rebuilds selected strokes from [from] (the pre-transform snapshot).
+  void scaleSelectedFrom(
+    List<InkStroke> from, {
+    required Offset origin,
+    required double scale,
+  }) {
+    if (selectedIds.isEmpty) return;
+    _strokes = [
+      for (final s in from)
+        if (selectedIds.contains(s.id)) s.scaled(origin, scale) else s,
+    ];
+    notifyListeners();
+  }
+
   void undo() {
     if (_undo.isEmpty) return;
     final entry = _undo.removeLast();

@@ -214,6 +214,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get deleteSelection => 'Auswahl löschen';
 
   @override
+  String get scaleSelection => 'Auswahl skalieren';
+
+  @override
   String get writing => 'Schreiben';
 
   @override
@@ -725,6 +728,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get menuDocumentGroup => 'Dokument';
+
+  @override
+  String get menuShareGroup => 'Teilen';
+
+  @override
+  String get menuImport => 'Importieren';
+
+  @override
+  String get snapshots => 'Versionen';
 
   @override
   String get menuPaperGroup => 'Papier dieser Seite';
@@ -3561,6 +3573,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importAsImageHint =>
       'Klein und beweglich, du kannst es verschieben und skalieren.';
+
+  @override
+  String get cropImage => 'Bild zuschneiden';
+
+  @override
+  String get cropImageHint => 'Gedrückt halten zum Zuschneiden.';
+
+  @override
+  String get cropApply => 'Zuschneiden';
 
   @override
   String imagesInserted(int count) {

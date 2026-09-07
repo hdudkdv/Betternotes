@@ -109,7 +109,73 @@
         { "source": "/datenschutz", "destination": "/datenschutz.html" },
         { "source": "/agb", "destination": "/agb.html" },
         { "source": "/impressum", "destination": "/impressum.html" },
+        { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
         { "source": "/app/**", "destination": "/app/index.html" }
+      ],
+      "headers": [
+        {
+          "source": "/app/index.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/flutter_service_worker.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/flutter.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/flutter_bootstrap.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/main.dart.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/app/manifest.json",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/index.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/css/site.css",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/js/site.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "**/*.@(css|png|svg|ico|webp|wasm)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public,max-age=604800"
+            }
+          ]
+        }
       ]
     }
   ],

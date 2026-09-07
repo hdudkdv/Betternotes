@@ -17,6 +17,7 @@ class CompassOverlay extends StatelessWidget {
     required this.onChanged,
     required this.onToggleFixed,
     this.readOnly = false,
+    this.onDragActive,
   });
 
   final CompassAid aid;
@@ -24,6 +25,7 @@ class CompassOverlay extends StatelessWidget {
   final ValueChanged<CompassAid> onChanged;
   final VoidCallback onToggleFixed;
   final bool readOnly;
+  final ValueChanged<bool>? onDragActive;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +94,8 @@ class CompassOverlay extends StatelessWidget {
               left: (aid.armTip?.dx ?? center.dx) - 14,
               top: (aid.armTip?.dy ?? center.dy) - 14,
               child: StylusPan(
+                onPanStart: () => onDragActive?.call(true),
+                onPanEnd: () => onDragActive?.call(false),
                 onPanUpdate: (delta) {
                   final tip = (aid.armTip ?? center) + delta;
                   final angle = math.atan2(

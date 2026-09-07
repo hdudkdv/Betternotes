@@ -236,4 +236,48 @@ void main() {
       0xFF000000,
     );
   });
+
+  test('scaled grows points and width around the origin', () {
+    final stroke = InkStroke(
+      id: 's',
+      tool: InkTool.pen,
+      colorValue: 0xFF000000,
+      width: 4,
+      points: const [StrokePoint(x: 10, y: 10), StrokePoint(x: 20, y: 10)],
+    );
+
+    final grown = stroke.scaled(const Offset(10, 10), 2);
+    expect(grown.points.first.x, closeTo(10, 0.01));
+    expect(grown.points.last.x, closeTo(30, 0.01));
+    expect(grown.width, closeTo(8, 0.01));
+  });
+
+  test('scaleSelectedFrom rebuilds from the snapshot', () {
+    final engine = InkEngine(
+      initial: [
+        InkStroke(
+          id: 'a',
+          tool: InkTool.pen,
+          colorValue: 0xFF000000,
+          width: 2,
+          points: const [StrokePoint(x: 0, y: 0), StrokePoint(x: 10, y: 0)],
+        ),
+        InkStroke(
+          id: 'b',
+          tool: InkTool.pen,
+          colorValue: 0xFF000000,
+          width: 2,
+          points: const [StrokePoint(x: 0, y: 20), StrokePoint(x: 10, y: 20)],
+        ),
+      ],
+    )..selectIds({'a'});
+
+    final before = List.of(engine.strokes);
+    engine.scaleSelectedFrom(before, origin: Offset.zero, scale: 2);
+    expect(engine.strokes.firstWhere((s) => s.id == 'a').points.last.x, 20);
+    expect(engine.strokes.firstWhere((s) => s.id == 'b').points.last.x, 10);
+
+    engine.scaleSelectedFrom(before, origin: Offset.zero, scale: 3);
+    expect(engine.strokes.firstWhere((s) => s.id == 'a').points.last.x, 30);
+  });
 }

@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image/image.dart' as img;
 import 'package:uuid/uuid.dart';
 
 import '../../../data/models/content_models.dart';
@@ -19,6 +20,7 @@ import '../../../data/repositories/notebook_repository.dart';
 import '../../auth/current_uid.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/utils/file_store.dart';
+import '../../../shared/utils/image_dimensions.dart';
 import '../../../shared/utils/page_size.dart';
 import '../../../shared/widgets/image_import_choice.dart';
 import '../../lan_sync/lan_sync_controller.dart';
@@ -36,9 +38,11 @@ import '../domain/drawing_aids.dart';
 import '../domain/editor_gestures.dart';
 import '../domain/ink_engine.dart';
 import '../domain/ink_models.dart';
+import '../domain/lasso_transform.dart';
 import '../domain/last_page_store.dart';
 import '../domain/paper_line_metrics.dart';
 import '../domain/shape_recognition.dart';
+import 'widgets/image_crop_sheet.dart';
 import 'page_preview_cache.dart';
 import '../domain/text_block_registry.dart';
 import '../platform/pencil_gestures.dart';
@@ -52,6 +56,7 @@ import 'widgets/editor_toolbar.dart';
 import 'widgets/editor_top_bar.dart';
 import 'widgets/image_elements_layer.dart';
 import 'widgets/ink_canvas.dart';
+import 'widgets/lasso_selection_overlay.dart';
 import 'widgets/notebook_pages_viewport.dart';
 import 'widgets/overlay_hit_stack.dart';
 import 'widgets/outline_sidebar.dart';
@@ -195,6 +200,13 @@ class EditorController extends ChangeNotifier {
   Offset? _lassoDragStart;
   Offset _lassoAccum = Offset.zero;
   List<InkStroke>? _lassoBeforeMove;
+  bool _lassoScaling = false;
+  Rect? _lassoScaleBounds;
+  Offset _lassoScaleDelta = Offset.zero;
+  List<ShapeElement>? _shapesBeforeScale;
+  List<ImageElement>? _imagesBeforeScale;
+  List<TextBlock>? _textBeforeScale;
+  List<StickerElement>? _stickersBeforeScale;
   Offset? _shapeStart;
   Timer? _shapeHoldTimer;
   bool _convertedByHold = false;
@@ -387,6 +399,53 @@ class EditorController extends ChangeNotifier {
       selectedTextIds.isNotEmpty ||
       selectedStickerIds.isNotEmpty;
 
+  /// Union of every selected object. Used for group move / scale.
+  Rect? get lassoSelectionBounds {
+    Rect? acc;
+    void add(Rect r) {
+      if (r.isEmpty) return;
+      acc = acc == null ? r : acc!.expandToInclude(r);
+    }
+
+    for (final stroke in ink.strokes) {
+      if (ink.selectedIds.contains(stroke.id)) add(stroke.boundingBox);
+    }
+    for (final shape in shapes) {
+      if (selectedShapeIds.contains(shape.id)) add(shape.bounds);
+    }
+    for (final image in images) {
+      if (selectedImageIds.contains(image.id)) add(image.bounds);
+    }
+    for (final sticker in stickers) {
+      if (selectedStickerIds.contains(sticker.id)) add(sticker.bounds);
+    }
+    final page = currentPage;
+    if (page != null) {
+      final metrics = _metricsForPage(page);
+      for (final block in textBlocks) {
+        if (selectedTextIds.contains(block.id)) {
+          add(textBlockBounds(block: block, metrics: metrics));
+        }
+      }
+    }
+    return acc;
+  }
+
+  /// Single images / text boxes already have their own resize handle.
+  bool get showLassoScaleHandle {
+    if (!hasLassoSelection) return false;
+    final bounds = lassoSelectionBounds;
+    if (bounds == null || (bounds.width < 2 && bounds.height < 2)) {
+      return false;
+    }
+    final onlyOwnHandle =
+        ink.selectedIds.isEmpty &&
+        selectedShapeIds.isEmpty &&
+        selectedStickerIds.isEmpty &&
+        selectedImageIds.length + selectedTextIds.length == 1;
+    return !onlyOwnHandle;
+  }
+
   bool get selectionCanRecolor =>
       ink.selectedIds.isNotEmpty ||
       selectedShapeIds.isNotEmpty ||
@@ -407,6 +466,14 @@ class EditorController extends ChangeNotifier {
   }
 
   void clearLassoSelection() {
+    _lassoScaling = false;
+    _lassoScaleBounds = null;
+    _lassoScaleDelta = Offset.zero;
+    _lassoBeforeMove = null;
+    _shapesBeforeScale = null;
+    _imagesBeforeScale = null;
+    _textBeforeScale = null;
+    _stickersBeforeScale = null;
     ink.clearSelection();
     selectedTextId = null;
     editingTextId = null;
@@ -470,6 +537,10 @@ class EditorController extends ChangeNotifier {
   }
 
   bool _lassoSelectionContains(Offset pagePoint) {
+    final bounds = lassoSelectionBounds;
+    if (bounds != null && bounds.inflate(14).contains(pagePoint)) {
+      return true;
+    }
     if (ink.selectionHits(pagePoint)) return true;
     for (final shape in shapes) {
       if (selectedShapeIds.contains(shape.id) &&
@@ -553,6 +624,100 @@ class EditorController extends ChangeNotifier {
       changed = true;
     }
     if (changed) notifyListeners();
+  }
+
+  void beginLassoScale() {
+    final bounds = lassoSelectionBounds;
+    if (bounds == null) return;
+    _lassoScaling = true;
+    _lassoScaleBounds = bounds;
+    _lassoScaleDelta = Offset.zero;
+    _lassoDragStart = null;
+    _lassoAccum = Offset.zero;
+    _lassoBeforeMove = List.of(ink.strokes);
+    _shapesBeforeScale = List.of(shapes);
+    _imagesBeforeScale = List.of(images);
+    _textBeforeScale = List.of(textBlocks);
+    _stickersBeforeScale = List.of(stickers);
+  }
+
+  void updateLassoScale(Offset handleDelta) {
+    final bounds = _lassoScaleBounds;
+    if (!_lassoScaling || bounds == null) return;
+    _lassoScaleDelta += handleDelta;
+    final scale = lassoScaleFromHandleDelta(bounds, _lassoScaleDelta);
+    _applyLassoScale(bounds.topLeft, scale);
+  }
+
+  void endLassoScale() {
+    if (!_lassoScaling) return;
+    final changed = _lassoScaleDelta.distance > 0.5;
+    if (changed) {
+      if (_lassoBeforeMove != null && ink.selectedIds.isNotEmpty) {
+        ink.commitSelectionMove(_lassoBeforeMove!);
+      }
+      _scheduleSave();
+    }
+    _lassoScaling = false;
+    _lassoScaleBounds = null;
+    _lassoScaleDelta = Offset.zero;
+    _lassoBeforeMove = null;
+    _shapesBeforeScale = null;
+    _imagesBeforeScale = null;
+    _textBeforeScale = null;
+    _stickersBeforeScale = null;
+  }
+
+  void _applyLassoScale(Offset origin, double scale) {
+    if (ink.selectedIds.isNotEmpty && _lassoBeforeMove != null) {
+      ink.scaleSelectedFrom(
+        _lassoBeforeMove!,
+        origin: origin,
+        scale: scale,
+      );
+    }
+    var objectsChanged = false;
+    if (_shapesBeforeScale != null && selectedShapeIds.isNotEmpty) {
+      shapes = [
+        for (final shape in _shapesBeforeScale!)
+          if (selectedShapeIds.contains(shape.id))
+            scaleShape(shape, origin, scale)
+          else
+            shape,
+      ];
+      objectsChanged = true;
+    }
+    if (_imagesBeforeScale != null && selectedImageIds.isNotEmpty) {
+      images = [
+        for (final image in _imagesBeforeScale!)
+          if (selectedImageIds.contains(image.id))
+            scaleImage(image, origin, scale)
+          else
+            image,
+      ];
+      objectsChanged = true;
+    }
+    if (_textBeforeScale != null && selectedTextIds.isNotEmpty) {
+      textBlocks = [
+        for (final block in _textBeforeScale!)
+          if (selectedTextIds.contains(block.id))
+            scaleTextBlock(block, origin, scale)
+          else
+            block,
+      ];
+      objectsChanged = true;
+    }
+    if (_stickersBeforeScale != null && selectedStickerIds.isNotEmpty) {
+      stickers = [
+        for (final sticker in _stickersBeforeScale!)
+          if (selectedStickerIds.contains(sticker.id))
+            scaleSticker(sticker, origin, scale)
+          else
+            sticker,
+      ];
+      objectsChanged = true;
+    }
+    if (objectsChanged) notifyListeners();
   }
 
   void _selectObjectsInLasso(List<Offset> polygon) {
@@ -1283,6 +1448,50 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> applyImageCrop(ImageElement image, Rect normalized) async {
+    if (normalized.width < 0.02 || normalized.height < 0.02) return;
+    try {
+      final bytes = await readLocalImageBytes(image.localPath);
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return;
+      final x = (normalized.left * decoded.width).round().clamp(
+        0,
+        decoded.width - 1,
+      );
+      final y = (normalized.top * decoded.height).round().clamp(
+        0,
+        decoded.height - 1,
+      );
+      final w = (normalized.width * decoded.width).round().clamp(
+        1,
+        decoded.width - x,
+      );
+      final h = (normalized.height * decoded.height).round().clamp(
+        1,
+        decoded.height - y,
+      );
+      final cropped = img.copyCrop(decoded, x: x, y: y, width: w, height: h);
+      final png = Uint8List.fromList(img.encodePng(cropped));
+      String dest;
+      if (image.localPath.startsWith('memory:') || kIsWeb) {
+        dest = 'memory:${base64Encode(png)}';
+      } else {
+        final dir = await repository.resolveFilesDir();
+        dest = p.join(dir, 'images', '${const Uuid().v4()}_crop.png');
+        await createFileStore().writeBytes(dest, png);
+      }
+      updateImage(
+        image.copyWith(
+          localPath: dest,
+          x: image.x + image.width * normalized.left,
+          y: image.y + image.height * normalized.top,
+          width: image.width * normalized.width,
+          height: image.height * normalized.height,
+        ),
+      );
+    } catch (_) {}
+  }
+
   void deleteImage(String id) {
     images = [
       for (final i in images)
@@ -1354,11 +1563,25 @@ class EditorController extends ChangeNotifier {
   Future<void> _insertStoredImage(String dest, {int offset = 0}) async {
     final page = currentPage;
     if (page == null) return;
+    final pageSize = NotePageSize.resolve(page.paperFormat, page.orientation);
+    var width = 240.0;
+    var height = 180.0;
+    try {
+      final bytes = await createFileStore().readBytes(dest);
+      final imageSize = await readImageSizeFromBytes(bytes);
+      if (imageSize != null) {
+        final box = fitImageOnPage(imageSize, pageSize);
+        width = box.width;
+        height = box.height;
+      }
+    } catch (_) {}
     final element = ImageElement.create(
       pageId: page.id,
       localPath: dest,
       x: 80 + offset * 24,
       y: 100 + offset * 24,
+      width: width,
+      height: height,
     );
     images = [...images, element];
     selectedImageId = element.id;
@@ -1385,13 +1608,18 @@ class EditorController extends ChangeNotifier {
     final dir = await repository.resolveFilesDir();
     final dest = p.join(dir, 'images', '${const Uuid().v4()}_plot.png');
     await createFileStore().writeBytes(dest, bytes);
+    final pageSize = NotePageSize.resolve(page.paperFormat, page.orientation);
+    final decoded = await readImageSizeFromBytes(bytes);
+    final box = decoded == null
+        ? Size(width, height)
+        : fitImageOnPage(decoded, pageSize);
     final element = ImageElement.create(
       pageId: page.id,
       localPath: dest,
       x: 72,
       y: 88,
-      width: width,
-      height: height,
+      width: box.width,
+      height: box.height,
     );
     images = [...images, element];
     selectedImageId = element.id;
@@ -1861,6 +2089,7 @@ class EditorController extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    if (_lassoScaling) return;
     if (_lassoDragStart != null && hasLassoSelection) {
       final delta = pagePoint - _lassoDragStart! - _lassoAccum;
       if (delta.distance > 0) {
@@ -2822,6 +3051,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
 
     final workspace = Stack(
       children: [
+        const Positioned.fill(child: WorkspaceBackdrop()),
         Positioned.fill(
           child: Row(
             children: [
@@ -2988,6 +3218,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                   controller.drawingAids.setRulerFixed(
                                     !controller.drawingAids.ruler!.fixed,
                                   ),
+                              onDragActive: (active) => _pagesViewportKey
+                                  .currentState
+                                  ?.setScrollLock(active),
                             ),
                           if (controller.drawingAids.hasVisibleCompass)
                             CompassOverlay(
@@ -3002,6 +3235,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                                   controller.drawingAids.setCompassFixed(
                                     !controller.drawingAids.compass!.fixed,
                                   ),
+                              onDragActive: (active) => _pagesViewportKey
+                                  .currentState
+                                  ?.setScrollLock(active),
                             ),
                           Positioned.fill(
                             child: PageMetaOverlay(
@@ -3018,6 +3254,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               onSelect: controller.selectImage,
                               onChanged: controller.updateImage,
                               onDelete: controller.deleteImage,
+                              onCrop: (image) async {
+                                final rect = await showImageCropSheet(
+                                  context,
+                                  path: image.localPath,
+                                );
+                                if (rect == null) return;
+                                await controller.applyImageCrop(image, rect);
+                              },
                             ),
                           ),
                           IgnorePointer(
@@ -3057,6 +3301,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               },
                             ),
                           ),
+                          if (!readOnly &&
+                              !presenting &&
+                              controller.showLassoScaleHandle &&
+                              controller.lassoSelectionBounds != null)
+                            LassoSelectionOverlay(
+                              bounds: controller.lassoSelectionBounds!,
+                              onScaleStart: controller.beginLassoScale,
+                              onScaleDelta: controller.updateLassoScale,
+                              onScaleEnd: controller.endLassoScale,
+                              onDragActive: (active) => _pagesViewportKey
+                                  .currentState
+                                  ?.setScrollLock(active),
+                            ),
                         ],
                       ),
                     );
@@ -3837,6 +4094,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
           context,
           repository: controller.repository,
           pageId: page.id,
+          onSave: () async {
+            await controller.saveCurrentSnapshot();
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.snapshotSaved)));
+          },
         );
         if (selected == null || !context.mounted) return;
         await controller.restoreSnapshot(selected);

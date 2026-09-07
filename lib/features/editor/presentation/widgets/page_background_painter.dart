@@ -35,7 +35,7 @@ class PageBackgroundPainter extends CustomPainter {
         canvas: canvas,
         rect: fullRect,
         image: pdfImage!,
-        fit: BoxFit.fill,
+        fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
       );
       return;

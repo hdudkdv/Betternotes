@@ -15,6 +15,7 @@ import '../../data/models/content_models.dart';
 import '../../data/models/notebook.dart';
 import '../../data/repositories/notebook_repository.dart';
 import '../../shared/utils/file_store.dart';
+import '../../shared/utils/image_dimensions.dart';
 import '../../shared/utils/page_size.dart';
 import '../editor/domain/ink_models.dart';
 import '../editor/domain/sticker_catalog.dart';
@@ -118,21 +119,18 @@ class PdfService {
   }) async {
     if (imagePaths.isEmpty) return const [];
     final notebook = await _repository.getNotebook(notebookId);
-    final paperFormat = notebook?.defaultPaperFormat ?? PaperFormat.a4;
-    final orientation =
-        notebook?.defaultOrientation ?? PageOrientation.portrait;
     final filesDir = await _repository.resolveFilesDir();
     final stamp = DateTime.now().microsecondsSinceEpoch;
     final drafts = <NotePageDraft>[];
     for (var i = 0; i < imagePaths.length; i++) {
       final src = imagePaths[i];
       String imagePath = src;
+      Uint8List? bytes;
       try {
+        bytes = await _files.readBytes(src);
         if (kIsWeb) {
-          final bytes = await _files.readBytes(src);
           imagePath = 'memory:${base64Encode(bytes)}';
         } else {
-          final bytes = await _files.readBytes(src);
           final outPath = p.join(
             filesDir,
             '${notebookId}_scan_${stamp}_${i + 1}.jpg',
@@ -141,12 +139,22 @@ class PdfService {
           imagePath = outPath;
         }
       } catch (_) {}
+      final imageSize = bytes == null
+          ? null
+          : await readImageSizeFromBytes(bytes);
+      final matched = imageSize == null
+          ? null
+          : NotePageSize.bestForImage(imageSize);
       drafts.add(
         NotePageDraft(
           template: PageTemplate.blank,
           backgroundPdfPath: imagePath,
-          paperFormat: paperFormat,
-          orientation: orientation,
+          paperFormat:
+              matched?.format ?? notebook?.defaultPaperFormat ?? PaperFormat.a4,
+          orientation:
+              matched?.orientation ??
+              notebook?.defaultOrientation ??
+              PageOrientation.portrait,
         ),
       );
     }

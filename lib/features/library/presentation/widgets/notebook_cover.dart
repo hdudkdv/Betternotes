@@ -68,22 +68,53 @@ class NotebookCover extends ConsumerWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 22,
+                          offset: const Offset(0, 12),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
                     child: Builder(
                       builder: (context) {
-                        final preview = DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4EFE6),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.14),
-                                blurRadius: 18,
-                                offset: const Offset(0, 10),
+                        final preview = ColoredBox(
+                          color: const Color(0xFFF4EFE6),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              _FirstPagePreview(notebook: notebook),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: SizedBox(
+                                  width: 7,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                        colors: [
+                                          Color(notebook.coverColor),
+                                          Color(notebook.coverColor)
+                                              .withValues(alpha: 0.35),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          child: _FirstPagePreview(notebook: notebook),
                         );
                         if (!lockedOut) return preview;
                         return ColorFiltered(
@@ -96,6 +127,7 @@ class NotebookCover extends ConsumerWidget {
                           child: preview,
                         );
                       },
+                    ),
                     ),
                   ),
                   if (lockedOut)
@@ -114,7 +146,7 @@ class NotebookCover extends ConsumerWidget {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(18),
+                          bottom: Radius.circular(16),
                         ),
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,

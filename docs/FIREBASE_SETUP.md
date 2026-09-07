@@ -41,18 +41,25 @@ gehören zum jeweiligen Firebase-Projekt und enthalten keine Platzhalterwerte.
 Google Calendar wird nicht angefragt oder synchronisiert. Login dient in dieser
 Ausbaustufe ausschließlich dem persönlichen Cloud-Speicher.
 
-## Hosting (Landingpage)
+## Hosting (Landingpage + Web-App)
 
-Die öffentliche Seite liegt in `hosting/` und wird nach `https://notis-notizbuecher.web.app`
-veröffentlicht (Datenschutz, AGB, Impressum).
+Die öffentliche Seite liegt in `hosting/` und geht immer auf **beide** Adressen:
 
-```bash
-firebase use notis-2dee0
-firebase deploy --only hosting
+- https://notis-notizbuecher.web.app
+- https://notis-2dee0.web.app (gleicher Inhalt, auch über `notis-2dee0.firebaseapp.com`)
+
+Web **nicht** über GitHub Actions pushen. Lokal bauen und hochladen:
+
+```powershell
+powershell -File tool/deploy_web.ps1
 ```
 
-In Firebase Authentication die Domain `notis-notizbuecher.web.app` unter Authorized domains
-ergänzen. In AdMob die Privacy-URL `https://notis-notizbuecher.web.app/datenschutz` eintragen.
+Das Skript baut Flutter Web und ruft Firebase für beide Hosting-Sites auf.
+Vorher einmal `firebase login` (oder `npx firebase-tools login`).
+
+In Firebase Authentication die Domains `notis-notizbuecher.web.app` und
+`notis-2dee0.web.app` unter Authorized domains ergänzen. In AdMob die
+Privacy-URL `https://notis-notizbuecher.web.app/datenschutz` eintragen.
 
 ## Regeln
 

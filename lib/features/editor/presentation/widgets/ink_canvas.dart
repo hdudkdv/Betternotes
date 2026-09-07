@@ -133,6 +133,8 @@ class InkCanvasState extends State<InkCanvas>
   int _multiMaxPointers = 0;
   Offset? _threeFingerStart;
   bool _browseActive = false;
+  Offset _navSlop = Offset.zero;
+  bool _navBrowseArmed = false;
   bool _drawPending = false;
   int? _pendingPointer;
   Offset? _pendingGlobal;
@@ -308,6 +310,8 @@ class InkCanvasState extends State<InkCanvas>
       _fitCommitScheduled = false;
       if (!mounted) return;
       if (!_isUsableViewport(viewport)) return;
+      // Never stomp a live pinch — that made finger zoom look dead.
+      if (_pointerGlobal.length >= 2) return;
       _fittedViewport = viewport;
       _fittedPageSize = widget.pageSize;
       _fitReady = true;
@@ -317,6 +321,17 @@ class InkCanvasState extends State<InkCanvas>
       }
       _forceScrollUnlock();
     });
+  }
+
+  /// If the controller is still identity while the page is painted at fit,
+  /// pinch/pan must start from the real fit scale — not 1.0.
+  void _ensureFittedTransform() {
+    if (widget.canvasMode == CanvasMode.infinite) return;
+    if (!_isUsableViewport(_viewportSize)) return;
+    final scale = _transform.value.getMaxScaleOnAxis();
+    if (!_fitReady || _isBogusIdentityScale(scale)) {
+      _applyFit(_viewportSize);
+    }
   }
 
   /// Pan translation limits for the current scale (scene → viewport).
@@ -490,9 +505,7 @@ class InkCanvasState extends State<InkCanvas>
 
   void _onTransformChanged() {
     _updateScrollLock();
-    if (widget.canvasMode == CanvasMode.infinite) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   void _updateScrollLock() {
@@ -526,6 +539,7 @@ class InkCanvasState extends State<InkCanvas>
 
   void _applyPinchScale() {
     if (_viewportSize == Size.zero) return;
+    _ensureFittedTransform();
     final points = _pointerGlobal.values.toList();
     if (points.length < 2) return;
     final dist = (points[0] - points[1]).distance;
@@ -634,11 +648,17 @@ class InkCanvasState extends State<InkCanvas>
   /// - Fit zoom: horizontal/vertical swipe flips pages.
   /// - Zoomed in: pan freely; once the page edge is hit, further swipe in that
   ///   direction overscrolls into the page strip (next/previous page).
+  void _resetNavBrowse() {
+    _navSlop = Offset.zero;
+    _navBrowseArmed = false;
+  }
+
   void _handleNavPan(Offset delta) {
     if (widget.canvasMode == CanvasMode.infinite) {
       _applyPanDelta(delta);
       return;
     }
+    _ensureFittedTransform();
 
     final horizontal = widget.browseMode == PageBrowseMode.swipeHorizontal;
     final bounds = _translationBounds();
@@ -668,6 +688,7 @@ class InkCanvasState extends State<InkCanvas>
         _applyPanDelta(delta);
         return;
       }
+      if (!_armBrowseIfNeeded(delta, horizontal: true)) return;
       _tryBrowsePan(Offset(delta.dx, 0));
       return;
     }
@@ -691,8 +712,28 @@ class InkCanvasState extends State<InkCanvas>
     if (_isZoomed) {
       _applyPanDelta(delta);
     } else {
+      if (!_armBrowseIfNeeded(delta, horizontal: false)) return;
       _tryBrowsePan(delta);
     }
+  }
+
+  /// Fit-zoom page turns need slop so a small finger move does not flip
+  /// pages, and so the viewport listener cannot double-drive the swipe.
+  bool _armBrowseIfNeeded(Offset delta, {required bool horizontal}) {
+    if (_navBrowseArmed) return true;
+    _navSlop += delta;
+    if (_navSlop.distance < 36) return false;
+    if (horizontal) {
+      if (_navSlop.dx.abs() < _navSlop.dy.abs() * 1.15) return false;
+    } else if (_navSlop.dy.abs() < _navSlop.dx.abs() * 1.15) {
+      return false;
+    }
+    _navBrowseArmed = true;
+    if (!_scrollLockSent) {
+      _scrollLockSent = true;
+      widget.onScrollLockChanged?.call(true);
+    }
+    return true;
   }
 
   /// Visible board rect in page/local coordinates.
@@ -933,6 +974,7 @@ class InkCanvasState extends State<InkCanvas>
     _pointerGlobal[event.pointer] = event.position;
 
     if (_pointerGlobal.length >= 2) {
+      _resetNavBrowse();
       _clearDrawPending();
       final focal = _focalGlobal();
       if (_keyboardOpen) {
@@ -1111,6 +1153,7 @@ class InkCanvasState extends State<InkCanvas>
     }
 
     if (_pointerGlobal.isEmpty) {
+      _resetNavBrowse();
       if (wasBrowse) {
         widget.onBrowsePanEnd?.call();
         _browseActive = false;
@@ -1236,11 +1279,15 @@ class InkCanvasState extends State<InkCanvas>
                       child: Container(
                         width: pageSize.width,
                         height: pageSize.height,
-                        decoration: BoxDecoration(
-                          border: infinite
-                              ? null
-                              : Border.all(color: EditorChrome.divider),
-                        ),
+                        decoration: infinite
+                            ? null
+                            : BoxDecoration(
+                                boxShadow: EditorChrome.pageShadow,
+                                border: Border.all(
+                                  color: EditorChrome.pageEdge,
+                                  width: 0.7,
+                                ),
+                              ),
                         child: RepaintBoundary(
                           child: Stack(
                             fit: StackFit.expand,

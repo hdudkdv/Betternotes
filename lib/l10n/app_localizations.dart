@@ -470,6 +470,12 @@ abstract class AppLocalizations {
   /// **'Delete selection'**
   String get deleteSelection;
 
+  /// No description provided for @scaleSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale selection'**
+  String get scaleSelection;
+
   /// No description provided for @writing.
   ///
   /// In en, this message translates to:
@@ -1465,6 +1471,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Document'**
   String get menuDocumentGroup;
+
+  /// No description provided for @menuShareGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get menuShareGroup;
+
+  /// No description provided for @menuImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get menuImport;
+
+  /// No description provided for @snapshots.
+  ///
+  /// In en, this message translates to:
+  /// **'Versions'**
+  String get snapshots;
 
   /// No description provided for @menuPaperGroup.
   ///
@@ -6511,6 +6535,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Small and movable. You can drag and resize it.'**
   String get importAsImageHint;
+
+  /// No description provided for @cropImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop image'**
+  String get cropImage;
+
+  /// No description provided for @cropImageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch and hold an image to crop it.'**
+  String get cropImageHint;
+
+  /// No description provided for @cropApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop'**
+  String get cropApply;
 
   /// No description provided for @imagesInserted.
   ///

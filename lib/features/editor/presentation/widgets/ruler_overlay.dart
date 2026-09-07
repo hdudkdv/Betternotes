@@ -16,12 +16,14 @@ class RulerOverlay extends StatelessWidget {
     required this.onChanged,
     required this.onToggleFixed,
     this.readOnly = false,
+    this.onDragActive,
   });
 
   final RulerAid aid;
   final ValueChanged<RulerAid> onChanged;
   final VoidCallback onToggleFixed;
   final bool readOnly;
+  final ValueChanged<bool>? onDragActive;
 
   void _moveBy(Offset delta) {
     final next = aid.center + delta;
@@ -60,7 +62,21 @@ class RulerOverlay extends StatelessWidget {
           ),
         ),
         if (!readOnly && !aid.fixed) ...[
-          // Small center grip only — the body must not steal ink.
+          Positioned(
+            left: mid.dx - aid.lengthPt / 2,
+            top: mid.dy - RulerAid.edgeOffset,
+            width: aid.lengthPt,
+            height: RulerAid.edgeOffset * 2,
+            child: Transform.rotate(
+              angle: aid.angle,
+              child: StylusPan(
+                onPanStart: () => onDragActive?.call(true),
+                onPanEnd: () => onDragActive?.call(false),
+                onPanUpdate: _moveBy,
+                child: const ColoredBox(color: Color(0x01FFFFFF)),
+              ),
+            ),
+          ),
           Positioned(
             left: mid.dx - 40,
             top: mid.dy - 20,
@@ -69,6 +85,8 @@ class RulerOverlay extends StatelessWidget {
             child: Transform.rotate(
               angle: aid.angle,
               child: StylusPan(
+                onPanStart: () => onDragActive?.call(true),
+                onPanEnd: () => onDragActive?.call(false),
                 onPanUpdate: _moveBy,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -83,10 +101,12 @@ class RulerOverlay extends StatelessWidget {
           _Handle(
             at: aid.end,
             onDrag: (delta) => _rotateFrom(aid.end + delta, fromStart: false),
+            onDragActive: onDragActive,
           ),
           _Handle(
             at: aid.start,
             onDrag: (delta) => _rotateFrom(aid.start + delta, fromStart: true),
+            onDragActive: onDragActive,
           ),
         ],
         Positioned(
@@ -133,10 +153,15 @@ class RulerOverlay extends StatelessWidget {
 }
 
 class _Handle extends StatelessWidget {
-  const _Handle({required this.at, required this.onDrag});
+  const _Handle({
+    required this.at,
+    required this.onDrag,
+    this.onDragActive,
+  });
 
   final Offset at;
   final ValueChanged<Offset> onDrag;
+  final ValueChanged<bool>? onDragActive;
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +169,8 @@ class _Handle extends StatelessWidget {
       left: at.dx - 22,
       top: at.dy - 22,
       child: StylusPan(
+        onPanStart: () => onDragActive?.call(true),
+        onPanEnd: () => onDragActive?.call(false),
         onPanUpdate: onDrag,
         child: Container(
           width: 44,

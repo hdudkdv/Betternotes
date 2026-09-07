@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
@@ -85,15 +87,23 @@ class ImportPipeline {
     String name,
   ) async {
     final notebook = await _repository.getNotebook(notebookId);
-    final paperFormat = notebook?.defaultPaperFormat ?? PaperFormat.a4;
+    final decoded = img.decodeImage(bytes);
+    final matched = decoded == null
+        ? null
+        : NotePageSize.bestForImage(
+            Size(decoded.width.toDouble(), decoded.height.toDouble()),
+          );
+    final paperFormat =
+        matched?.format ?? notebook?.defaultPaperFormat ?? PaperFormat.a4;
     final orientation =
-        notebook?.defaultOrientation ?? PageOrientation.portrait;
-    final pageSize = NotePageSize.resolve(paperFormat, orientation);
+        matched?.orientation ??
+        notebook?.defaultOrientation ??
+        PageOrientation.portrait;
     final pngPath = await _writeBackgroundPng(
       notebookId: notebookId,
       bytes: bytes,
-      pageWidth: pageSize.width,
-      pageHeight: pageSize.height,
+      pageWidth: NotePageSize.resolve(paperFormat, orientation).width,
+      pageHeight: NotePageSize.resolve(paperFormat, orientation).height,
       label: p.basenameWithoutExtension(name),
     );
     return _repository.addPage(
@@ -119,13 +129,16 @@ class ImportPipeline {
       if (decoded != null) {
         final targetW = (pageWidth * 2).round();
         final targetH = (pageHeight * 2).round();
+        final scale = math.min(
+          targetW / decoded.width,
+          targetH / decoded.height,
+        );
         final fitted = img.copyResize(
           decoded,
-          width: targetW,
-          height: targetH,
+          width: math.max(1, (decoded.width * scale).round()),
+          height: math.max(1, (decoded.height * scale).round()),
           interpolation: img.Interpolation.linear,
         );
-        // Letterbox onto white page canvas.
         final canvas = img.Image(width: targetW, height: targetH);
         img.fill(canvas, color: img.ColorRgb8(255, 251, 245));
         final dx = ((targetW - fitted.width) / 2).round();

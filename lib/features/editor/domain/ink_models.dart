@@ -279,6 +279,27 @@ class InkStroke extends Equatable {
     );
   }
 
+  /// Uniform scale around [origin]. Stroke width grows with the geometry.
+  InkStroke scaled(Offset origin, double scale) {
+    final s = scale <= 0 ? 0.01 : scale;
+    return InkStroke(
+      id: id,
+      tool: tool,
+      colorValue: colorValue,
+      width: (width * s).clamp(0.4, 80.0),
+      style: style,
+      points: [
+        for (final p in points)
+          StrokePoint(
+            x: origin.dx + (p.x - origin.dx) * s,
+            y: origin.dy + (p.y - origin.dy) * s,
+            pressure: p.pressure,
+            t: p.t,
+          ),
+      ],
+    );
+  }
+
   InkStroke copyWith({
     List<StrokePoint>? points,
     String? id,

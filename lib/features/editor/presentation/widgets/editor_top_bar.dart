@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme.dart';
 import '../../../../data/models/content_models.dart';
@@ -139,9 +140,15 @@ class EditorTopBar extends StatelessWidget {
       children: [
         Material(
           color: EditorChrome.topBar,
+          elevation: 0,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: EditorChrome.divider)),
+              border: Border(
+                bottom: BorderSide(
+                  color: EditorChrome.divider.withValues(alpha: 0.7),
+                ),
+              ),
+              boxShadow: EditorChrome.barShadow,
             ),
             child: SizedBox(
               height: EditorChrome.tabRowHeight,
@@ -211,7 +218,6 @@ class EditorTopBar extends StatelessWidget {
                       canvasMode: canvasMode,
                       defaultPaperFormat: defaultPaperFormat,
                       defaultOrientation: defaultOrientation,
-                      studyModeUnlocked: studyModeUnlocked,
                       onAction: onMenuAction,
                     ),
                   ),
@@ -593,20 +599,26 @@ class _BarIcon extends StatelessWidget {
       child: Tooltip(
         message: tooltip,
         child: InkWell(
-          onTap: enabled ? onTap : null,
+          onTap: enabled
+              ? () {
+                  HapticFeedback.selectionClick();
+                  onTap?.call();
+                }
+              : null,
           onLongPress: enabled ? onLongPress : null,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(11),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
             width: compact ? 44 : null,
-            height: compact ? 44 : 34,
+            height: compact ? 44 : 36,
             constraints: BoxConstraints(
               minWidth: compact ? 44 : 38,
-              minHeight: compact ? 44 : 34,
+              minHeight: compact ? 44 : 36,
             ),
             decoration: BoxDecoration(
               color: active ? EditorChrome.selectedSoft : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(
               icon,

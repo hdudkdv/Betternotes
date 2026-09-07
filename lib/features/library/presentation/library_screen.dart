@@ -678,6 +678,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     fontWeight: FontWeight.w700,
                     color: AppTheme.ink,
                     fontSize: folderId == null ? 30 : 26,
+                    letterSpacing: -0.5,
                   ),
                 ),
                 background: DecoratedBox(
@@ -732,7 +733,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextField(
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppTheme.radius),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
                       key: _searchFieldKey,
                       controller: _searchController,
                       focusNode: _searchFocus,
@@ -760,6 +772,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 },
                                 icon: const Icon(Icons.close),
                               ),
+                      ),
                       ),
                     ),
                     SearchAtHints(
@@ -1213,53 +1226,59 @@ class _InAppPurchasesCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final billing = ref.watch(revenueCatBillingProvider);
-    return Card(
-      color: AppTheme.accentSoft,
+    return Material(
+      color: AppTheme.card,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.outline.withValues(alpha: 0.8)),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => presentInAppPurchases(context, ref),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Icon(
-                    billing.hasNotisPro
-                        ? Icons.workspace_premium
-                        : Icons.workspace_premium_outlined,
-                    color: AppTheme.accent,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
+              Icon(
+                billing.hasNotisPro
+                    ? Icons.workspace_premium
+                    : Icons.workspace_premium_outlined,
+                color: AppTheme.accent,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       l10n.inAppPurchases,
                       style: AppTheme.body(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      billing.hasNotisPro
+                          ? l10n.notisProActive
+                          : l10n.inAppPurchasesHint,
+                      style: AppTheme.body(
+                        color: AppTheme.inkMuted,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
               Text(
                 billing.hasNotisPro
-                    ? l10n.notisProActive
-                    : l10n.inAppPurchasesHint,
-                style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: () => presentInAppPurchases(context, ref),
-                icon: const Icon(Icons.shopping_bag_outlined),
-                label: Text(
-                  billing.hasNotisPro
-                      ? l10n.manageSubscription
-                      : l10n.upgradeToNotisPro,
+                    ? l10n.manageSubscription
+                    : l10n.upgradeToNotisPro,
+                style: AppTheme.body(
+                  color: AppTheme.accent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
                 ),
               ),
             ],

@@ -109,23 +109,40 @@ class AppTheme {
             fontSize: 40,
             fontWeight: FontWeight.w700,
             color: palette.ink,
+            letterSpacing: -0.8,
+            height: 1.12,
           ),
           headlineMedium: GoogleFonts.getFont(
             palette.headlineFont,
             fontSize: 26,
             fontWeight: FontWeight.w700,
             color: palette.ink,
+            letterSpacing: -0.4,
+            height: 1.18,
           ),
           titleLarge: GoogleFonts.getFont(
             palette.headlineFont,
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: palette.ink,
+            letterSpacing: -0.2,
           ),
         );
 
     return base.copyWith(
       textTheme: text,
+      splashFactory: NoSplash.splashFactory,
+      splashColor: Colors.transparent,
+      highlightColor: palette.ink.withValues(alpha: 0.05),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: palette.surface,
         foregroundColor: palette.ink,
@@ -138,11 +155,14 @@ class AppTheme {
           fontSize: 26,
           fontWeight: FontWeight.w700,
           color: palette.ink,
+          letterSpacing: -0.4,
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: palette.accent,
         foregroundColor: palette.onAccent,
+        elevation: 3,
+        highlightElevation: 5,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -168,14 +188,17 @@ class AppTheme {
         color: palette.surfaceRaised,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        shadowColor: Colors.black.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(
           borderRadius: radius,
-          side: BorderSide(color: palette.outline),
+          side: BorderSide(color: palette.outline.withValues(alpha: 0.85)),
         ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: palette.surfaceRaised,
         surfaceTintColor: Colors.transparent,
+        elevation: 8,
+        shadowColor: Colors.black.withValues(alpha: 0.18),
         shape: RoundedRectangleBorder(borderRadius: radius),
         titleTextStyle: GoogleFonts.getFont(
           palette.headlineFont,

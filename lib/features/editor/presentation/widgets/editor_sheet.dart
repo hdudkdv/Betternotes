@@ -39,7 +39,14 @@ class EditorSheet extends StatelessWidget {
           color: EditorChrome.floating,
           borderRadius: BorderRadius.circular(AppTheme.radius + 10),
           border: Border.all(color: EditorChrome.floatingBorder),
-          boxShadow: EditorChrome.pillShadow,
+          boxShadow: [
+            ...EditorChrome.pillShadow,
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 28,
+              offset: const Offset(0, 14),
+            ),
+          ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Material(
