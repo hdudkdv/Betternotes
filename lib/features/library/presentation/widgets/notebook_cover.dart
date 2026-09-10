@@ -43,284 +43,303 @@ class NotebookCover extends ConsumerWidget {
     final lan = ref.watch(lanSyncProvider);
     final grant = lan.guestGrantFor(notebook.id);
     final sharedBy = grant?.hostLabel;
-    final liveNow = notebook.folderId == kLiveFolderId ||
+    final liveNow =
+        notebook.folderId == kLiveFolderId ||
         (lan.isActive && lan.notebookId == notebook.id);
     final paid = ref.watch(entitlementProvider).paidTier;
-    final cloudOn = ref.watch(cloudSyncSelectionProvider).isSynced(
-          notebook.id,
-          paid,
-        );
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: lockedOut
-            ? () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.accountNotebookLocked)),
-                );
-              }
-            : onOpen,
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.18),
-                          blurRadius: 22,
-                          offset: const Offset(0, 12),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+    final cloudOn = ref
+        .watch(cloudSyncSelectionProvider)
+        .isSynced(notebook.id, paid);
+    final radius = BorderRadius.circular(18);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: lockedOut
+                  ? () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.accountNotebookLocked)),
+                      );
+                    }
+                  : onOpen,
+              borderRadius: radius,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: AppTheme.isDark ? 0.45 : 0.16,
+                      ),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
                     ),
-                    child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Builder(
-                      builder: (context) {
-                        final preview = ColoredBox(
-                          color: const Color(0xFFF4EFE6),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              _FirstPagePreview(notebook: notebook),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: SizedBox(
-                                  width: 7,
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.centerLeft,
-                                        end: Alignment.centerRight,
-                                        colors: [
-                                          Color(notebook.coverColor),
-                                          Color(notebook.coverColor)
-                                              .withValues(alpha: 0.35),
-                                        ],
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: radius,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Builder(
+                        builder: (context) {
+                          final preview = ColoredBox(
+                            color: const Color(0xFFF4EFE6),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                _FirstPagePreview(notebook: notebook),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: SizedBox(
+                                    width: 8,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                          colors: [
+                                            Color(notebook.coverColor),
+                                            Color(
+                                              notebook.coverColor,
+                                            ).withValues(alpha: 0.28),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (!lockedOut) return preview;
-                        return ColorFiltered(
-                          colorFilter: const ColorFilter.matrix(<double>[
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0, 0, 0, 1, 0,
-                          ]),
-                          child: preview,
-                        );
-                      },
-                    ),
-                    ),
-                  ),
-                  if (lockedOut)
-                    const Center(
-                      child: Icon(
-                        Icons.lock_rounded,
-                        color: Colors.white,
-                        size: 42,
-                        shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
-                      ),
-                    ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(16),
-                        ),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0),
-                            Colors.black.withValues(alpha: 0.62),
-                          ],
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 28, 12, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (liveNow)
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 6),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0F6E56)
-                                      .withValues(alpha: 0.92),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  l10n.liveNow,
-                                  style: AppTheme.body(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ),
-                            if (notebook.canvasMode == CanvasMode.infinite)
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 6),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.22),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.all_out,
-                                      size: 14,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      l10n.infiniteDocument,
-                                      style: AppTheme.body(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            Text(
-                              notebook.title,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTheme.headline(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                height: 1.15,
-                              ),
+                              ],
                             ),
-                            if (sharedBy != null && sharedBy.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  l10n.sharedByHost(sharedBy),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTheme.body(
-                                    color: Colors.white.withValues(alpha: 0.88),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
+                          );
+                          if (!lockedOut) return preview;
+                          return ColorFiltered(
+                            colorFilter: const ColorFilter.matrix(<double>[
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
+                            ]),
+                            child: preview,
+                          );
+                        },
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: lockedOut
-                        ? const SizedBox.shrink()
-                        : Row(
-                      children: [
-                        IconButton(
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onFavorite,
-                          icon: Icon(
-                            notebook.isFavorite
-                                ? Icons.star_rounded
-                                : Icons.star_border_rounded,
+                      if (lockedOut)
+                        const Center(
+                          child: Icon(
+                            Icons.lock_rounded,
                             color: Colors.white,
-                            shadows: const [
-                              Shadow(color: Colors.black54, blurRadius: 6),
-                            ],
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(
-                            Icons.more_horiz,
-                            color: Colors.white,
+                            size: 40,
                             shadows: [
-                              Shadow(color: Colors.black54, blurRadius: 6),
+                              Shadow(color: Colors.black54, blurRadius: 8),
                             ],
                           ),
-                          onSelected: (value) {
-                            if (value == 'rename') onRename();
-                            if (value == 'delete') onDelete();
-                            if (value == 'link') onLink?.call();
-                            if (value == 'cloud') onCloudSync?.call();
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'rename',
-                              child: Text(l10n.rename),
-                            ),
-                            if (onLink != null)
-                              PopupMenuItem(
-                                value: 'link',
-                                child: Text(l10n.crossLink),
-                              ),
-                            if (onCloudSync != null && paid == PaidTier.lite)
-                              PopupMenuItem(
-                                value: 'cloud',
-                                child: Text(
-                                  cloudOn
-                                      ? l10n.cloudSyncThisNotebookOff
-                                      : l10n.cloudSyncThisNotebook,
-                                ),
-                              ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Text(l10n.delete),
-                            ),
-                          ],
                         ),
-                      ],
-                    ),
+                      if (liveNow || notebook.canvasMode == CanvasMode.infinite)
+                        Positioned(
+                          left: 10,
+                          top: 10,
+                          child: Row(
+                            children: [
+                              if (liveNow)
+                                _CoverBadge(
+                                  label: l10n.liveNow,
+                                  color: const Color(0xFF0F6E56),
+                                ),
+                              if (liveNow &&
+                                  notebook.canvasMode == CanvasMode.infinite)
+                                const SizedBox(width: 6),
+                              if (notebook.canvasMode == CanvasMode.infinite)
+                                _CoverBadge(
+                                  label: l10n.infiniteDocument,
+                                  icon: Icons.all_out,
+                                  color: Colors.black.withValues(alpha: 0.55),
+                                ),
+                            ],
+                          ),
+                        ),
+                      if (!lockedOut)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: _CoverIconButton(
+                            onPressed: onFavorite,
+                            icon: Icon(
+                              notebook.isFavorite
+                                  ? Icons.star_rounded
+                                  : Icons.star_border_rounded,
+                              color: notebook.isFavorite
+                                  ? const Color(0xFFF5C518)
+                                  : Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 10),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: lockedOut
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.accountNotebookLocked)),
+                        );
+                      }
+                    : onOpen,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      notebook.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.headline(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                        color: AppTheme.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        l10n.pageCount(notebook.pageCount),
+                        if (sharedBy != null && sharedBy.isNotEmpty)
+                          l10n.sharedByHost(sharedBy),
+                      ].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(
+                        color: AppTheme.inkMuted,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (!lockedOut)
+              PopupMenuButton<String>(
+                tooltip: l10n.moreOptions,
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.more_horiz_rounded, color: AppTheme.inkMuted),
+                onSelected: (value) {
+                  if (value == 'rename') onRename();
+                  if (value == 'delete') onDelete();
+                  if (value == 'link') onLink?.call();
+                  if (value == 'cloud') onCloudSync?.call();
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(value: 'rename', child: Text(l10n.rename)),
+                  if (onLink != null)
+                    PopupMenuItem(value: 'link', child: Text(l10n.crossLink)),
+                  if (onCloudSync != null && paid == PaidTier.lite)
+                    PopupMenuItem(
+                      value: 'cloud',
+                      child: Text(
+                        cloudOn
+                            ? l10n.cloudSyncThisNotebookOff
+                            : l10n.cloudSyncThisNotebook,
+                      ),
+                    ),
+                  PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+                ],
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CoverBadge extends StatelessWidget {
+  const _CoverBadge({required this.label, required this.color, this.icon});
+
+  final String label;
+  final Color color;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 12, color: Colors.white),
+              const SizedBox(width: 4),
+            ],
             Text(
-              l10n.pageCount(notebook.pageCount),
+              label,
               style: AppTheme.body(
-                color: AppTheme.inkMuted,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 11,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CoverIconButton extends StatelessWidget {
+  const _CoverIconButton({required this.onPressed, required this.icon});
+
+  final VoidCallback onPressed;
+  final Widget icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.38),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: SizedBox(width: 36, height: 36, child: Center(child: icon)),
       ),
     );
   }

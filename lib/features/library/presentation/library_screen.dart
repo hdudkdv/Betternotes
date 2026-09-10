@@ -10,6 +10,7 @@ import '../../../app/theme.dart';
 import '../../../data/models/content_models.dart';
 import '../../../data/models/notebook.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/haptics.dart';
 import '../../editor/providers/open_tabs_provider.dart';
 import '../../search/global_search_screen.dart';
 import '../../scanner/scan_into_notebook.dart';
@@ -21,7 +22,6 @@ import '../../planner/school_year_rollover.dart';
 import '../../lan_sync/lan_sync_controller.dart';
 import '../../lan_sync/lan_sync_discovery.dart';
 import '../../lan_sync/nearby_sync_screen.dart';
-import '../../billing/revenuecat_billing.dart';
 import '../../billing/subscription_paywall_sheet.dart';
 import '../../entitlements/entitlement_model.dart';
 import '../../sync/cloud_sync_selection.dart';
@@ -72,19 +72,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 .read(notebookRepositoryProvider)
                 .getNotebooks(),
           );
-      await _maybePresentInAppPurchases();
     });
-  }
-
-  Future<void> _maybePresentInAppPurchases() async {
-    if (!LaunchGates.commerceEnabled) return;
-    if (ref.read(pendingAppTourProvider)) return;
-    if (ref.read(revenueCatBillingProvider).hasNotisPro) return;
-    final prefs = ref.read(sharedPreferencesProvider);
-    if (prefs.getBool('iap_home_entry_shown') == true) return;
-    await prefs.setBool('iap_home_entry_shown', true);
-    if (!mounted) return;
-    await presentInAppPurchases(context, ref);
   }
 
   @override
@@ -377,6 +365,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   void _showCreateMenu() {
+    AppHaptics.tap();
     showLibraryCreateSheet(
       context,
       onFolder: () => _createFolder(),
@@ -653,12 +642,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           slivers: [
             SliverAppBar(
               pinned: true,
-              expandedHeight: folderId == null ? 140 : 100,
-              backgroundColor: AppTheme.toolbar,
+              floating: true,
+              backgroundColor: AppTheme.paper,
               surfaceTintColor: Colors.transparent,
               foregroundColor: AppTheme.ink,
               iconTheme: IconThemeData(color: AppTheme.ink),
               actionsIconTheme: IconThemeData(color: AppTheme.ink),
+              toolbarHeight: 64,
+              titleSpacing: folderId == null ? 24 : 0,
               leading: folderId == null
                   ? null
                   : IconButton(
@@ -668,56 +659,61 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             currentFolder?.parentId;
                       },
                     ),
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-                title: Text(
-                  folderId == null
-                      ? l10n.appTitle
-                      : (currentFolder?.name ?? l10n.folder),
-                  style: AppTheme.headline(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.ink,
-                    fontSize: folderId == null ? 30 : 26,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                background: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppTheme.toolbar,
-                        AppTheme.paper,
-                        AppTheme.paperDeep,
-                      ],
-                    ),
-                  ),
+              title: Text(
+                folderId == null
+                    ? l10n.appTitle
+                    : (currentFolder?.name ?? l10n.folder),
+                style: AppTheme.headline(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.ink,
+                  fontSize: 26,
+                  letterSpacing: -0.5,
                 ),
               ),
               actions: [
-                if (appSettings.isTeacher)
-                  IconButton(
-                    tooltip: l10n.teacherWorkspace,
-                    onPressed: () => context.push('/teacher'),
-                    icon: const Icon(Icons.co_present_outlined),
-                  ),
-                IconButton(
-                  tooltip: l10n.importAnyFile,
-                  onPressed: () => context.push('/import'),
-                  icon: const Icon(Icons.file_open_outlined),
+                PopupMenuButton<String>(
+                  tooltip: l10n.moreOptions,
+                  icon: const Icon(Icons.more_horiz_rounded),
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'import':
+                        context.push('/import');
+                      case 'marketplace':
+                        context.push('/marketplace');
+                      case 'iap':
+                        presentInAppPurchases(context, ref);
+                      case 'nearby':
+                        if (!kIsWeb) context.push('/nearby');
+                      case 'teacher':
+                        context.push('/teacher');
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (appSettings.isTeacher)
+                      PopupMenuItem(
+                        value: 'teacher',
+                        child: Text(l10n.teacherWorkspace),
+                      ),
+                    PopupMenuItem(
+                      value: 'import',
+                      child: Text(l10n.importAnyFile),
+                    ),
+                    PopupMenuItem(
+                      value: 'marketplace',
+                      child: Text(l10n.marketplace),
+                    ),
+                    if (LaunchGates.commerceEnabled)
+                      PopupMenuItem(
+                        value: 'iap',
+                        child: Text(l10n.inAppPurchases),
+                      ),
+                    if (!kIsWeb)
+                      PopupMenuItem(
+                        value: 'nearby',
+                        child: Text(l10n.nearbyJoinFromLibrary),
+                      ),
+                  ],
                 ),
-                IconButton(
-                  tooltip: l10n.marketplace,
-                  onPressed: () => context.push('/marketplace'),
-                  icon: const Icon(Icons.storefront_outlined),
-                ),
-                if (LaunchGates.commerceEnabled)
-                  IconButton(
-                    tooltip: l10n.inAppPurchases,
-                    onPressed: () => presentInAppPurchases(context, ref),
-                    icon: const Icon(Icons.workspace_premium_outlined),
-                  ),
                 IconButton(
                   key: _settingsButtonKey,
                   tooltip: l10n.settings,
@@ -735,44 +731,48 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   children: [
                     DecoratedBox(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(AppTheme.radius),
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radius + 4,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                            color: Colors.black.withValues(
+                              alpha: AppTheme.isDark ? 0.28 : 0.04,
+                            ),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
                       child: TextField(
-                      key: _searchFieldKey,
-                      controller: _searchController,
-                      focusNode: _searchFocus,
-                      textInputAction: TextInputAction.search,
-                      onTapOutside: (_) => _dismissSearchFocus(),
-                      onChanged: (v) {
-                        ref.read(libraryQueryProvider.notifier).state = v;
-                        setState(() {});
-                      },
-                      onSubmitted: (_) => _submitSearch(),
-                      decoration: InputDecoration(
-                        hintText: l10n.searchEverything,
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchController.text.isEmpty
-                            ? null
-                            : IconButton(
-                                onPressed: () {
-                                  _searchController.clear();
-                                  ref
-                                          .read(libraryQueryProvider.notifier)
-                                          .state =
-                                      '';
-                                  _dismissSearchFocus();
-                                  setState(() {});
-                                },
-                                icon: const Icon(Icons.close),
-                              ),
-                      ),
+                        key: _searchFieldKey,
+                        controller: _searchController,
+                        focusNode: _searchFocus,
+                        textInputAction: TextInputAction.search,
+                        onTapOutside: (_) => _dismissSearchFocus(),
+                        onChanged: (v) {
+                          ref.read(libraryQueryProvider.notifier).state = v;
+                          setState(() {});
+                        },
+                        onSubmitted: (_) => _submitSearch(),
+                        decoration: InputDecoration(
+                          hintText: l10n.searchEverything,
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          suffixIcon: _searchController.text.isEmpty
+                              ? null
+                              : IconButton(
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    ref
+                                            .read(libraryQueryProvider.notifier)
+                                            .state =
+                                        '';
+                                    _dismissSearchFocus();
+                                    setState(() {});
+                                  },
+                                  icon: const Icon(Icons.close_rounded),
+                                ),
+                        ),
                       ),
                     ),
                     SearchAtHints(
@@ -791,15 +791,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         setState(() {});
                       },
                     ),
-                    if (folderId == null && LaunchGates.commerceEnabled) ...[
-                      const SizedBox(height: 12),
-                      const _InAppPurchasesCard(),
-                    ],
                     if (folderId == null && !kIsWeb) ...[
                       const SizedBox(height: 12),
-                      _NearbyJoinCard(
+                      _NearbyPresenceStrip(
                         onOpen: () => context.push('/nearby'),
-                        onScan: _scanJoinFromLibrary,
                         onJoin: _joinNearbyHost,
                       ),
                     ],
@@ -829,9 +824,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       itemBuilder: (context, index) {
                         final hit = hits[index];
                         return ListTile(
-                          leading: Icon(_hitIcon(hit.kind)),
-                          title: Text(hit.snippet),
+                          leading: Icon(
+                            _hitIcon(hit.kind),
+                            color: AppTheme.accent,
+                          ),
+                          title: Text(
+                            hit.snippet,
+                            style: AppTheme.body(fontWeight: FontWeight.w700),
+                          ),
                           subtitle: Text(_hitSubtitle(l10n, hit)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           onTap: () => _openSearchHit(hit),
                         );
                       },
@@ -891,29 +895,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             runSpacing: 10,
                             children: [
                               for (final folder in ordered)
-                                GestureDetector(
+                                _LibraryFolderTile(
+                                  folder: folder,
+                                  onTap: () {
+                                    AppHaptics.tap();
+                                    ref
+                                        .read(currentFolderIdProvider.notifier)
+                                        .state = folder
+                                        .id;
+                                  },
                                   onLongPress: () => _folderActions(folder),
-                                  child: ActionChip(
-                                    avatar: Icon(
-                                      folderIconFor(folder.iconKey),
-                                      color: Color(folder.colorValue),
-                                    ),
-                                    label: Text(
-                                      folder.name,
-                                      style: AppTheme.body(
-                                        fontWeight: FontWeight.w700,
-                                        color: AppTheme.ink,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    onPressed: () =>
-                                        ref
-                                            .read(
-                                              currentFolderIdProvider.notifier,
-                                            )
-                                            .state = folder
-                                            .id,
-                                  ),
                                 ),
                             ],
                           ),
@@ -1014,29 +1005,49 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       rollovers.isEmpty) {
                     return SliverFillRemaining(
                       child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              l10n.noNotebooksYet,
-                              style: AppTheme.headline(fontSize: 24),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              l10n.noNotebooksHint,
-                              style: AppTheme.body(
-                                color: AppTheme.inkMuted,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentSoft,
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: Icon(
+                                  Icons.auto_stories_rounded,
+                                  size: 34,
+                                  color: AppTheme.accent,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 20),
-                            FilledButton.icon(
-                              onPressed: _showCreateMenu,
-                              icon: const Icon(Icons.add),
-                              label: Text(l10n.create),
-                            ),
-                          ],
+                              const SizedBox(height: 18),
+                              Text(
+                                l10n.noNotebooksYet,
+                                textAlign: TextAlign.center,
+                                style: AppTheme.headline(fontSize: 24),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                l10n.noNotebooksHint,
+                                textAlign: TextAlign.center,
+                                style: AppTheme.body(
+                                  color: AppTheme.inkMuted,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+                              FilledButton.icon(
+                                onPressed: _showCreateMenu,
+                                icon: const Icon(Icons.add_rounded),
+                                label: Text(l10n.create),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -1070,7 +1081,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 crossAxisCount: crossAxisCount,
                                 mainAxisSpacing: 20,
                                 crossAxisSpacing: 20,
-                                childAspectRatio: 0.72,
+                                childAspectRatio: 0.62,
                               ),
                           delegate: SliverChildBuilderDelegate((
                             context,
@@ -1089,6 +1100,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             return NotebookCover(
                               notebook: notebook,
                               onOpen: () async {
+                                AppHaptics.tap();
                                 await ref
                                     .read(notebookRepositoryProvider)
                                     .touchOpened(notebook.id);
@@ -1099,6 +1111,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 context.push('/notebook/${notebook.id}');
                               },
                               onFavorite: () async {
+                                AppHaptics.tap();
                                 await ref
                                     .read(notebookRepositoryProvider)
                                     .updateNotebook(
@@ -1219,66 +1232,61 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 }
 
-class _InAppPurchasesCard extends ConsumerWidget {
-  const _InAppPurchasesCard();
+class _LibraryFolderTile extends StatelessWidget {
+  const _LibraryFolderTile({
+    required this.folder,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  final LibraryFolder folder;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final billing = ref.watch(revenueCatBillingProvider);
+  Widget build(BuildContext context) {
+    final color = Color(folder.colorValue);
     return Material(
       color: AppTheme.card,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppTheme.outline.withValues(alpha: 0.8)),
-      ),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(16),
-        onTap: () => presentInAppPurchases(context, ref),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 108, maxWidth: 148),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.outline.withValues(alpha: 0.7)),
+          ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                billing.hasNotisPro
-                    ? Icons.workspace_premium
-                    : Icons.workspace_premium_outlined,
-                color: AppTheme.accent,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.inAppPurchases,
-                      style: AppTheme.body(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      billing.hasNotisPro
-                          ? l10n.notisProActive
-                          : l10n.inAppPurchasesHint,
-                      style: AppTheme.body(
-                        color: AppTheme.inkMuted,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(
+                  folderIconFor(folder.iconKey),
+                  color: color,
+                  size: 20,
                 ),
               ),
-              Text(
-                billing.hasNotisPro
-                    ? l10n.manageSubscription
-                    : l10n.upgradeToNotisPro,
-                style: AppTheme.body(
-                  color: AppTheme.accent,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  folder.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.body(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.ink,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],
@@ -1289,15 +1297,10 @@ class _InAppPurchasesCard extends ConsumerWidget {
   }
 }
 
-class _NearbyJoinCard extends ConsumerWidget {
-  const _NearbyJoinCard({
-    required this.onOpen,
-    required this.onScan,
-    required this.onJoin,
-  });
+class _NearbyPresenceStrip extends ConsumerWidget {
+  const _NearbyPresenceStrip({required this.onOpen, required this.onJoin});
 
   final VoidCallback onOpen;
-  final VoidCallback onScan;
   final Future<void> Function(NearbyDiscoveredHost host) onJoin;
 
   @override
@@ -1305,53 +1308,57 @@ class _NearbyJoinCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final sync = ref.watch(lanSyncProvider);
     final hosts = sync.discoveredHosts;
-    return Card(
-      color: AppTheme.card,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    if (hosts.isEmpty) return const SizedBox.shrink();
+    return Material(
+      color: AppTheme.accentSoft,
+      borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l10n.nearbyJoinFromLibrary,
-              style: AppTheme.body(fontWeight: FontWeight.w800, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.nearbyJoinFromLibraryHint,
-              style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onScan,
-              icon: const Icon(Icons.qr_code_scanner_rounded),
-              label: Text(l10n.nearbySyncScanQr),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onOpen,
-                child: Text(l10n.nearbyJoinManual),
+            InkWell(
+              onTap: onOpen,
+              child: Row(
+                children: [
+                  Icon(Icons.sensors_rounded, color: AppTheme.accent),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.nearbyReady,
+                          style: AppTheme.body(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          l10n.nearbyReadyHint,
+                          style: AppTheme.body(
+                            color: AppTheme.inkMuted,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded),
+                ],
               ),
             ),
-            if (hosts.isNotEmpty) ...[
-              for (final host in hosts.take(3))
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  leading: const Icon(Icons.tablet_mac_rounded, size: 22),
-                  title: Text(host.publicName),
-                  subtitle: Text(
-                    host.host.isNotEmpty ? host.host : 'Bluetooth',
-                  ),
-                  trailing: TextButton(
-                    onPressed: sync.isActive ? null : () => onJoin(host),
-                    child: Text(l10n.nearbySyncJoin),
-                  ),
+            for (final host in hosts.take(2))
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: const Icon(Icons.tablet_mac_rounded, size: 22),
+                title: Text(host.publicName),
+                trailing: TextButton(
+                  onPressed: sync.isActive ? null : () => onJoin(host),
+                  child: Text(l10n.nearbySyncJoin),
                 ),
-            ],
+              ),
           ],
         ),
       ),

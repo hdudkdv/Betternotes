@@ -381,13 +381,12 @@ class InkEngine extends ChangeNotifier {
     _notifyPaint();
   }
 
-  /// Lift-and-land (new letter / word) arrives as one pointer stream. A
-  /// pause plus movement is a new contact — do not draw the air gap.
-  /// A huge jump in one sample is a dropped pointer, not handwriting.
+  /// Lift-and-land (new letter) can arrive as one pointer stream. Require a
+  /// real pause — fast handwriting often jumps 10–20px in a single 16ms frame.
   bool _isLiftGap(StrokePoint last, double dist2, int now) {
     final prevT = last.t;
     final dt = (now > 0 && prevT > 0 && now > prevT) ? now - prevT : 0;
-    if (dt >= 32 && dist2 >= 6 * 6) return true;
+    if (dt >= 70 && dist2 >= 14 * 14) return true;
     if (dist2 >= 48 * 48) return true;
     return false;
   }

@@ -277,8 +277,7 @@ Future<NotebookCreateResult?> promptCreateNotebook(
                                   labelText: l10n.schoolClassSpec,
                                   hintText: l10n.schoolClassSpecHint,
                                 ),
-                                onChanged: (v) =>
-                                    setLocal(() => classSpec = v),
+                                onChanged: (v) => setLocal(() => classSpec = v),
                               ),
                             ),
                           ],
@@ -351,8 +350,7 @@ Future<NotebookCreateResult?> promptCreateNotebook(
                         ? l10n.untitledInfinite
                         : l10n.untitledNotebook;
                     final typed = title.trim();
-                    final resolved =
-                        typed.isEmpty || typed == untitled
+                    final resolved = typed.isEmpty || typed == untitled
                         ? suggestedNotebookTitle(
                             untitled: untitled,
                             folderName: folderName,
@@ -612,103 +610,154 @@ void showLibraryCreateSheet(
   final l10n = AppLocalizations.of(context)!;
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppTheme.paper,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    backgroundColor: AppTheme.card,
+    showDragHandle: true,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppTheme.radius + 10),
+      ),
     ),
     builder: (context) {
+      void run(VoidCallback action) {
+        Navigator.pop(context);
+        action();
+      }
+
       return SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: AppTheme.ink.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(99),
+              Text(
+                l10n.create,
+                style: AppTheme.headline(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              if (onJoinNearby != null)
-                ListTile(
-                  leading: const Icon(Icons.qr_code_scanner_rounded),
-                  title: Text(
-                    l10n.nearbyJoinFromLibrary,
-                    style: AppTheme.body(fontWeight: FontWeight.w700),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _CreateTile(
+                      icon: Icons.menu_book_rounded,
+                      title: l10n.newNotebook,
+                      onTap: () => run(onNotebook),
+                    ),
                   ),
-                  subtitle: Text(l10n.nearbyJoinFromLibraryHint),
-                  onTap: () {
-                    Navigator.pop(context);
-                    onJoinNearby();
-                  },
-                ),
-              ListTile(
-                leading: Icon(Icons.folder_outlined, color: AppTheme.ink),
-                title: Text(
-                  l10n.newFolder,
-                  style: AppTheme.body(fontWeight: FontWeight.w700),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  onFolder();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.menu_book_outlined),
-                title: Text(
-                  l10n.newNotebook,
-                  style: AppTheme.body(fontWeight: FontWeight.w700),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  onNotebook();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.all_out_outlined, color: AppTheme.accent),
-                title: Text(
-                  l10n.newInfiniteDocument,
-                  style: AppTheme.body(
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.accent,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _CreateTile(
+                      icon: Icons.all_out_rounded,
+                      title: l10n.newInfiniteDocument,
+                      accent: true,
+                      onTap: () => run(onInfinite),
+                    ),
                   ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  onInfinite();
-                },
+                ],
               ),
-              if (onScanPages != null)
-                ListTile(
-                  leading: const Icon(Icons.document_scanner_outlined),
-                  title: Text(
-                    l10n.scanPages,
-                    style: AppTheme.body(fontWeight: FontWeight.w700),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _CreateTile(
+                      icon: Icons.folder_rounded,
+                      title: l10n.newFolder,
+                      onTap: () => run(onFolder),
+                    ),
                   ),
-                  subtitle: Text(l10n.scanPagesHint),
-                  onTap: () {
-                    Navigator.pop(context);
-                    onScanPages();
-                  },
-                ),
-              ListTile(
-                leading: const Icon(Icons.style_outlined),
-                title: Text(
-                  l10n.newFlashcardDeck,
-                  style: AppTheme.body(fontWeight: FontWeight.w700),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  onFlashcards();
-                },
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _CreateTile(
+                      icon: Icons.style_rounded,
+                      title: l10n.newFlashcardDeck,
+                      onTap: () => run(onFlashcards),
+                    ),
+                  ),
+                ],
               ),
+              if (onScanPages != null || onJoinNearby != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    if (onScanPages != null)
+                      Expanded(
+                        child: _CreateTile(
+                          icon: Icons.document_scanner_rounded,
+                          title: l10n.scanPages,
+                          onTap: () => run(onScanPages),
+                        ),
+                      ),
+                    if (onScanPages != null && onJoinNearby != null)
+                      const SizedBox(width: 10),
+                    if (onJoinNearby != null)
+                      Expanded(
+                        child: _CreateTile(
+                          icon: Icons.qr_code_scanner_rounded,
+                          title: l10n.nearbyJoinFromLibrary,
+                          onTap: () => run(onJoinNearby),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
       );
     },
   );
+}
+
+class _CreateTile extends StatelessWidget {
+  const _CreateTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.accent = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: accent ? AppTheme.accentSoft : AppTheme.paperDeep,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 28,
+                color: accent ? AppTheme.accent : AppTheme.ink,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.body(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                  height: 1.2,
+                  color: accent ? AppTheme.accent : AppTheme.ink,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

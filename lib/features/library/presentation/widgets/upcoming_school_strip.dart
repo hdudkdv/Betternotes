@@ -38,7 +38,7 @@ class UpcomingSchoolStrip extends ConsumerWidget {
                 child: Text(
                   l10n.upcomingNext,
                   style: AppTheme.headline(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.ink,
                   ),

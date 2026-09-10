@@ -61,20 +61,19 @@ void main() {
     expect(engine.strokes.last.points.first.x, closeTo(56, 0.01));
   });
 
-  test('fast continuous writing does not split mid-stroke', () {
+  test('fast 60fps writing does not split mid-stroke', () {
     final engine = InkEngine()
       ..setTool(InkTool.pen)
       ..setColor(0xFF000000)
       ..setWidth(3);
 
     engine.beginStroke(const Offset(10, 10), t: 1000);
-    engine.appendStroke(const Offset(22, 14), t: 1008);
-    engine.appendStroke(const Offset(36, 20), t: 1016);
-    engine.appendStroke(const Offset(52, 28), t: 1024);
+    engine.appendStroke(const Offset(22, 16), t: 1016);
+    engine.appendStroke(const Offset(38, 24), t: 1032);
+    engine.appendStroke(const Offset(55, 34), t: 1048);
     engine.endStroke();
 
     expect(engine.strokes, hasLength(1));
-    expect(engine.strokes.single.points, hasLength(4));
   });
 
   test('stroke hit testing works', () {

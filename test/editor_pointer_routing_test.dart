@@ -218,7 +218,7 @@ void main() {
     expect(downs, 1);
   });
 
-  test('stylus hover and zero pressure count as in air', () {
+  test('stylus hover counts as in air; zero pressure while down does not', () {
     expect(
       PointerRouting.stylusIsInAir(
         const PointerHoverEvent(
@@ -245,6 +245,28 @@ void main() {
           kind: PointerDeviceKind.stylus,
           position: Offset.zero,
           pressure: 0,
+          pressureMax: 4.0,
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      PointerRouting.stylusHasContactPressure(
+        const PointerMoveEvent(
+          kind: PointerDeviceKind.stylus,
+          position: Offset.zero,
+          pressure: 0,
+          pressureMax: 4.0,
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      PointerRouting.stylusHasContactPressure(
+        const PointerMoveEvent(
+          kind: PointerDeviceKind.stylus,
+          position: Offset.zero,
+          pressure: 0.2,
           pressureMax: 4.0,
         ),
       ),

@@ -1,0 +1,13 @@
+# Notis
+
+> Notis is a handwritten notebook app for school and university. It runs on iPhone, iPad and in the browser.
+
+Notis (not Notion) is a notes app for students and teachers in German-speaking schools. You write with a stylus or mouse, import PDFs, keep a timetable, record grades and study with flashcards. Notes stay on the device first. Cloud sync with Google or Apple is optional.
+
+- Home: https://notis-notizbuecher.web.app/
+- Web app: https://notis-notizbuecher.web.app/app/
+- App Store: https://apps.apple.com/us/app/notis/id6801918801
+- Privacy: https://notis-notizbuecher.web.app/datenschutz
+- Terms: https://notis-notizbuecher.web.app/agb
+
+Free writing. Optional Lite and Pro plans for backup and sync. Android / Google Play is coming later.

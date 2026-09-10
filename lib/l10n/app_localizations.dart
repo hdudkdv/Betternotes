@@ -209,7 +209,7 @@ abstract class AppLocalizations {
   /// No description provided for @noNotebooksHint.
   ///
   /// In en, this message translates to:
-  /// **'Create one and start writing with your stylus.'**
+  /// **'Tap + to open a fresh page. Your stylus is ready.'**
   String get noNotebooksHint;
 
   /// No description provided for @deleteNotebookTitle.
@@ -3107,7 +3107,7 @@ abstract class AppLocalizations {
   /// No description provided for @inAppPurchasesHint.
   ///
   /// In en, this message translates to:
-  /// **'Open Lite and Pro subscriptions. Sandbox Apple IDs work here.'**
+  /// **'More sync, backup and classroom — without ads.'**
   String get inAppPurchasesHint;
 
   /// No description provided for @retryStoreProducts.
@@ -3125,7 +3125,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgradeToNotisProHint.
   ///
   /// In en, this message translates to:
-  /// **'Monthly, yearly, or lifetime App Store subscriptions.'**
+  /// **'Pick a plan for school or teaching.'**
   String get upgradeToNotisProHint;
 
   /// No description provided for @notisProActive.
@@ -4543,6 +4543,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scan a QR code or tap a device on this network — no internet.'**
   String get nearbyJoinFromLibraryHint;
+
+  /// No description provided for @nearbyReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Classroom nearby'**
+  String get nearbyReady;
+
+  /// No description provided for @nearbyReadyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Join without internet.'**
+  String get nearbyReadyHint;
 
   /// No description provided for @nearbyJoinManual.
   ///

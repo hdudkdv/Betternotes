@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/haptics.dart';
 import '../library/providers/library_providers.dart';
 
 class RoleOnboardingScreen extends ConsumerStatefulWidget {
@@ -19,6 +20,7 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
 
   Future<void> _select(AppUserRole role) async {
     if (_busy) return;
+    AppHaptics.confirm();
     setState(() => _busy = true);
     try {
       await ref.read(settingsProvider.notifier).setUserRole(role);
@@ -56,21 +58,15 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
                             value: 'system',
                             label: Text(l10n.systemLanguage),
                           ),
-                          ButtonSegment(
-                            value: 'de',
-                            label: Text(l10n.german),
-                          ),
-                          ButtonSegment(
-                            value: 'en',
-                            label: Text(l10n.english),
-                          ),
+                          ButtonSegment(value: 'de', label: Text(l10n.german)),
+                          ButtonSegment(value: 'en', label: Text(l10n.english)),
                         ],
                         selected: {settings.localeCode},
                         onSelectionChanged: _busy
                             ? null
                             : (selection) => ref
-                                .read(settingsProvider.notifier)
-                                .setLocaleCode(selection.first),
+                                  .read(settingsProvider.notifier)
+                                  .setLocaleCode(selection.first),
                       ),
                     ),
                     const Spacer(),
@@ -238,10 +234,7 @@ class _RoleCard extends StatelessWidget {
                 style: AppTheme.body(color: AppTheme.inkMuted, height: 1.45),
               ),
               const SizedBox(height: 22),
-              FilledButton(
-                onPressed: busy ? null : onTap,
-                child: Text(action),
-              ),
+              FilledButton(onPressed: busy ? null : onTap, child: Text(action)),
             ],
           ),
         ),

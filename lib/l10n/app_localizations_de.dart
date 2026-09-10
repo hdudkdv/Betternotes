@@ -63,7 +63,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noNotebooksYet => 'Noch keine Notizbücher';
 
   @override
-  String get noNotebooksHint => 'Erstelle eines und starte mit dem Stift.';
+  String get noNotebooksHint =>
+      'Tippe auf +, um eine leere Seite zu öffnen. Der Stift ist bereit.';
 
   @override
   String get deleteNotebookTitle => 'Notizbuch löschen?';
@@ -1637,7 +1638,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get inAppPurchasesHint =>
-      'Lite- und Pro-Abos öffnen. Sandbox-Apple-IDs funktionieren hier.';
+      'Mehr Sync, Backup und Klassenraum — ohne Werbung.';
 
   @override
   String get retryStoreProducts => 'App-Store-Produkte laden';
@@ -1647,7 +1648,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get upgradeToNotisProHint =>
-      'Monatliche, jährliche oder einmalige App-Store-Abos.';
+      'Wähle einen Plan für Schule oder Unterricht.';
 
   @override
   String get notisProActive => 'Notis Pro ist aktiv';
@@ -2435,6 +2436,12 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get nearbyJoinFromLibraryHint =>
       'QR-Code scannen oder ein Gerät in der Nähe antippen — ohne Internet.';
+
+  @override
+  String get nearbyReady => 'Klasse in der Nähe';
+
+  @override
+  String get nearbyReadyHint => 'Beitreten — ohne Internet.';
 
   @override
   String get nearbyJoinManual => 'Manuell beitreten';

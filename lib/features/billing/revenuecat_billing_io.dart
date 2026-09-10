@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -10,7 +11,14 @@ import 'revenuecat_config.dart';
 import 'revenuecat_paywall.dart';
 
 export 'package:purchases_flutter/purchases_flutter.dart'
-    show CustomerInfo, Offering, Offerings, Package, PackageType, StoreProduct;
+    show
+        CustomerInfo,
+        Offering,
+        Offerings,
+        Package,
+        PackageType,
+        ProductCategory,
+        StoreProduct;
 
 enum PurchaseOutcome { success, cancelled, error, unavailable }
 
@@ -19,9 +27,13 @@ enum PurchaseOutcome { success, cancelled, error, unavailable }
 class RevenueCatBilling extends ChangeNotifier {
   bool configured = false;
   String? error;
+  /// Last purchase/restore message safe to show in the UI.
+  String? userMessage;
+  bool purchasing = false;
   AppTier tier = AppTier.free;
   Offerings? offerings;
   CustomerInfo? customerInfo;
+  List<StoreProduct> extraProducts = const [];
 
   bool get hasNotisPro => _hasNotisPro(customerInfo);
   bool get usesTestStore => _apiKey.startsWith('test_');
@@ -33,10 +45,45 @@ class RevenueCatBilling extends ChangeNotifier {
   Offering? get currentOffering => offerings?.current;
 
   bool get hasStoreProducts {
+    if (extraProducts.isNotEmpty) return true;
     for (final offering in offerings?.all.values ?? const <Offering>[]) {
       if (offering.availablePackages.isNotEmpty) return true;
     }
     return (currentOffering?.availablePackages.isNotEmpty) ?? false;
+  }
+
+  List<StoreProduct> productsForAudience(PaywallAudience audience) {
+    final seen = <String>{};
+    final collected = <StoreProduct>[];
+    void add(StoreProduct product) {
+      if (seen.add(product.identifier)) collected.add(product);
+    }
+
+    for (final package in packagesForAudience(audience)) {
+      add(package.storeProduct);
+    }
+    if (collected.isEmpty) {
+      for (final product in extraProducts) {
+        if (_productBelongsTo(product, audience)) add(product);
+      }
+    }
+    if (collected.isEmpty) {
+      for (final product in extraProducts) {
+        add(product);
+      }
+    }
+    return collected;
+  }
+
+  Package? packageForProduct(StoreProduct product) {
+    for (final offering in offerings?.all.values ?? const <Offering>[]) {
+      for (final package in offering.availablePackages) {
+        if (package.storeProduct.identifier == product.identifier) {
+          return package;
+        }
+      }
+    }
+    return null;
   }
 
   Offering? _anyOfferingWithPackages() {
@@ -53,18 +100,43 @@ class RevenueCatBilling extends ChangeNotifier {
     final aliases = audience == PaywallAudience.teacher
         ? RevenueCatConfig.offeringTeacherAliases
         : RevenueCatConfig.offeringStudentAliases;
+
+    Offering? namedEmpty;
     for (final alias in aliases) {
-      final exact = all[alias];
-      if (exact != null) return exact;
-      for (final entry in all.entries) {
-        if (entry.key.toLowerCase() == alias.toLowerCase()) return entry.value;
-      }
+      final match = _offeringNamed(all, alias);
+      if (match == null) continue;
+      if (match.availablePackages.isNotEmpty) return match;
+      namedEmpty ??= match;
     }
+    for (final entry in all.entries) {
+      if (!_offeringKeyMatchesAudience(entry.key, audience) &&
+          !_offeringMatchesAudience(entry.value, audience)) {
+        continue;
+      }
+      if (entry.value.availablePackages.isNotEmpty) return entry.value;
+    }
+    if (namedEmpty != null) return namedEmpty;
     final current = currentOffering;
-    if (current != null && _offeringMatchesAudience(current, audience)) {
+    if (current != null &&
+        current.availablePackages.isNotEmpty &&
+        _offeringMatchesAudience(current, audience)) {
       return current;
     }
     return null;
+  }
+
+  Offering? _offeringNamed(Map<String, Offering> all, String alias) {
+    final exact = all[alias];
+    if (exact != null) return exact;
+    final needle = _normalizeOfferingId(alias);
+    for (final entry in all.entries) {
+      if (_normalizeOfferingId(entry.key) == needle) return entry.value;
+    }
+    return null;
+  }
+
+  static String _normalizeOfferingId(String key) {
+    return key.toLowerCase().replaceAll('ü', 'ue').replaceAll('ä', 'ae').replaceAll('ö', 'oe');
   }
 
   List<Package> packagesForAudience(PaywallAudience audience) {
@@ -102,7 +174,7 @@ class RevenueCatBilling extends ChangeNotifier {
   }
 
   bool _offeringKeyMatchesAudience(String key, PaywallAudience audience) {
-    final id = key.toLowerCase();
+    final id = _normalizeOfferingId(key);
     if (audience == PaywallAudience.teacher) {
       return id.contains('lehrer') || id.contains('teacher');
     }
@@ -157,6 +229,12 @@ class RevenueCatBilling extends ChangeNotifier {
       }
       configured = true;
       error = null;
+      userMessage = null;
+      try {
+        await Purchases.syncPurchases();
+      } catch (exception) {
+        debugPrint('RevenueCat syncPurchases skipped: $exception');
+      }
       await refresh();
     } catch (exception) {
       configured = false;
@@ -203,6 +281,9 @@ class RevenueCatBilling extends ChangeNotifier {
         await Future<void>.delayed(const Duration(milliseconds: 400));
         offerings = await Purchases.getOfferings();
       }
+      if (!hasStoreProducts) {
+        extraProducts = await _loadStoreProducts();
+      }
       // Never put dashboard / sideload copy in the UI — App Review treats
       // that as a broken In-App Purchase screen (Guideline 2.1(b)).
       error = null;
@@ -213,36 +294,77 @@ class RevenueCatBilling extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<PurchaseOutcome> restorePurchases() async {
-    if (!configured) return PurchaseOutcome.unavailable;
+  Future<List<StoreProduct>> _loadStoreProducts() async {
+    final ids = RevenueCatConfig.storeProductIds;
     try {
-      _applyCustomerInfo(await Purchases.restorePurchases());
-      error = null;
-      notifyListeners();
-      return PurchaseOutcome.success;
-    } on PlatformException catch (exception) {
-      return _handlePurchaseError(exception);
+      final subscriptions = await Purchases.getProducts(
+        ids,
+        productCategory: ProductCategory.subscription,
+      );
+      final oneTime = await Purchases.getProducts(
+        ids,
+        productCategory: ProductCategory.nonSubscription,
+      );
+      final seen = <String>{};
+      return [
+        for (final product in [...subscriptions, ...oneTime])
+          if (seen.add(product.identifier)) product,
+      ];
     } catch (exception) {
-      error = '$exception';
-      notifyListeners();
-      return PurchaseOutcome.error;
+      debugPrint('RevenueCat getProducts failed: $exception');
+      return const [];
     }
   }
 
-  Future<PurchaseOutcome> purchase(Package package) async {
-    if (!configured) return PurchaseOutcome.unavailable;
+  Future<PurchaseOutcome> restorePurchases() async {
+    if (!configured) {
+      userMessage = null;
+      return PurchaseOutcome.unavailable;
+    }
     try {
-      final result = await Purchases.purchase(PurchaseParams.package(package));
-      _applyCustomerInfo(result.customerInfo);
+      _applyCustomerInfo(await Purchases.restorePurchases());
       error = null;
+      userMessage = null;
       notifyListeners();
       return PurchaseOutcome.success;
     } on PlatformException catch (exception) {
       return _handlePurchaseError(exception);
     } catch (exception) {
-      error = '$exception';
+      return _genericPurchaseFailure(exception);
+    }
+  }
+
+  Future<PurchaseOutcome> purchase(Package package) {
+    return purchaseProduct(package.storeProduct);
+  }
+
+  Future<PurchaseOutcome> purchaseProduct(StoreProduct product) async {
+    if (!configured) {
+      userMessage = null;
+      return PurchaseOutcome.unavailable;
+    }
+    if (purchasing) return PurchaseOutcome.unavailable;
+    purchasing = true;
+    userMessage = null;
+    notifyListeners();
+    try {
+      final package = packageForProduct(product);
+      final result = await Purchases.purchase(
+        package != null
+            ? PurchaseParams.package(package)
+            : PurchaseParams.storeProduct(product),
+      );
+      _applyCustomerInfo(result.customerInfo);
+      error = null;
+      userMessage = null;
+      return PurchaseOutcome.success;
+    } on PlatformException catch (exception) {
+      return _handlePurchaseError(exception);
+    } catch (exception) {
+      return _genericPurchaseFailure(exception);
+    } finally {
+      purchasing = false;
       notifyListeners();
-      return PurchaseOutcome.error;
     }
   }
 
@@ -259,19 +381,33 @@ class RevenueCatBilling extends ChangeNotifier {
     return purchase(package);
   }
 
-  Future<PurchaseOutcome> presentPaywall({PaywallAudience? audience}) async {
+  Future<PurchaseOutcome> presentPaywall({
+    PaywallAudience? audience,
+    BuildContext? context,
+  }) async {
     if (!configured) return PurchaseOutcome.unavailable;
     if (!paywallSupported) {
       return PurchaseOutcome.unavailable;
     }
     final offering = audience == null
         ? _anyOfferingWithPackages()
-        : offeringForAudience(audience) ?? _anyOfferingWithPackages();
+        : offeringForAudience(audience);
     if (offering == null || offering.availablePackages.isEmpty) {
       return PurchaseOutcome.unavailable;
     }
     try {
-      final result = await presentRevenueCatPaywall(offering: offering);
+      var result = await presentRevenueCatPaywall(offering: offering);
+      if (result == PaywallResult.notPresented &&
+          context != null &&
+          context.mounted) {
+        result = await presentEmbeddedRevenueCatPaywall(
+          context,
+          offering: offering,
+          onCustomerInfo: (info) {
+            if (info is CustomerInfo) _applyCustomerInfo(info);
+          },
+        );
+      }
       return _outcomeFromPaywall(result);
     } catch (exception) {
       debugPrint('RevenueCat paywall failed: $exception');
@@ -322,8 +458,9 @@ class RevenueCatBilling extends ChangeNotifier {
         unawaited(refresh());
         return PurchaseOutcome.success;
       case PaywallResult.cancelled:
-      case PaywallResult.notPresented:
         return PurchaseOutcome.cancelled;
+      case PaywallResult.notPresented:
+        return PurchaseOutcome.unavailable;
       case PaywallResult.error:
         return PurchaseOutcome.error;
     }
@@ -333,15 +470,69 @@ class RevenueCatBilling extends ChangeNotifier {
     final code = PurchasesErrorHelper.getErrorCode(exception);
     if (code == PurchasesErrorCode.purchaseCancelledError) {
       error = null;
+      userMessage = null;
       notifyListeners();
       return PurchaseOutcome.cancelled;
     }
-    error = exception.message ?? '$exception';
-    if (_looksLikeInternalCopy(error!)) {
+    if (code == PurchasesErrorCode.productAlreadyPurchasedError) {
+      unawaited(() async {
+        try {
+          _applyCustomerInfo(await Purchases.restorePurchases());
+        } catch (restoreError) {
+          debugPrint('Restore after already-purchased failed: $restoreError');
+        }
+      }());
       error = null;
+      userMessage = null;
+      notifyListeners();
+      return PurchaseOutcome.success;
+    }
+    if (code == PurchasesErrorCode.paymentPendingError) {
+      error = null;
+      userMessage = null;
+      notifyListeners();
+      return PurchaseOutcome.success;
+    }
+    userMessage = _messageForPurchaseCode(code);
+    if (_looksLikeInternalCopy(exception.message ?? '$exception')) {
+      error = null;
+    } else {
+      error = exception.message ?? '$exception';
     }
     notifyListeners();
     return PurchaseOutcome.error;
+  }
+
+  PurchaseOutcome _genericPurchaseFailure(Object exception) {
+    debugPrint('Purchase failed: $exception');
+    userMessage = _messageForPurchaseCode(PurchasesErrorCode.unknownError);
+    error = _looksLikeInternalCopy('$exception') ? null : '$exception';
+    notifyListeners();
+    return PurchaseOutcome.error;
+  }
+
+  String _messageForPurchaseCode(PurchasesErrorCode code) {
+    return switch (code) {
+      PurchasesErrorCode.purchaseNotAllowedError ||
+      PurchasesErrorCode.insufficientPermissionsError =>
+        'Käufe sind für diese Apple-ID nicht erlaubt.',
+      PurchasesErrorCode.productNotAvailableForPurchaseError =>
+        'Dieses Produkt ist im Store noch nicht verfügbar.',
+      PurchasesErrorCode.storeProblemError ||
+      PurchasesErrorCode.productRequestTimeout =>
+        'Der App Store antwortet gerade nicht. Bitte später erneut versuchen.',
+      PurchasesErrorCode.networkError ||
+      PurchasesErrorCode.offlineConnectionError =>
+        'Keine Verbindung zum App Store.',
+      PurchasesErrorCode.purchaseInvalidError =>
+        'Der Kauf wurde vom Store abgelehnt.',
+      PurchasesErrorCode.receiptAlreadyInUseError ||
+      PurchasesErrorCode.receiptInUseByOtherSubscriberError =>
+        'Dieser Kauf gehört zu einem anderen Konto. Käufe wiederherstellen oder mit der ursprünglichen Apple-ID anmelden.',
+      PurchasesErrorCode.configurationError =>
+        'In-App-Käufe sind für diese App-Version nicht vollständig eingerichtet.',
+      _ => 'Kauf fehlgeschlagen. Bitte erneut versuchen.',
+    };
   }
 
   bool _looksLikeInternalCopy(String raw) {
@@ -399,6 +590,13 @@ class RevenueCatBilling extends ChangeNotifier {
   }
 
   bool _offeringMatchesAudience(Offering offering, PaywallAudience audience) {
+    if (_offeringKeyMatchesAudience(offering.identifier, audience)) {
+      return true;
+    }
+    if (offering.serverDescription.isNotEmpty &&
+        _offeringKeyMatchesAudience(offering.serverDescription, audience)) {
+      return true;
+    }
     final packages = offering.availablePackages;
     if (packages.isEmpty) return false;
     return packages.every((package) => _packageBelongsTo(package, audience));
@@ -408,6 +606,17 @@ class RevenueCatBilling extends ChangeNotifier {
     final blob =
         '${package.identifier} ${package.storeProduct.identifier} ${package.storeProduct.title}'
             .toLowerCase();
+    return _audienceBlobMatches(blob, audience);
+  }
+
+  bool _productBelongsTo(StoreProduct product, PaywallAudience audience) {
+    return _audienceBlobMatches(
+      '${product.identifier} ${product.title}'.toLowerCase(),
+      audience,
+    );
+  }
+
+  bool _audienceBlobMatches(String blob, PaywallAudience audience) {
     final teacherHit = blob.contains('lehrer') || blob.contains('teacher');
     final studentHit =
         blob.contains('schueler') ||

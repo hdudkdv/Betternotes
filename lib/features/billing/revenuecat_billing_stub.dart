@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../entitlements/entitlement_model.dart';
@@ -17,10 +17,15 @@ enum PackageType {
   weekly,
 }
 
+enum ProductCategory { subscription, nonSubscription }
+
 class StoreProduct {
   String get title => '';
   String get description => '';
   String get priceString => '';
+  String get identifier => '';
+  ProductCategory? get productCategory => null;
+  String? get subscriptionPeriod => null;
 }
 
 class Package {
@@ -46,6 +51,8 @@ class CustomerInfo {}
 class RevenueCatBilling extends ChangeNotifier {
   bool configured = false;
   String? error;
+  String? userMessage;
+  bool purchasing = false;
   AppTier tier = AppTier.free;
   Offerings? offerings;
   CustomerInfo? customerInfo;
@@ -58,6 +65,8 @@ class RevenueCatBilling extends ChangeNotifier {
   Offering? get currentOffering => null;
   Offering? offeringForAudience(Object audience) => null;
   List<Package> packagesForAudience(Object audience) => const [];
+  List<StoreProduct> productsForAudience(Object audience) => const [];
+  Package? packageForProduct(StoreProduct product) => null;
   Package? get lifetimePackage => null;
   Package? get yearlyPackage => null;
   Package? get monthlyPackage => null;
@@ -78,11 +87,16 @@ class RevenueCatBilling extends ChangeNotifier {
   Future<PurchaseOutcome> purchase(Package package) async =>
       PurchaseOutcome.unavailable;
 
+  Future<PurchaseOutcome> purchaseProduct(StoreProduct product) async =>
+      PurchaseOutcome.unavailable;
+
   Future<PurchaseOutcome> purchaseNamed(String packageId) async =>
       PurchaseOutcome.unavailable;
 
-  Future<PurchaseOutcome> presentPaywall({Object? audience}) async =>
-      PurchaseOutcome.unavailable;
+  Future<PurchaseOutcome> presentPaywall({
+    Object? audience,
+    BuildContext? context,
+  }) async => PurchaseOutcome.unavailable;
 
   Future<PurchaseOutcome> presentPaywallIfNeeded({Object? audience}) async =>
       PurchaseOutcome.unavailable;

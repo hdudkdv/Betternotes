@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/haptics.dart';
 import '../import_export/csv_service.dart';
 import '../import_export/subject_notebook_link.dart';
 import '../library/providers/library_providers.dart';
@@ -234,11 +235,23 @@ class _HomeCell extends StatelessWidget {
     return Material(
       color: emphasized ? AppTheme.accentSoft : AppTheme.card,
       borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          AppHaptics.tap();
+          onTap();
+        },
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: emphasized
+                  ? AppTheme.accent.withValues(alpha: 0.35)
+                  : AppTheme.outline.withValues(alpha: 0.7),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

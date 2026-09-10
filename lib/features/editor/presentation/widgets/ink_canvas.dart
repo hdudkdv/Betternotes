@@ -141,6 +141,9 @@ class InkCanvasState extends State<InkCanvas>
   Offset? _pendingLocal;
   double _pendingPressure = 0.5;
   int _pendingT = 0;
+  bool _strokeHadPressure = false;
+  int _lowPressureStreak = 0;
+  int _drawStartedAtMs = 0;
 
   /// Set once the fit matrix has been written to [_transform]. Until then the
   /// controller is still identity (scale=1), which must NOT count as zoomed —
@@ -804,7 +807,7 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _forwardDrawMove(PointerMoveEvent event) {
-    if (PointerRouting.stylusIsInAir(event)) {
+    if (_stylusLostContact(event)) {
       _stopDrawing(commit: true);
       setState(() {});
       return;
@@ -816,6 +819,22 @@ class InkCanvasState extends State<InkCanvas>
     );
   }
 
+  /// Pencil lift: hover (`!down`) or pressure collapsed after real contact.
+  /// The first samples of a new tap often have pressure 0 — those must not
+  /// end the stroke, or fast lift-and-land never writes again.
+  bool _stylusLostContact(PointerMoveEvent event) {
+    if (!PointerRouting.isActiveStylus(event)) return false;
+    if (!event.down) return true;
+    if (PointerRouting.stylusHasContactPressure(event)) {
+      _strokeHadPressure = true;
+      _lowPressureStreak = 0;
+      return false;
+    }
+    if (!_strokeHadPressure) return false;
+    _lowPressureStreak++;
+    return _lowPressureStreak >= 3;
+  }
+
   void _beginStroke(
     int pointer,
     Offset local, {
@@ -823,6 +842,9 @@ class InkCanvasState extends State<InkCanvas>
     required double pressure,
     int t = 0,
   }) {
+    _strokeHadPressure = isStylus && pressure >= 0.05;
+    _lowPressureStreak = 0;
+    _drawStartedAtMs = t;
     _armPointerTracking(pointer, isStylus: isStylus);
     widget.onPointerDown(
       _toPageLocal(local),
@@ -847,6 +869,8 @@ class InkCanvasState extends State<InkCanvas>
     _drawing = false;
     _drawPointer = null;
     _drawIsStylus = false;
+    _strokeHadPressure = false;
+    _lowPressureStreak = 0;
     _updateScrollLock();
   }
 
@@ -1008,8 +1032,24 @@ class InkCanvasState extends State<InkCanvas>
       return;
     }
 
-    // Hover / residual moves after a lift must not pan or keep inking.
+    // Hover / residual moves after a lift must not pan. If the pencil is
+    // still "down" (missed up, or pressure ramping after a false lift),
+    // start a new stroke instead of dropping the ink.
     if (PointerRouting.isActiveStylus(event) && !_drawing) {
+      if (event.down &&
+          _canDrawWith(event) &&
+          _pointerGlobal.containsKey(event.pointer) &&
+          PointerRouting.stylusHasContactPressure(event)) {
+        setState(() {});
+        _beginStroke(
+          event.pointer,
+          event.localPosition,
+          isStylus: true,
+          pressure: _inkPressure(event),
+          t: _eventTime(event),
+        );
+        return;
+      }
       return;
     }
 
@@ -1176,6 +1216,20 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _handlePointerHover(PointerHoverEvent event) {
+    // Apple Pencil reuses the same pointer id. Hover from the previous lift
+    // can arrive after the next down and would kill the new stroke.
+    final now = event.timeStamp.inMilliseconds;
+    if (_drawing &&
+        (event.pointer == _drawPointer || _drawIsStylus) &&
+        _drawStartedAtMs > 0 &&
+        now - _drawStartedAtMs < 80) {
+      return;
+    }
+    if (_drawing &&
+        _pointerGlobal.containsKey(event.pointer) &&
+        !_strokeHadPressure) {
+      return;
+    }
     final wasDrawing =
         _drawing &&
         (event.pointer == _drawPointer || _drawIsStylus);

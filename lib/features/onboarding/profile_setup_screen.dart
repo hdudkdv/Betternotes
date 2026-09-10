@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/haptics.dart';
 import '../import_export/import_export_providers.dart';
 import '../library/providers/library_providers.dart';
 import '../planner/education_settings.dart';
@@ -278,7 +279,10 @@ class _ChoiceCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          AppHaptics.tap();
+          onTap();
+        },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

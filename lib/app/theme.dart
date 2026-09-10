@@ -137,11 +137,11 @@ class AppTheme {
       highlightColor: palette.ink.withValues(alpha: 0.05),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
         },
       ),
       appBarTheme: AppBarTheme(
@@ -162,8 +162,72 @@ class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: palette.accent,
         foregroundColor: palette.onAccent,
-        elevation: 3,
-        highlightElevation: 5,
+        elevation: 2,
+        highlightElevation: 3,
+        focusElevation: 2,
+        hoverElevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(palette.radius + 4),
+        ),
+        extendedPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 14,
+        ),
+        extendedTextStyle: GoogleFonts.getFont(
+          palette.bodyFont,
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: palette.accent,
+          foregroundColor: palette.onAccent,
+          disabledBackgroundColor: palette.surfaceAlt,
+          disabledForegroundColor: palette.inkMuted,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: radius),
+          textStyle: GoogleFonts.getFont(
+            palette.bodyFont,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: palette.surfaceRaised,
+          foregroundColor: palette.ink,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: radius,
+            side: BorderSide(color: palette.outline),
+          ),
+          textStyle: GoogleFonts.getFont(
+            palette.bodyFont,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: palette.accent,
+          textStyle: GoogleFonts.getFont(
+            palette.bodyFont,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: palette.ink,
+          highlightColor: palette.ink.withValues(alpha: 0.06),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -253,6 +317,8 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
         behavior: SnackBarBehavior.floating,
+        elevation: 4,
+        insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
       chipTheme: ChipThemeData(

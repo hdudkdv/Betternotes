@@ -1,15 +1,15 @@
 :root {
   --ink: #17171c;
   --muted: #5b5b69;
-  --paper: #f6f6f8;
+  --paper: #f4f3f7;
   --card: #ffffff;
   --accent: #5b4be0;
   --accent-deep: #4334c4;
   --accent-soft: #e4e0fb;
-  --desk: #d4d4dc;
-  --line: #d8d8e0;
-  --shadow: 0 16px 40px rgba(23, 23, 28, 0.08);
-  --radius: 14px;
+  --desk: #b8b6c0;
+  --line: #e2e1e8;
+  --shadow: 0 18px 40px rgba(23, 23, 28, 0.08);
+  --radius: 16px;
 }
 
 * { box-sizing: border-box; }
@@ -24,16 +24,16 @@ html, body {
 
 body {
   min-height: 100vh;
-  background-image:
-    radial-gradient(1200px 420px at 80% -10%, rgba(91, 75, 224, 0.12), transparent 60%),
-    linear-gradient(180deg, #ececf1, var(--paper) 28rem);
+  background:
+    radial-gradient(900px 380px at 88% -8%, rgba(91, 75, 224, 0.14), transparent 58%),
+    linear-gradient(180deg, #eceaf3, var(--paper) 22rem);
 }
 
 a { color: var(--accent); text-decoration-thickness: 1px; }
 a:hover { color: var(--accent-deep); }
 
 .wrap {
-  width: min(1040px, calc(100% - 32px));
+  width: min(980px, calc(100% - 32px));
   margin: 0 auto;
 }
 
@@ -42,35 +42,41 @@ a:hover { color: var(--accent-deep); }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 0 8px;
+  padding: 18px 0;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  backdrop-filter: blur(14px);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   color: inherit;
   text-decoration: none;
 }
 
 .brand img {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
   background: #fff;
-  box-shadow: var(--shadow);
+  box-shadow: 0 8px 20px rgba(23, 23, 28, 0.1);
 }
 
 .brand strong {
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   letter-spacing: -0.04em;
 }
 
 .nav {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 8px 18px;
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
   font-size: 0.92rem;
   font-weight: 600;
@@ -104,38 +110,44 @@ a:hover { color: var(--accent-deep); }
 .hero {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
-  gap: 40px;
+  gap: 48px;
   align-items: center;
-  padding: 52px 0 36px;
+  padding: 36px 0 28px;
 }
 
 .hero h1 {
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
-  font-size: clamp(2.6rem, 6vw, 4.4rem);
-  letter-spacing: -0.06em;
-  line-height: 0.95;
+  font-size: clamp(2.2rem, 5.4vw, 3.6rem);
+  letter-spacing: -0.055em;
+  line-height: 1.05;
   margin: 0 0 16px;
 }
 
 .hero p {
-  font-size: 1.15rem;
-  line-height: 1.5;
+  font-size: 1.08rem;
+  line-height: 1.55;
   color: var(--muted);
-  max-width: 36rem;
+  max-width: 34rem;
+  margin: 0;
+}
+
+.fine {
+  margin-top: 14px !important;
+  font-size: 0.88rem !important;
 }
 
 .cta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 26px;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 20px;
+  padding: 12px 18px;
   border-radius: 999px;
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
   font-weight: 700;
@@ -146,6 +158,7 @@ a:hover { color: var(--accent-deep); }
 .btn-primary {
   background: var(--accent);
   color: #fff;
+  box-shadow: 0 10px 24px rgba(91, 75, 224, 0.28);
 }
 
 .btn-primary:hover { background: var(--accent-deep); color: #fff; }
@@ -154,14 +167,6 @@ a:hover { color: var(--accent-deep); }
   border: 1px solid var(--line);
   color: var(--ink);
   background: #fff;
-}
-
-.btn-soon {
-  border: 1px dashed var(--line);
-  color: var(--muted);
-  background: #ececf1;
-  cursor: default;
-  pointer-events: none;
 }
 
 .hero-card {
@@ -174,9 +179,9 @@ a:hover { color: var(--accent-deep); }
 .desk-page {
   background: #fff;
   border-radius: 10px;
-  min-height: 280px;
+  min-height: 240px;
   padding: 28px 24px 22px;
-  box-shadow: 0 10px 28px rgba(23, 23, 28, 0.12);
+  box-shadow: 0 14px 32px rgba(23, 23, 28, 0.16);
   background-image: repeating-linear-gradient(
     180deg,
     transparent,
@@ -191,8 +196,8 @@ a:hover { color: var(--accent-deep); }
 .kicker {
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--accent);
   margin: 0 0 10px;
@@ -202,15 +207,16 @@ a:hover { color: var(--accent-deep); }
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 28px 28px 32px;
-  margin: 8px 0 28px;
+  padding: 26px 26px 28px;
+  margin: 0 0 22px;
   border: 1px solid var(--line);
 }
 
-.purpose h2 {
+.purpose h2,
+.purpose h3 {
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
   letter-spacing: -0.03em;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 
 .purpose p,
@@ -219,23 +225,18 @@ a:hover { color: var(--accent-deep); }
   line-height: 1.55;
 }
 
-.purpose ul {
-  margin: 12px 0 0;
-  padding-left: 1.2rem;
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 12px 0 48px;
+  gap: 14px;
+  padding: 8px 0 28px;
 }
 
 .plan-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 16px;
+  gap: 14px;
+  margin-top: 8px;
 }
 
 .card {
@@ -246,16 +247,35 @@ a:hover { color: var(--accent-deep); }
   border: 1px solid var(--line);
 }
 
-.card h2 {
+.card h2,
+.card h3 {
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
-  font-size: 1.08rem;
+  font-size: 1.05rem;
   margin: 0 0 8px;
 }
 
 .card p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.45;
+  line-height: 1.5;
+}
+
+.faq details {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+
+.faq details:first-of-type { border-top: 0; }
+
+.faq summary {
+  font-family: "Plus Jakarta Sans", Inter, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.faq details p {
+  margin: 8px 0 0;
+  color: var(--muted);
 }
 
 .legal {
@@ -303,7 +323,7 @@ footer {
   padding: 18px 0 40px;
   color: var(--muted);
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -311,9 +331,13 @@ footer {
   border-top: 1px solid var(--line);
 }
 
+footer a { color: var(--muted); text-decoration: none; }
+footer a:hover { color: var(--accent); }
+
 [hidden] { display: none !important; }
 
 @media (max-width: 800px) {
   .hero, .grid, .plan-grid { grid-template-columns: 1fr; }
-  .hero { padding-top: 24px; }
+  .hero { padding-top: 12px; gap: 28px; }
+  .hero-card { display: none; }
 }

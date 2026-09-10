@@ -7,24 +7,57 @@ import '../../app/launch_gates.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/coming_soon_sheet.dart';
+import '../auth/auth_repository.dart';
 import '../legal/legal_urls.dart';
 import '../library/providers/library_providers.dart';
 import 'plan_catalog.dart';
 import 'revenuecat_billing.dart';
 import 'revenuecat_config.dart';
 
+PaywallAudience _paywallAudienceFor(WidgetRef ref) {
+  final role = ref.read(settingsProvider).userRole ?? AppUserRole.student;
+  return role == AppUserRole.teacher
+      ? PaywallAudience.teacher
+      : PaywallAudience.student;
+}
+
+Future<PurchaseOutcome> _presentRolePaywall(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final billing = ref.read(revenueCatBillingProvider);
+  if (billing.configured) {
+    await billing.refresh();
+  } else {
+    await billing.initialize(appUserId: ref.read(authProvider).user?.uid);
+  }
+  if (!context.mounted) return PurchaseOutcome.unavailable;
+  if (!billing.paywallSupported) return PurchaseOutcome.unavailable;
+  return billing.presentPaywall(
+    audience: _paywallAudienceFor(ref),
+    context: context,
+  );
+}
+
 Future<void> presentInAppPurchases(BuildContext context, WidgetRef ref) async {
   if (!LaunchGates.commerceEnabled) {
     await showComingSoonSheet(context);
     return;
   }
-  final billing = ref.read(revenueCatBillingProvider);
-  if (billing.configured) {
-    await billing.refresh();
-  }
+  final outcome = await _presentRolePaywall(context, ref);
   if (!context.mounted) return;
-  if (billing.hasNotisPro) {
-    await billing.presentCustomerCenter();
+  if (outcome == PurchaseOutcome.success) {
+    await showPurchaseOutcomeMessage(context, outcome);
+    return;
+  }
+  if (outcome == PurchaseOutcome.cancelled) return;
+  if (outcome == PurchaseOutcome.error) {
+    final billing = ref.read(revenueCatBillingProvider);
+    await showPurchaseOutcomeMessage(
+      context,
+      outcome,
+      detail: billing.userMessage,
+    );
     return;
   }
   context.push('/iap');
@@ -32,15 +65,19 @@ Future<void> presentInAppPurchases(BuildContext context, WidgetRef ref) async {
 
 Future<void> showPurchaseOutcomeMessage(
   BuildContext context,
-  PurchaseOutcome outcome,
-) async {
+  PurchaseOutcome outcome, {
+  String? detail,
+}) async {
   if (outcome == PurchaseOutcome.cancelled) return;
   final l10n = AppLocalizations.of(context)!;
   final message = switch (outcome) {
     PurchaseOutcome.success => l10n.purchaseSuccess,
     PurchaseOutcome.cancelled => l10n.purchaseCancelled,
     PurchaseOutcome.unavailable => l10n.storeProductsUnavailable,
-    PurchaseOutcome.error => l10n.storeProductsUnavailable,
+    PurchaseOutcome.error =>
+      (detail != null && detail.trim().isNotEmpty)
+          ? l10n.purchaseFailed(detail)
+          : l10n.storeProductsUnavailable,
   };
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -54,18 +91,15 @@ Future<PurchaseOutcome> showSubscriptionPaywall(
     await showComingSoonSheet(context);
     return PurchaseOutcome.cancelled;
   }
-  final role = ref.read(settingsProvider).userRole ?? AppUserRole.student;
-  final audience = role == AppUserRole.teacher
-      ? PaywallAudience.teacher
-      : PaywallAudience.student;
-  final billing = ref.read(revenueCatBillingProvider);
-  if (billing.configured) {
-    await billing.refresh();
-  }
+  final presented = await _presentRolePaywall(context, ref);
   if (!context.mounted) return PurchaseOutcome.cancelled;
-  // Always show the in-app product list. The native RevenueCat paywall
-  // can present empty in App Review sandbox and then return "cancelled",
-  // which hid In-App Purchases (Guideline 2.1(b)).
+  if (presented == PurchaseOutcome.success ||
+      presented == PurchaseOutcome.cancelled ||
+      presented == PurchaseOutcome.error) {
+    return presented;
+  }
+  // Fallback product list if the dashboard paywall is missing (App Review).
+  final audience = _paywallAudienceFor(ref);
   final outcome = await showModalBottomSheet<PurchaseOutcome>(
     context: context,
     isScrollControlled: true,
@@ -123,7 +157,7 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final billing = ref.watch(revenueCatBillingProvider);
-    final packages = billing.packagesForAudience(audience);
+    final products = billing.productsForAudience(audience);
     final german = Localizations.localeOf(context).languageCode == 'de';
     final role = audience == PaywallAudience.teacher
         ? AppUserRole.teacher
@@ -138,11 +172,16 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
     ];
 
     Future<void> finish(PurchaseOutcome outcome) async {
-      if (asPage) {
-        await showPurchaseOutcomeMessage(context, outcome);
+      if (!context.mounted) return;
+      if (asPage || outcome != PurchaseOutcome.success) {
+        await showPurchaseOutcomeMessage(
+          context,
+          outcome,
+          detail: billing.userMessage,
+        );
         return;
       }
-      if (context.mounted) Navigator.pop(context, outcome);
+      Navigator.pop(context, outcome);
     }
 
     return SafeArea(
@@ -179,18 +218,20 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                 style: AppTheme.body(color: AppTheme.inkMuted),
               ),
               const SizedBox(height: 16),
-              if (packages.isNotEmpty)
-                for (final package in packages)
-                  _StorePackageTile(
-                    package: package,
-                    onBuy: () async {
-                      final outcome = await billing.purchase(package);
-                      if (!context.mounted) return;
-                      if (outcome == PurchaseOutcome.success ||
-                          outcome == PurchaseOutcome.cancelled) {
-                        await finish(outcome);
-                      }
-                    },
+              if (products.isNotEmpty)
+                for (final product in products)
+                  _StoreProductTile(
+                    product: product,
+                    busy: billing.purchasing,
+                    onBuy: billing.purchasing
+                        ? null
+                        : () async {
+                            final outcome = await billing.purchaseProduct(
+                              product,
+                            );
+                            if (!context.mounted) return;
+                            await finish(outcome);
+                          },
                   )
               else ...[
                 Text(
@@ -199,9 +240,13 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 FilledButton.icon(
-                  onPressed: billing.configured
+                  onPressed: billing.purchasing
+                      ? null
+                      : billing.configured
                       ? () => billing.refresh()
-                      : null,
+                      : () => billing.initialize(
+                          appUserId: ref.read(authProvider).user?.uid,
+                        ),
                   icon: const Icon(Icons.storefront_outlined),
                   label: Text(l10n.retryStoreProducts),
                 ),
@@ -243,15 +288,22 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                 ],
               ),
               TextButton(
-                onPressed: billing.configured
-                    ? () async {
+                onPressed: !billing.configured || billing.purchasing
+                    ? null
+                    : () async {
                         final outcome = await billing.restorePurchases();
                         if (!context.mounted) return;
                         await finish(outcome);
-                      }
-                    : null,
+                      },
                 child: Text(l10n.restorePurchases),
               ),
+              if (billing.hasNotisPro)
+                TextButton(
+                  onPressed: billing.purchasing
+                      ? null
+                      : () => billing.presentCustomerCenter(),
+                  child: Text(l10n.manageSubscription),
+                ),
               if (!asPage)
                 TextButton(
                   onPressed: () =>
@@ -266,27 +318,44 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
   }
 }
 
-class _StorePackageTile extends StatelessWidget {
-  const _StorePackageTile({required this.package, required this.onBuy});
+class _StoreProductTile extends StatelessWidget {
+  const _StoreProductTile({
+    required this.product,
+    required this.onBuy,
+    this.busy = false,
+  });
 
-  final Package package;
-  final VoidCallback onBuy;
+  final StoreProduct product;
+  final VoidCallback? onBuy;
+  final bool busy;
 
   String _length(AppLocalizations l10n) {
-    return switch (package.packageType) {
-      PackageType.annual => l10n.subscriptionLengthYear,
-      PackageType.monthly => l10n.subscriptionLengthMonth,
-      PackageType.weekly => l10n.subscriptionLengthWeek,
-      PackageType.sixMonth => l10n.subscriptionLengthSixMonths,
-      PackageType.lifetime => l10n.subscriptionLengthLifetime,
-      _ => l10n.subscriptionLengthYear,
-    };
+    switch (product.productCategory) {
+      case ProductCategory.nonSubscription:
+        return l10n.subscriptionLengthLifetime;
+      case ProductCategory.subscription:
+      case null:
+        break;
+    }
+    final period = product.subscriptionPeriod?.toLowerCase() ?? '';
+    if (period.contains('p1y') || period.contains('year')) {
+      return l10n.subscriptionLengthYear;
+    }
+    if (period.contains('p1m') || period.contains('month')) {
+      return l10n.subscriptionLengthMonth;
+    }
+    if (period.contains('p1w') || period.contains('week')) {
+      return l10n.subscriptionLengthWeek;
+    }
+    if (period.contains('p6m')) {
+      return l10n.subscriptionLengthSixMonths;
+    }
+    return l10n.subscriptionLengthYear;
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final product = package.storeProduct;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -312,7 +381,13 @@ class _StorePackageTile extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: FilledButton(
                 onPressed: onBuy,
-                child: Text(product.priceString),
+                child: busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(product.priceString),
               ),
             ),
           ],

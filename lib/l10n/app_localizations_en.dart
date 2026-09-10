@@ -64,7 +64,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noNotebooksHint =>
-      'Create one and start writing with your stylus.';
+      'Tap + to open a fresh page. Your stylus is ready.';
 
   @override
   String get deleteNotebookTitle => 'Delete notebook?';
@@ -1632,7 +1632,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inAppPurchasesHint =>
-      'Open Lite and Pro subscriptions. Sandbox Apple IDs work here.';
+      'More sync, backup and classroom — without ads.';
 
   @override
   String get retryStoreProducts => 'Load App Store products';
@@ -1641,8 +1641,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get upgradeToNotisPro => 'Get Notis Pro';
 
   @override
-  String get upgradeToNotisProHint =>
-      'Monthly, yearly, or lifetime App Store subscriptions.';
+  String get upgradeToNotisProHint => 'Pick a plan for school or teaching.';
 
   @override
   String get notisProActive => 'Notis Pro is active';
@@ -2424,6 +2423,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get nearbyJoinFromLibraryHint =>
       'Scan a QR code or tap a device on this network — no internet.';
+
+  @override
+  String get nearbyReady => 'Classroom nearby';
+
+  @override
+  String get nearbyReadyHint => 'Join without internet.';
 
   @override
   String get nearbyJoinManual => 'Join manually';

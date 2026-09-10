@@ -494,7 +494,7 @@ class PdfService {
             ? stroke.width * (0.35 + pressure * 1.10)
             : stroke.width;
         final alpha = stroke.isPencil
-            ? (0.12 + pressure * 0.82).clamp(0.08, 0.95)
+            ? (0.28 + pressure * 0.42).clamp(0.22, 0.78)
             : 1.0;
         canvas
           ..setStrokeColor(pdf.PdfColor(base.red, base.green, base.blue, alpha))
@@ -511,7 +511,7 @@ class PdfService {
             ? stroke.width * (0.35 + pressure * 1.10)
             : stroke.width;
         final alpha = stroke.isPencil
-            ? (0.12 + pressure * 0.82).clamp(0.08, 0.95)
+            ? (0.28 + pressure * 0.42).clamp(0.22, 0.78)
             : 1.0;
         canvas
           ..setFillColor(pdf.PdfColor(base.red, base.green, base.blue, alpha))

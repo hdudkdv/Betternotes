@@ -26,10 +26,12 @@ abstract final class RevenueCatConfig {
   static const packageMonthly = 'monthly';
 
   /// RevenueCat offering identifiers (dashboard → Offerings).
-  /// Prefer the role umbrellas; the rest are extra per-product offerings.
-  static const offeringStudent = 'schueler';
-  static const offeringTeacher = 'lehrer';
+  /// Paywalls are named "Schüler" and "Lehrer" and attached to these offerings.
+  static const offeringStudent = 'Schüler';
+  static const offeringTeacher = 'Lehrer';
   static const offeringStudentAliases = [
+    'Schüler',
+    'Schueler',
     'schueler',
     'student',
     'schuelerLite',
@@ -40,6 +42,7 @@ abstract final class RevenueCatConfig {
     'Schueler_Pro_lifetime',
   ];
   static const offeringTeacherAliases = [
+    'Lehrer',
     'lehrer',
     'teacher',
     'lehrer_lite',
@@ -50,6 +53,26 @@ abstract final class RevenueCatConfig {
   static const teacherLiteEntitlements = {lehrerLite};
   static const studentProEntitlements = {schuelerPro, notisPro, proPlus};
   static const studentLiteEntitlements = {schuelerLite, pro};
+
+  /// App Store / Play product IDs. Used when RevenueCat offerings come back
+  /// empty so StoreKit can still load the SKUs attached to the app.
+  static const storeProductIds = [
+    'schueler_lite',
+    'schueler_pro',
+    'lehrer_lite',
+    'lehrer_pro',
+    'schueler_lite_annual',
+    'schueler_lite_lifetime',
+    'schueler_pro_annual',
+    'schueler_pro_lifetime',
+    'Schueler_lite_lifetime',
+    'Schueler_Pro_annual',
+    'Schueler_Pro_lifetime',
+    'lehrer_lite_monthly',
+    'lehrer_pro_monthly',
+    'notis_lite',
+    'notis_pro',
+  ];
 }
 
 enum PaywallAudience { student, teacher }

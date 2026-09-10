@@ -12,6 +12,7 @@ import '../../app/launch_gates.dart';
 import '../../app/theme.dart';
 import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/haptics.dart';
 import '../auth/auth_repository.dart';
 import '../billing/revenuecat_billing.dart';
 import '../billing/subscription_paywall_sheet.dart';
@@ -383,7 +384,11 @@ class SettingsScreen extends ConsumerWidget {
                         );
                         return;
                       }
-                      await showPurchaseOutcomeMessage(context, outcome);
+                      await showPurchaseOutcomeMessage(
+                        context,
+                        outcome,
+                        detail: ref.read(revenueCatBillingProvider).userMessage,
+                      );
                     },
                   ),
                 if (entitlements.adsEnabled)
@@ -539,8 +544,10 @@ class SettingsScreen extends ConsumerWidget {
                   selected: settings.look == look,
                   title: _lookLabel(l10n, look),
                   subtitle: _lookHint(l10n, look),
-                  onTap: () =>
-                      ref.read(settingsProvider.notifier).setLook(look),
+                  onTap: () {
+                    AppHaptics.tap();
+                    ref.read(settingsProvider.notifier).setLook(look);
+                  },
                 ),
               const SizedBox(height: 12),
               SegmentedButton<ThemeMode>(
