@@ -3116,6 +3116,18 @@ abstract class AppLocalizations {
   /// **'Load App Store products'**
   String get retryStoreProducts;
 
+  /// No description provided for @openRevenueCatPaywall.
+  ///
+  /// In en, this message translates to:
+  /// **'Open subscription'**
+  String get openRevenueCatPaywall;
+
+  /// No description provided for @openRevenueCatPaywallHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows the Schüler or Lehrer offer from RevenueCat.'**
+  String get openRevenueCatPaywallHint;
+
   /// No description provided for @upgradeToNotisPro.
   ///
   /// In en, this message translates to:

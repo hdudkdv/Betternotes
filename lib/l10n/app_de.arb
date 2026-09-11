@@ -699,6 +699,8 @@
   "inAppPurchases": "In-App-Käufe",
   "inAppPurchasesHint": "Mehr Sync, Backup und Klassenraum — ohne Werbung.",
   "retryStoreProducts": "App-Store-Produkte laden",
+  "openRevenueCatPaywall": "Abo öffnen",
+  "openRevenueCatPaywallHint": "Öffnet das Schüler- oder Lehrer-Angebot aus RevenueCat.",
   "upgradeToNotisPro": "Notis Pro holen",
   "upgradeToNotisProHint": "Wähle einen Plan für Schule oder Unterricht.",
   "notisProActive": "Notis Pro ist aktiv",

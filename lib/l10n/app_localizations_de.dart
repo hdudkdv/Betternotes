@@ -1644,6 +1644,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get retryStoreProducts => 'App-Store-Produkte laden';
 
   @override
+  String get openRevenueCatPaywall => 'Abo öffnen';
+
+  @override
+  String get openRevenueCatPaywallHint =>
+      'Öffnet das Schüler- oder Lehrer-Angebot aus RevenueCat.';
+
+  @override
   String get upgradeToNotisPro => 'Notis Pro holen';
 
   @override

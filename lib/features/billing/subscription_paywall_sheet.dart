@@ -234,6 +234,30 @@ class _SubscriptionPaywallSheet extends ConsumerWidget {
                           },
                   )
               else ...[
+                FilledButton.icon(
+                  onPressed: billing.purchasing
+                      ? null
+                      : () async {
+                          final outcome = await billing.presentPaywall(
+                            audience: audience,
+                            context: context,
+                          );
+                          if (!context.mounted) return;
+                          if (outcome == PurchaseOutcome.success ||
+                              outcome == PurchaseOutcome.cancelled ||
+                              outcome == PurchaseOutcome.error) {
+                            await finish(outcome);
+                          }
+                        },
+                  icon: const Icon(Icons.workspace_premium_outlined),
+                  label: Text(l10n.openRevenueCatPaywall),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.openRevenueCatPaywallHint,
+                  style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
                 Text(
                   l10n.storeProductsUnavailable,
                   style: AppTheme.body(color: AppTheme.inkMuted, fontSize: 13),

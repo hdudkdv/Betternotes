@@ -725,6 +725,8 @@
   "inAppPurchases": "In-App Purchases",
   "inAppPurchasesHint": "More sync, backup and classroom — without ads.",
   "retryStoreProducts": "Load App Store products",
+  "openRevenueCatPaywall": "Open subscription",
+  "openRevenueCatPaywallHint": "Shows the Schüler or Lehrer offer from RevenueCat.",
   "upgradeToNotisPro": "Get Notis Pro",
   "upgradeToNotisProHint": "Pick a plan for school or teaching.",
   "notisProActive": "Notis Pro is active",

@@ -276,44 +276,74 @@ class RevenueCatBilling extends ChangeNotifier {
     if (!configured) return;
     try {
       _applyCustomerInfo(await Purchases.getCustomerInfo());
-      offerings = await Purchases.getOfferings();
-      if (!hasStoreProducts) {
-        await Future<void>.delayed(const Duration(milliseconds: 400));
-        offerings = await Purchases.getOfferings();
-      }
-      if (!hasStoreProducts) {
-        extraProducts = await _loadStoreProducts();
-      }
-      // Never put dashboard / sideload copy in the UI — App Review treats
-      // that as a broken In-App Purchase screen (Guideline 2.1(b)).
-      error = null;
     } catch (exception) {
-      debugPrint('RevenueCat refresh failed: $exception');
-      error = null;
+      debugPrint('RevenueCat customerInfo skipped: $exception');
     }
+    try {
+      offerings = await Purchases.getOfferings();
+      debugPrint(
+        'RevenueCat offerings: all=${offerings?.all.keys.toList()} '
+        'current=${offerings?.current?.identifier} '
+        'packages=${offerings?.current?.availablePackages.length ?? 0}',
+      );
+    } catch (exception) {
+      debugPrint('RevenueCat getOfferings failed: $exception');
+      offerings = null;
+    }
+    if (!hasStoreProducts) {
+      extraProducts = await _loadStoreProducts();
+    }
+    error = null;
     notifyListeners();
   }
 
   Future<List<StoreProduct>> _loadStoreProducts() async {
     final ids = RevenueCatConfig.storeProductIds;
-    try {
-      final subscriptions = await Purchases.getProducts(
-        ids,
-        productCategory: ProductCategory.subscription,
-      );
-      final oneTime = await Purchases.getProducts(
-        ids,
-        productCategory: ProductCategory.nonSubscription,
-      );
-      final seen = <String>{};
-      return [
-        for (final product in [...subscriptions, ...oneTime])
-          if (seen.add(product.identifier)) product,
-      ];
-    } catch (exception) {
-      debugPrint('RevenueCat getProducts failed: $exception');
-      return const [];
+    final seen = <String>{};
+    final collected = <StoreProduct>[];
+    void addAll(Iterable<StoreProduct> products) {
+      for (final product in products) {
+        if (seen.add(product.identifier)) collected.add(product);
+      }
     }
+
+    Future<void> load(ProductCategory category) async {
+      try {
+        addAll(
+          await Purchases.getProducts(ids, productCategory: category),
+        );
+      } catch (exception) {
+        debugPrint('RevenueCat getProducts($category) failed: $exception');
+      }
+    }
+
+    await load(ProductCategory.subscription);
+    await load(ProductCategory.nonSubscription);
+    if (collected.isNotEmpty) return collected;
+
+    for (final id in ids) {
+      try {
+        addAll(
+          await Purchases.getProducts(
+            [id],
+            productCategory: ProductCategory.subscription,
+          ),
+        );
+      } catch (exception) {
+        debugPrint('RevenueCat getProducts($id) failed: $exception');
+      }
+      try {
+        addAll(
+          await Purchases.getProducts(
+            [id],
+            productCategory: ProductCategory.nonSubscription,
+          ),
+        );
+      } catch (exception) {
+        debugPrint('RevenueCat getProducts($id nsub) failed: $exception');
+      }
+    }
+    return collected;
   }
 
   Future<PurchaseOutcome> restorePurchases() async {
@@ -389,17 +419,19 @@ class RevenueCatBilling extends ChangeNotifier {
     if (!paywallSupported) {
       return PurchaseOutcome.unavailable;
     }
+    await _applyAudience(audience);
     final offering = audience == null
-        ? _anyOfferingWithPackages()
+        ? (currentOffering ?? _anyOfferingWithPackages())
         : offeringForAudience(audience);
-    if (offering == null || offering.availablePackages.isEmpty) {
-      return PurchaseOutcome.unavailable;
-    }
     try {
       var result = await presentRevenueCatPaywall(offering: offering);
+      if (result == PaywallResult.notPresented) {
+        result = await presentRevenueCatPaywall();
+      }
       if (result == PaywallResult.notPresented &&
           context != null &&
-          context.mounted) {
+          context.mounted &&
+          offering != null) {
         result = await presentEmbeddedRevenueCatPaywall(
           context,
           offering: offering,
@@ -412,6 +444,19 @@ class RevenueCatBilling extends ChangeNotifier {
     } catch (exception) {
       debugPrint('RevenueCat paywall failed: $exception');
       return PurchaseOutcome.error;
+    }
+  }
+
+  Future<void> _applyAudience(PaywallAudience? audience) async {
+    if (audience == null) return;
+    final role = audience == PaywallAudience.teacher ? 'teacher' : 'student';
+    try {
+      await Purchases.setAttributes({
+        'role': role,
+        'audience': role,
+      });
+    } catch (exception) {
+      debugPrint('RevenueCat attributes skipped: $exception');
     }
   }
 
