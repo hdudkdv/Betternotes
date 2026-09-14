@@ -154,6 +154,11 @@ class PlannerEvent extends Equatable {
   String get displaySubject =>
       subject.trim().isEmpty ? title.trim() : subject.trim();
 
+  String get calendarLabel {
+    final label = title.trim();
+    return label.isEmpty ? displaySubject : label;
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,

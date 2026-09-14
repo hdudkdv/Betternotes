@@ -44,4 +44,19 @@ void main() {
       ['Klausur 2', 'Klausur 1'],
     );
   });
+
+  test('calendar label prefers the title', () {
+    final titled = PlannerEvent.create(
+      title: 'Abi Probe',
+      subject: 'Mathe',
+      start: DateTime(2026, 9, 13),
+    );
+    final untitled = PlannerEvent.create(
+      title: '  ',
+      subject: 'Deutsch',
+      start: DateTime(2026, 9, 14),
+    );
+    expect(titled.calendarLabel, 'Abi Probe');
+    expect(untitled.calendarLabel, 'Deutsch');
+  });
 }

@@ -48,6 +48,58 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:471441564519:android:817da5100f363d146305c2",
+        "android_client_info": {
+          "package_name": "de.notis.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "471441564519-84992fuq8o1kc36dimf95dg3ok5r3lr6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "de.notis.app",
+            "certificate_hash": "c78ea3407595c48de0b77d42a077be7bdc8cfabc"
+          }
+        },
+        {
+          "client_id": "471441564519-rbcepu80qkjoc1ue032i6o4lockbh9ce.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "de.notis.app",
+            "certificate_hash": "c4328ca7ef52974e08db2d471cf0ce56fd812656"
+          }
+        },
+        {
+          "client_id": "471441564519-vqi5qktbrh65u3l8n7q1iauhgmmd7aap.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8MVj0D2QiVYC_HO9Yn6hJG2RSj8IR1u0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "471441564519-vqi5qktbrh65u3l8n7q1iauhgmmd7aap.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "471441564519-852ue7rbppu18f584g5tnrh0j28pege5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "de.notis.app"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

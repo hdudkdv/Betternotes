@@ -35,52 +35,68 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsProvider);
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final content = ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 760,
-                minHeight: constraints.maxHeight,
-              ),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + bottomInset),
+            final compact = constraints.maxHeight < 720;
+            final wide = constraints.maxWidth >= 620;
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 32,
+                  maxWidth: 760,
+                ),
                 child: Column(
                   children: [
                     Align(
                       alignment: Alignment.centerRight,
-                      child: SegmentedButton<String>(
-                        segments: [
-                          ButtonSegment(
-                            value: 'system',
-                            label: Text(l10n.systemLanguage),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: SegmentedButton<String>(
+                          showSelectedIcon: false,
+                          style: const ButtonStyle(
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          ButtonSegment(value: 'de', label: Text(l10n.german)),
-                          ButtonSegment(value: 'en', label: Text(l10n.english)),
-                        ],
-                        selected: {settings.localeCode},
-                        onSelectionChanged: _busy
-                            ? null
-                            : (selection) => ref
-                                  .read(settingsProvider.notifier)
-                                  .setLocaleCode(selection.first),
+                          segments: [
+                            ButtonSegment(
+                              value: 'system',
+                              label: Text(l10n.systemLanguage),
+                            ),
+                            ButtonSegment(
+                              value: 'de',
+                              label: Text(l10n.german),
+                            ),
+                            ButtonSegment(
+                              value: 'en',
+                              label: Text(l10n.english),
+                            ),
+                          ],
+                          selected: {settings.localeCode},
+                          onSelectionChanged: _busy
+                              ? null
+                              : (selection) => ref
+                                    .read(settingsProvider.notifier)
+                                    .setLocaleCode(selection.first),
+                        ),
                       ),
                     ),
-                    const Spacer(),
+                    SizedBox(height: compact ? 20 : 36),
                     Icon(
                       Icons.auto_stories_rounded,
-                      size: 64,
+                      size: compact ? 44 : 64,
                       color: AppTheme.accent,
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: compact ? 12 : 18),
                     Text(
                       l10n.roleWelcomeTitle,
                       textAlign: TextAlign.center,
                       style: AppTheme.headline(
-                        fontSize: 32,
+                        fontSize: compact ? 26 : 32,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -93,17 +109,18 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
                         color: AppTheme.inkMuted,
                       ),
                     ),
-                    const SizedBox(height: 30),
-                    if (constraints.maxWidth < 620) ...[
+                    SizedBox(height: compact ? 20 : 30),
+                    if (!wide) ...[
                       _RoleCard(
                         icon: Icons.school_outlined,
                         title: l10n.roleStudent,
                         body: l10n.roleStudentHint,
                         action: l10n.roleChooseStudent,
                         busy: _busy,
+                        compact: compact,
                         onTap: () => _select(AppUserRole.student),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
                       _RoleCard(
                         icon: Icons.co_present_outlined,
                         title: l10n.roleTeacher,
@@ -111,6 +128,7 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
                         action: l10n.roleChooseTeacher,
                         accent: true,
                         busy: _busy,
+                        compact: compact,
                         onTap: () => _select(AppUserRole.teacher),
                       ),
                     ] else
@@ -124,6 +142,7 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
                               body: l10n.roleStudentHint,
                               action: l10n.roleChooseStudent,
                               busy: _busy,
+                              compact: compact,
                               onTap: () => _select(AppUserRole.student),
                             ),
                           ),
@@ -136,12 +155,13 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
                               action: l10n.roleChooseTeacher,
                               accent: true,
                               busy: _busy,
+                              compact: compact,
                               onTap: () => _select(AppUserRole.teacher),
                             ),
                           ),
                         ],
                       ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     Text(
                       l10n.roleCanChangeLater,
                       textAlign: TextAlign.center,
@@ -158,20 +178,9 @@ class _RoleOnboardingScreenState extends ConsumerState<RoleOnboardingScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2.5),
                       ),
                     ],
-                    const Spacer(),
                   ],
                 ),
               ),
-            );
-
-            // Only scroll when the viewport is actually too short.
-            final needsScroll = constraints.maxHeight < 640;
-            if (!needsScroll) {
-              return Center(child: content);
-            }
-            return SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: content,
             );
           },
         ),
@@ -189,6 +198,7 @@ class _RoleCard extends StatelessWidget {
     required this.onTap,
     required this.busy,
     this.accent = false,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -198,6 +208,7 @@ class _RoleCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool busy;
   final bool accent;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -214,26 +225,30 @@ class _RoleCard extends StatelessWidget {
       child: InkWell(
         onTap: busy ? null : onTap,
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(compact ? 18 : 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 46, color: AppTheme.accent),
-              const SizedBox(height: 16),
+              Icon(icon, size: compact ? 36 : 46, color: AppTheme.accent),
+              SizedBox(height: compact ? 10 : 16),
               Text(
                 title,
                 style: AppTheme.headline(
-                  fontSize: 23,
+                  fontSize: compact ? 20 : 23,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
                 body,
                 textAlign: TextAlign.center,
-                style: AppTheme.body(color: AppTheme.inkMuted, height: 1.45),
+                style: AppTheme.body(
+                  color: AppTheme.inkMuted,
+                  height: 1.4,
+                  fontSize: compact ? 14 : null,
+                ),
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: compact ? 14 : 22),
               FilledButton(onPressed: busy ? null : onTap, child: Text(action)),
             ],
           ),

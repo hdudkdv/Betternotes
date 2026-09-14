@@ -73,29 +73,42 @@ class ImageElementsLayer extends StatelessWidget {
                     ),
                   ),
                   if (editable && selectedId == image.id)
-                    _ResizeHandle(image: image, onChanged: onChanged),
+                    for (final corner in const [
+                      Alignment.topLeft,
+                      Alignment.topRight,
+                      Alignment.bottomLeft,
+                      Alignment.bottomRight,
+                    ])
+                      _ResizeHandle(
+                        image: image,
+                        corner: corner,
+                        onChanged: onChanged,
+                      ),
                   if (editable && selectedId == image.id)
                     Positioned(
-                      right: -8,
-                      top: -8,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (onCrop != null) ...[
-                            _ImageAction(
-                              icon: Icons.crop_rounded,
-                              color: EditorChrome.toolbarSelected,
-                              onTap: () => onCrop!(image),
-                            ),
-                            const SizedBox(width: 6),
+                      left: 0,
+                      right: 0,
+                      top: -38,
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (onCrop != null) ...[
+                              _ImageAction(
+                                icon: Icons.crop_rounded,
+                                color: EditorChrome.toolbarSelected,
+                                onTap: () => onCrop!(image),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            if (onDelete != null)
+                              _ImageAction(
+                                icon: Icons.close_rounded,
+                                color: const Color(0xE6C62828),
+                                onTap: () => onDelete!(image.id),
+                              ),
                           ],
-                          if (onDelete != null)
-                            _ImageAction(
-                              icon: Icons.close_rounded,
-                              color: const Color(0xE6C62828),
-                              onTap: () => onDelete!(image.id),
-                            ),
-                        ],
+                        ),
                       ),
                     ),
                 ],
@@ -141,31 +154,62 @@ class _ImageAction extends StatelessWidget {
 class _ResizeHandle extends StatelessWidget {
   const _ResizeHandle({
     required this.image,
+    required this.corner,
     required this.onChanged,
   });
 
   final ImageElement image;
+  final Alignment corner;
   final ValueChanged<ImageElement> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      right: -8,
-      bottom: -8,
+      left: corner.x < 0 ? -10 : null,
+      right: corner.x > 0 ? -10 : null,
+      top: corner.y < 0 ? -10 : null,
+      bottom: corner.y > 0 ? -10 : null,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onPanUpdate: (d) {
           final aspect = image.width <= 0 ? 1.0 : image.width / image.height;
-          var nextW = (image.width + d.delta.dx).clamp(48.0, 2400.0);
-          var nextH = nextW / aspect;
+          final widthDelta = d.delta.dx * corner.x;
+          final heightDelta = d.delta.dy * corner.y;
+          late double nextW;
+          late double nextH;
+          if (widthDelta.abs() >= heightDelta.abs()) {
+            nextW = (image.width + widthDelta).clamp(48.0, 2400.0);
+            nextH = nextW / aspect;
+          } else {
+            nextH = (image.height + heightDelta).clamp(48.0, 2400.0);
+            nextW = nextH * aspect;
+          }
           if (nextH < 48) {
             nextH = 48;
             nextW = nextH * aspect;
+          } else if (nextH > 2400) {
+            nextH = 2400;
+            nextW = nextH * aspect;
           }
-          onChanged(image.copyWith(width: nextW, height: nextH));
+          if (nextW < 48) {
+            nextW = 48;
+            nextH = nextW / aspect;
+          } else if (nextW > 2400) {
+            nextW = 2400;
+            nextH = nextW / aspect;
+          }
+          onChanged(
+            image.copyWith(
+              x: corner.x < 0 ? image.x + image.width - nextW : image.x,
+              y: corner.y < 0 ? image.y + image.height - nextH : image.y,
+              width: nextW,
+              height: nextH,
+            ),
+          );
         },
         child: Container(
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(color: EditorChrome.toolbarSelected, width: 2),

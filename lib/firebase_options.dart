@@ -58,12 +58,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyB8MVj0D2QiVYC_HO9Yn6hJG2RSj8IR1u0',
-    appId: '1:471441564519:android:8f6f81842723b83c6305c2',
+    appId: '1:471441564519:android:817da5100f363d146305c2',
     messagingSenderId: '471441564519',
     projectId: 'notis-2dee0',
     storageBucket: 'notis-2dee0.firebasestorage.app',
     androidClientId:
-        '471441564519-ho80krlsqfnrepjffekbtpvgmjqm0aeh.apps.googleusercontent.com',
+        '471441564519-rbcepu80qkjoc1ue032i6o4lockbh9ce.apps.googleusercontent.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +18,7 @@ import '../../../data/models/notebook.dart';
 import '../../../data/repositories/notebook_repository.dart';
 import '../../auth/current_uid.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/haptics.dart';
 import '../../../shared/utils/file_store.dart';
 import '../../../shared/utils/image_dimensions.dart';
 import '../../../shared/utils/page_size.dart';
@@ -210,6 +210,10 @@ class EditorController extends ChangeNotifier {
   Offset? _shapeStart;
   Timer? _shapeHoldTimer;
   bool _convertedByHold = false;
+  Offset? _shapeHoldAnchor;
+
+  static const _shapeHoldStillness = 12.0;
+  static const _shapeHoldDuration = Duration(milliseconds: 420);
 
   NotePage? get currentPage =>
       pages.isEmpty ? null : pages[pageIndex.clamp(0, pages.length - 1)];
@@ -871,11 +875,11 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleRulerAid() {
+  void toggleRulerAid({Offset? visibleCenter}) {
     final page = currentPage;
     if (page == null) return;
     final size = NotePageSize.resolve(page.paperFormat, page.orientation);
-    drawingAids.toggleRuler(size);
+    drawingAids.toggleRuler(size, visibleCenter: visibleCenter);
   }
 
   void toggleCompassAid() {
@@ -2071,7 +2075,9 @@ class EditorController extends ChangeNotifier {
     }
     _shapeHoldTimer?.cancel();
     _convertedByHold = false;
+    _shapeHoldAnchor = pagePoint;
     ink.beginStroke(pagePoint, pressure: pressure, t: t);
+    _armShapeHold(pagePoint);
     if (ink.tool == InkTool.eraser) {
       _erasePageObjects(pagePoint);
     }
@@ -2103,20 +2109,30 @@ class EditorController extends ChangeNotifier {
     if (ink.tool == InkTool.eraser) {
       _erasePageObjects(pagePoint);
     }
-    _armShapeHold();
+    _armShapeHold(pagePoint);
   }
 
-  void _armShapeHold() {
-    _shapeHoldTimer?.cancel();
+  void _armShapeHold(Offset pagePoint) {
     if (!ink.tool.isFreehand) return;
     if (ink.activeStroke == null) return;
-    _shapeHoldTimer = Timer(kLongPressTimeout, _tryHoldRecognize);
+    final anchor = _shapeHoldAnchor;
+    if (anchor != null &&
+        (pagePoint - anchor).distance <= _shapeHoldStillness) {
+      return;
+    }
+    _shapeHoldAnchor = pagePoint;
+    _shapeHoldTimer?.cancel();
+    _shapeHoldTimer = Timer(_shapeHoldDuration, _tryHoldRecognize);
   }
 
   void _tryHoldRecognize() {
     if (_disposed) return;
     if (_beginRecognizedShapePreview()) {
       _convertedByHold = true;
+      return;
+    }
+    if (ink.activeStroke != null && ink.tool.isFreehand) {
+      _shapeHoldTimer = Timer(_shapeHoldDuration, _tryHoldRecognize);
     }
   }
 
@@ -2138,6 +2154,7 @@ class EditorController extends ChangeNotifier {
     );
     if (shape == null) return false;
     ink.cancelStroke();
+    unawaited(AppHaptics.confirm());
     final preview = _resizeAnchorForPointer(shape, pointer);
     _shapeStart = preview.$1;
     draftShape = preview.$2;
@@ -2196,6 +2213,7 @@ class EditorController extends ChangeNotifier {
   void onPointerUp() {
     if (interactionMode == InteractionMode.read) return;
     _shapeHoldTimer?.cancel();
+    _shapeHoldAnchor = null;
     if (_convertedByHold) {
       _convertedByHold = false;
     }
@@ -2329,6 +2347,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       outlineId: widget.initialOutlineId,
     )),
   );
+
+  void _toggleRuler(EditorController controller) {
+    controller.toggleRulerAid(
+      visibleCenter: _canvasKey.currentState?.pagePointAtViewport(
+        dx: 0.5,
+        dy: 0.75,
+      ),
+    );
+  }
 
   String _folderPath(List<LibraryFolder> folders, String? folderId) {
     if (folderId == null) return '';
@@ -3381,7 +3408,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                       ? null
                       : () =>
                             controller.deleteImage(controller.selectedImageId!),
-                  onToggleRuler: controller.toggleRulerAid,
+                  onToggleRuler: () => _toggleRuler(controller),
                   onToggleCompass: controller.toggleCompassAid,
                   rulerActive: controller.drawingAids.hasRuler,
                   compassActive: controller.drawingAids.hasVisibleCompass,
@@ -3898,7 +3925,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 ),
                 rulerActive: controller.drawingAids.hasRuler,
                 compassActive: controller.drawingAids.hasVisibleCompass,
-                onToggleRuler: controller.toggleRulerAid,
+                onToggleRuler: () => _toggleRuler(controller),
                 onToggleCompass: controller.toggleCompassAid,
                 onCreateDiagram: () => _createDiagram(controller),
                 onOpenPacks: () => _openPacks(controller),

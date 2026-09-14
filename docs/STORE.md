@@ -2,7 +2,7 @@
 
 ## Identifiers
 
-- Android application id: `com.notis.app`
+- Android application id: `de.notis.app`
 - iOS bundle id: `de.notis.app`
 - Display name: **Notis**
 

@@ -8,7 +8,7 @@ sind.
 
 1. Firebase-Projekt `notis-2dee0` nutzen und Firestore sowie Storage aktivieren.
 2. Die Apps mit den bestehenden IDs registrieren:
-   - Android: `com.notis.app`
+   - Android: `de.notis.app`
    - iOS: `de.notis.app`
    - Web: die produktive Web-Domain ergänzen
 3. FlutterFire CLI installieren und im Projekt ausführen:

@@ -235,7 +235,7 @@ class NearbyBlePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventCha
         val shareBytes = record?.getServiceData(ParcelUuid(SERVICE_UUID))
         val nameBytes = record?.getServiceData(ParcelUuid(CHAR_UUID))
         val name = when {
-            nameBytes != null && nameBytes.isNotEmpty -> String(nameBytes, StandardCharsets.UTF_8).trim()
+            nameBytes != null && nameBytes.isNotEmpty() -> String(nameBytes, StandardCharsets.UTF_8).trim()
             !record?.deviceName.isNullOrBlank() -> record!!.deviceName!!
             !device.name.isNullOrBlank() -> device.name
             else -> "Notis"
@@ -253,7 +253,7 @@ class NearbyBlePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventCha
 
     private fun readPayload(id: String, result: MethodChannel.Result) {
         val adapter = adapter()
-        if (adapter == null || id.isEmpty) {
+        if (adapter == null || id.isEmpty()) {
             result.error("args", "missing device", null)
             return
         }

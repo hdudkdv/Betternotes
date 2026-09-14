@@ -47,12 +47,12 @@ class DrawingAidsController extends ChangeNotifier {
     if (notify) notifyListeners();
   }
 
-  void toggleRuler(Size pageSize) {
+  void toggleRuler(Size pageSize, {Offset? visibleCenter}) {
     if (ruler != null) {
       ruler = null;
     } else {
       compass = null;
-      ruler = RulerAid.defaults(pageSize);
+      ruler = RulerAid.defaults(pageSize, center: visibleCenter);
     }
     notifyListeners();
   }
@@ -143,10 +143,15 @@ class RulerAid {
     this.fixed = false,
   });
 
-  factory RulerAid.defaults(Size pageSize) {
+  factory RulerAid.defaults(Size pageSize, {Offset? center}) {
+    final fallback = Offset(pageSize.width * 0.5, pageSize.height * 0.75);
+    final raw = center ?? fallback;
     return RulerAid(
       pageSize: pageSize,
-      center: Offset(pageSize.width * 0.5, pageSize.height * 0.42),
+      center: Offset(
+        raw.dx.clamp(0.0, pageSize.width),
+        raw.dy.clamp(0.0, pageSize.height),
+      ),
       angle: 0,
     );
   }

@@ -386,7 +386,9 @@ class InkEngine extends ChangeNotifier {
   bool _isLiftGap(StrokePoint last, double dist2, int now) {
     final prevT = last.t;
     final dt = (now > 0 && prevT > 0 && now > prevT) ? now - prevT : 0;
-    if (dt >= 70 && dist2 >= 14 * 14) return true;
+    // Hold-to-shape parks the tip; 14pt after a pause is just tremor.
+    // A new letter is a real hop — keep that clearly larger than a rest.
+    if (dt >= 70 && dist2 >= 28 * 28) return true;
     if (dist2 >= 48 * 48) return true;
     return false;
   }

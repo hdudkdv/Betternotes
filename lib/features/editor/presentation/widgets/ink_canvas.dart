@@ -144,6 +144,7 @@ class InkCanvasState extends State<InkCanvas>
   bool _strokeHadPressure = false;
   int _lowPressureStreak = 0;
   int _drawStartedAtMs = 0;
+  Offset? _lastDrawLocal;
 
   /// Set once the fit matrix has been written to [_transform]. Until then the
   /// controller is still identity (scale=1), which must NOT count as zoomed —
@@ -739,6 +740,32 @@ class InkCanvasState extends State<InkCanvas>
     return true;
   }
 
+  /// Page point under a viewport fraction. Used to spawn aids on-screen
+  /// (e.g. the ruler in the lower third), not at a fixed page coordinate.
+  Offset pagePointAtViewport({double dx = 0.5, double dy = 0.75}) {
+    final pageSize = widget.pageSize;
+    final fallback = Offset(
+      pageSize.width * dx.clamp(0.0, 1.0),
+      pageSize.height * dy.clamp(0.0, 1.0),
+    );
+    if (!_isUsableViewport(_viewportSize)) return fallback;
+    Matrix4 inv;
+    try {
+      inv = Matrix4.inverted(_transform.value);
+    } catch (_) {
+      return fallback;
+    }
+    final view = Offset(
+      _viewportSize.width * dx.clamp(0.0, 1.0),
+      _viewportSize.height * dy.clamp(0.0, 1.0),
+    );
+    final page = _toPageLocal(MatrixUtils.transformPoint(inv, view));
+    return Offset(
+      page.dx.clamp(0.0, pageSize.width),
+      page.dy.clamp(0.0, pageSize.height),
+    );
+  }
+
   /// Visible board rect in page/local coordinates.
   Rect _visibleWorldRect(Size pageSize) {
     if (_viewportSize == Size.zero) {
@@ -812,6 +839,7 @@ class InkCanvasState extends State<InkCanvas>
       setState(() {});
       return;
     }
+    _lastDrawLocal = event.localPosition;
     widget.onPointerMove(
       _toPageLocal(event.localPosition),
       pressure: _inkPressure(event),
@@ -822,6 +850,7 @@ class InkCanvasState extends State<InkCanvas>
   /// Pencil lift: hover (`!down`) or pressure collapsed after real contact.
   /// The first samples of a new tap often have pressure 0 — those must not
   /// end the stroke, or fast lift-and-land never writes again.
+  /// Resting the tip (hold-to-shape) also reports 0 pressure while still down.
   bool _stylusLostContact(PointerMoveEvent event) {
     if (!PointerRouting.isActiveStylus(event)) return false;
     if (!event.down) return true;
@@ -831,6 +860,12 @@ class InkCanvasState extends State<InkCanvas>
       return false;
     }
     if (!_strokeHadPressure) return false;
+    final prev = _lastDrawLocal;
+    final moved = prev == null ? 0.0 : (event.localPosition - prev).distance;
+    if (moved < 10) {
+      _lowPressureStreak = 0;
+      return false;
+    }
     _lowPressureStreak++;
     return _lowPressureStreak >= 3;
   }
@@ -844,6 +879,7 @@ class InkCanvasState extends State<InkCanvas>
   }) {
     _strokeHadPressure = isStylus && pressure >= 0.05;
     _lowPressureStreak = 0;
+    _lastDrawLocal = local;
     _drawStartedAtMs = t;
     _armPointerTracking(pointer, isStylus: isStylus);
     widget.onPointerDown(
@@ -871,6 +907,7 @@ class InkCanvasState extends State<InkCanvas>
     _drawIsStylus = false;
     _strokeHadPressure = false;
     _lowPressureStreak = 0;
+    _lastDrawLocal = null;
     _updateScrollLock();
   }
 

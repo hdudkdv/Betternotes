@@ -314,7 +314,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     DateTime.now().month,
     DateTime.now().day,
   );
-  bool _eventsExpanded = false;
+  bool _eventsExpanded = true;
 
   Future<void> _editEvent([PlannerEvent? existing]) async {
     final wasNew = existing == null;
@@ -725,8 +725,9 @@ class _MonthGrid extends ConsumerWidget {
           itemCount: ((startWeekday - 1) + daysInMonth + 6) ~/ 7 * 7,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
-            mainAxisSpacing: 4,
+            mainAxisSpacing: 6,
             crossAxisSpacing: 4,
+            childAspectRatio: 0.62,
           ),
           itemBuilder: (context, index) {
             final dayNum = index - (startWeekday - 1) + 1;
@@ -747,68 +748,121 @@ class _MonthGrid extends ConsumerWidget {
               onTap: () => onSelect(day),
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppTheme.ink
-                      : isHoliday
-                      ? AppTheme.accentSoft
-                      : AppTheme.card,
+                  color: isHoliday ? AppTheme.accentSoft : AppTheme.card,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: hasEvents && !isSelected
-                        ? AppTheme.accent
+                    color: isSelected
+                        ? AppTheme.ink
+                        : hasEvents
+                        ? AppTheme.accent.withValues(alpha: 0.35)
                         : Colors.transparent,
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Text(
-                        '$dayNum',
-                        style: AppTheme.body(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          color: isSelected ? AppTheme.onAccent : AppTheme.ink,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(3, 4, 3, 3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppTheme.ink
+                                : Colors.transparent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '$dayNum',
+                            style: AppTheme.body(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                              color: isSelected
+                                  ? AppTheme.onAccent
+                                  : AppTheme.ink,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    if (dayEvents.isNotEmpty)
-                      Positioned(
-                        top: 5,
-                        left: 5,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (final event in dayEvents.take(3))
-                              Container(
-                                width: 5,
-                                height: 5,
-                                margin: const EdgeInsets.only(right: 2),
-                                decoration: BoxDecoration(
-                                  color: Color(event.colorValue),
-                                  shape: BoxShape.circle,
+                      const SizedBox(height: 3),
+                      Expanded(
+                        child: ClipRect(
+                          child: Column(
+                            children: [
+                              for (final event in dayEvents.take(2))
+                                _MonthEventChip(event: event),
+                              if (dayEvents.length > 2)
+                                Text(
+                                  '+${dayEvents.length - 2}',
+                                  textAlign: TextAlign.center,
+                                  style: AppTheme.body(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.inkMuted,
+                                  ),
                                 ),
-                              ),
-                            if (dayEvents.length > 3)
-                              Text(
-                                '+${dayEvents.length - 3}',
-                                style: AppTheme.body(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w800,
-                                  color: isSelected
-                                      ? AppTheme.onAccent
-                                      : AppTheme.inkMuted,
-                                ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
           },
         ),
       ],
+    );
+  }
+}
+
+class _MonthEventChip extends StatelessWidget {
+  const _MonthEventChip({required this.event});
+
+  final PlannerEvent event;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(event.colorValue);
+    final label = event.calendarLabel;
+    if (label.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: Container(
+          height: 6,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTheme.body(
+            fontSize: 8,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+            color: color.computeLuminance() > 0.55
+                ? const Color(0xFF1A1A1A)
+                : Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -52,13 +52,27 @@ void main() {
     engine.beginStroke(const Offset(20, 20), t: 1000);
     engine.appendStroke(const Offset(28, 22), t: 1008);
     engine.appendStroke(const Offset(36, 24), t: 1016);
-    // Lift, then land on the next letter ~20px away after 70ms.
-    engine.appendStroke(const Offset(56, 26), t: 1086);
+    // Lift, then land on the next letter ~36px away after 70ms.
+    engine.appendStroke(const Offset(72, 26), t: 1086);
     engine.endStroke();
 
     expect(engine.strokes, hasLength(2));
     expect(engine.strokes.first.points.last.x, closeTo(36, 0.01));
-    expect(engine.strokes.last.points.first.x, closeTo(56, 0.01));
+    expect(engine.strokes.last.points.first.x, closeTo(72, 0.01));
+  });
+
+  test('a pause then a small hold tremor stays one stroke', () {
+    final engine = InkEngine()
+      ..setTool(InkTool.pen)
+      ..setColor(0xFF000000)
+      ..setWidth(3);
+
+    engine.beginStroke(const Offset(20, 20), t: 1000);
+    engine.appendStroke(const Offset(40, 22), t: 1040);
+    engine.appendStroke(const Offset(48, 26), t: 1120);
+    engine.endStroke();
+
+    expect(engine.strokes, hasLength(1));
   });
 
   test('fast 60fps writing does not split mid-stroke', () {
