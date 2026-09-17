@@ -1836,5 +1836,29 @@
   "accountHandoverLock": "Keep locally and encrypt",
   "accountHandoverLockHint": "The notebooks stay on this device, but only the original account can open them.",
   "accountHandoverLockUnavailable": "Encryption is only available while signing out of the original account.",
-  "accountNotebookLocked": "This notebook belongs to another account and is locked."
+  "accountNotebookLocked": "This notebook belongs to another account and is locked.",
+  "gradeQuotaHint": "Minimum grades this half-year. A checkmark appears when you reach them — you can still add more.",
+  "minMajorGrades": "Minimum exams",
+  "minMinorGrades": "Minimum other grades",
+  "gradeQuotaMet": "Required grades reached",
+  "dayEventsTitle": "Events on {date}",
+  "@dayEventsTitle": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "noEventsOnDay": "No events on this day.",
+  "abWeeks": "A/B weeks",
+  "abWeeksHint": "Two rotating timetables. Odd calendar weeks are week A, even weeks are week B.",
+  "abWeeksSwap": "Swap weeks",
+  "abWeeksSwapHint": "Turns the current A week into B and the other way around.",
+  "weekA": "Week A",
+  "weekB": "Week B",
+  "currentAbWeek": "Currently {week}",
+  "@currentAbWeek": {
+    "placeholders": {
+      "week": {"type": "String"}
+    }
+  },
+  "slotAppliesToBothWeeks": "Applies to both weeks"
 }

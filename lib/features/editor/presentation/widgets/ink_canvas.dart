@@ -16,9 +16,30 @@ import 'cached_page_background.dart';
 import 'page_background_painter.dart';
 import 'page_viewport_fit.dart';
 
-/// Large but finite board for "infinite" documents.
-/// Viewport culling keeps paint cost proportional to what's on screen.
-const Size kInfiniteCanvasSize = Size(32000, 32000);
+/// Infinite documents start at the viewport and grow with ink — no preset size.
+Size growInfiniteBoard({
+  required Size current,
+  required Size viewport,
+  required Iterable<Rect> contentBounds,
+  Offset? livePoint,
+  double padding = 160,
+}) {
+  var width = math.max(viewport.width, 1.0);
+  var height = math.max(viewport.height, 1.0);
+  for (final bounds in contentBounds) {
+    if (bounds.isEmpty) continue;
+    width = math.max(width, bounds.right + padding);
+    height = math.max(height, bounds.bottom + padding);
+  }
+  if (livePoint != null) {
+    width = math.max(width, livePoint.dx + padding);
+    height = math.max(height, livePoint.dy + padding);
+  }
+  return Size(
+    math.max(current.width, width),
+    math.max(current.height, height),
+  );
+}
 
 class InkCanvas extends StatefulWidget {
   const InkCanvas({
@@ -153,6 +174,10 @@ class InkCanvasState extends State<InkCanvas>
   bool _fitCommitScheduled = false;
   bool _forceNextFit = false;
 
+  /// Grown paper for infinite documents. Starts at the viewport, never a
+  /// preset 32k board — writing near an edge expands it.
+  Size _infiniteBoard = Size.zero;
+
   /// Current zoom relative to the scale at which the page fits the viewport.
   double get relativeZoom =>
       _transform.value.getMaxScaleOnAxis() / (_fitScale == 0 ? 1 : _fitScale);
@@ -169,12 +194,22 @@ class InkCanvasState extends State<InkCanvas>
     return scale > _fitScale * 1.12;
   }
 
-  double get _minScale => widget.canvasMode == CanvasMode.infinite
-      ? 0.012
-      : (_fitScale > 0.05 ? _fitScale : 0.2);
+  double get _minScale {
+    if (widget.canvasMode != CanvasMode.infinite) {
+      return _fitScale > 0.05 ? _fitScale : 0.2;
+    }
+    if (!_isUsableViewport(_viewportSize) || _infiniteBoard == Size.zero) {
+      return 0.45;
+    }
+    final fit = math.min(
+      _viewportSize.width / _infiniteBoard.width,
+      _viewportSize.height / _infiniteBoard.height,
+    );
+    return math.max(0.2, math.min(fit, 1.0) * 0.55);
+  }
 
   double get _maxScale =>
-      widget.canvasMode == CanvasMode.infinite ? 80.0 : _fitScale * 8.0;
+      widget.canvasMode == CanvasMode.infinite ? 8.0 : _fitScale * 8.0;
 
   /// Scales around the viewport center, used by the zoom controls.
   void zoomBy(double factor) {
@@ -210,10 +245,52 @@ class InkCanvasState extends State<InkCanvas>
     });
   }
 
+  Size get _boardForMode {
+    if (widget.canvasMode != CanvasMode.infinite) return widget.pageSize;
+    if (_infiniteBoard == Size.zero) {
+      return _isUsableViewport(_viewportSize) ? _viewportSize : widget.pageSize;
+    }
+    return _infiniteBoard;
+  }
+
   Size get _childSize {
     final infinite = widget.canvasMode == CanvasMode.infinite;
-    final pageSize = infinite ? kInfiniteCanvasSize : widget.pageSize;
-    return infinite ? pageSize : PageViewportFit.childSize(pageSize);
+    return infinite
+        ? _boardForMode
+        : PageViewportFit.childSize(widget.pageSize);
+  }
+
+  Iterable<Rect> _inkContentBounds() {
+    return [
+      for (final stroke in widget.engine.strokes) stroke.boundingBox,
+      if (widget.engine.activeStroke != null)
+        widget.engine.activeStroke!.boundingBox,
+    ];
+  }
+
+  void _maybeGrowInfinite({
+    Size? viewport,
+    Offset? livePoint,
+    bool fromBuild = false,
+  }) {
+    if (widget.canvasMode != CanvasMode.infinite) return;
+    final vp = viewport ?? _viewportSize;
+    if (!_isUsableViewport(vp) &&
+        livePoint == null &&
+        _infiniteBoard == Size.zero) {
+      return;
+    }
+    final next = growInfiniteBoard(
+      current: _infiniteBoard,
+      viewport: _isUsableViewport(vp) ? vp : _infiniteBoard,
+      contentBounds: _inkContentBounds(),
+      livePoint: livePoint,
+    );
+    if (next == _infiniteBoard) return;
+    _infiniteBoard = next;
+    if (!fromBuild && mounted) {
+      setState(() {});
+    }
   }
 
   double _computeFitScale(Size viewport) {
@@ -368,7 +445,10 @@ class InkCanvasState extends State<InkCanvas>
 
   /// Keep scale ≥ fit and translation so the page never leaves the viewport.
   void _clampView() {
-    if (widget.canvasMode == CanvasMode.infinite) return;
+    if (widget.canvasMode == CanvasMode.infinite) {
+      _clampInfiniteView();
+      return;
+    }
     if (_viewportSize == Size.zero || _fitScale <= 0) return;
 
     final current = _transform.value;
@@ -382,6 +462,58 @@ class InkCanvasState extends State<InkCanvas>
         (current.storage[13] - dy).abs() > 0.5;
     if (!scaleChanged && !posChanged) return;
 
+    _transform.value = Matrix4.identity()
+      ..setEntry(0, 0, scale)
+      ..setEntry(1, 1, scale)
+      ..setEntry(0, 3, dx)
+      ..setEntry(1, 3, dy);
+  }
+
+  /// Keep some of the growing board on screen so pinch-zoom cannot pan into
+  /// an empty white void.
+  void _clampInfiniteView() {
+    if (!_isUsableViewport(_viewportSize)) return;
+    final pageSize = _boardForMode;
+    final current = _transform.value;
+    var scale = current.getMaxScaleOnAxis();
+    if (!scale.isFinite || scale <= 0) {
+      _transform.value = Matrix4.identity();
+      _fitReady = true;
+      _fitScale = 1;
+      return;
+    }
+    scale = scale.clamp(_minScale, _maxScale);
+    final vp = _viewportSize;
+    final scaledW = pageSize.width * scale;
+    final scaledH = pageSize.height * scale;
+    const extra = 48.0;
+    late final double minDx;
+    late final double maxDx;
+    late final double minDy;
+    late final double maxDy;
+    if (scaledW <= vp.width + 0.5) {
+      minDx = maxDx = (vp.width - scaledW) / 2;
+    } else {
+      minDx = vp.width - scaledW - extra;
+      maxDx = extra;
+    }
+    if (scaledH <= vp.height + 0.5) {
+      minDy = maxDy = (vp.height - scaledH) / 2;
+    } else {
+      minDy = vp.height - scaledH - extra;
+      maxDy = extra;
+    }
+    var dx = current.storage[12];
+    var dy = current.storage[13];
+    if (!dx.isFinite) dx = minDx;
+    if (!dy.isFinite) dy = minDy;
+    dx = dx.clamp(math.min(minDx, maxDx), math.max(minDx, maxDx));
+    dy = dy.clamp(math.min(minDy, maxDy), math.max(minDy, maxDy));
+    final scaleChanged = (current.getMaxScaleOnAxis() - scale).abs() > 0.0001;
+    final posChanged =
+        (current.storage[12] - dx).abs() > 0.5 ||
+        (current.storage[13] - dy).abs() > 0.5;
+    if (!scaleChanged && !posChanged) return;
     _transform.value = Matrix4.identity()
       ..setEntry(0, 0, scale)
       ..setEntry(1, 1, scale)
@@ -477,31 +609,44 @@ class InkCanvasState extends State<InkCanvas>
   void initState() {
     super.initState();
     _transform.addListener(_onTransformChanged);
+    widget.engine.addListener(_onEngineChanged);
     if (kIsWeb) {
       BrowserContextMenu.disableContextMenu();
     }
   }
 
+  void _onEngineChanged() {
+    _maybeGrowInfinite();
+  }
+
   @override
   void didUpdateWidget(covariant InkCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.pageId != widget.pageId &&
-        widget.pageId != null &&
-        widget.canvasMode != CanvasMode.infinite) {
-      _fittedViewport = null;
-      _fittedPageSize = null;
-      _fitReady = false;
-      _forceNextFit = true;
-      _zoomedSent = true; // force a false emit after the new fit lands
-      widget.onZoomedChanged?.call(false);
-      widget.onScrollLockChanged?.call(false);
-      _scrollLockSent = false;
+    if (oldWidget.engine != widget.engine) {
+      oldWidget.engine.removeListener(_onEngineChanged);
+      widget.engine.addListener(_onEngineChanged);
+    }
+    if (oldWidget.pageId != widget.pageId && widget.pageId != null) {
+      if (widget.canvasMode == CanvasMode.infinite) {
+        _infiniteBoard = Size.zero;
+        _maybeGrowInfinite();
+      } else {
+        _fittedViewport = null;
+        _fittedPageSize = null;
+        _fitReady = false;
+        _forceNextFit = true;
+        _zoomedSent = true; // force a false emit after the new fit lands
+        widget.onZoomedChanged?.call(false);
+        widget.onScrollLockChanged?.call(false);
+        _scrollLockSent = false;
+      }
     }
   }
 
   @override
   void dispose() {
     _viewAnim?.dispose();
+    widget.engine.removeListener(_onEngineChanged);
     _transform.removeListener(_onTransformChanged);
     _transform.dispose();
     super.dispose();
@@ -768,16 +913,30 @@ class InkCanvasState extends State<InkCanvas>
 
   /// Visible board rect in page/local coordinates.
   Rect _visibleWorldRect(Size pageSize) {
+    final page = Offset.zero & pageSize;
     if (_viewportSize == Size.zero) {
-      return Offset.zero & pageSize;
+      return page;
     }
-    final inv = Matrix4.inverted(_transform.value);
+    final inv = Matrix4.tryInvert(_transform.value);
+    if (inv == null) return page;
     final tl = MatrixUtils.transformPoint(inv, Offset.zero);
     final br = MatrixUtils.transformPoint(
       inv,
       Offset(_viewportSize.width, _viewportSize.height),
     );
-    return Rect.fromPoints(tl, br).intersect(Offset.zero & pageSize);
+    if (!tl.dx.isFinite ||
+        !tl.dy.isFinite ||
+        !br.dx.isFinite ||
+        !br.dy.isFinite) {
+      return page;
+    }
+    final world = Rect.fromPoints(tl, br);
+    final clipped = world.inflate(32).intersect(page);
+    if (clipped.isEmpty) {
+      // Off-board or a float-error cull — still paint so zoom never blanks.
+      return world.isEmpty ? page : world;
+    }
+    return clipped;
   }
 
   void _clearDrawPending() {
@@ -840,8 +999,10 @@ class InkCanvasState extends State<InkCanvas>
       return;
     }
     _lastDrawLocal = event.localPosition;
+    final pagePoint = _toPageLocal(event.localPosition);
+    _maybeGrowInfinite(livePoint: pagePoint);
     widget.onPointerMove(
-      _toPageLocal(event.localPosition),
+      pagePoint,
       pressure: _inkPressure(event),
       t: _eventTime(event),
     );
@@ -1308,8 +1469,6 @@ class InkCanvasState extends State<InkCanvas>
   @override
   Widget build(BuildContext context) {
     final infinite = widget.canvasMode == CanvasMode.infinite;
-    final pageSize = infinite ? kInfiniteCanvasSize : widget.pageSize;
-    final margin = infinite ? 2000.0 : 120.0;
 
     // InteractiveViewer only for pinch-zoom; pan is handled manually
     // so one-finger drawing is never stolen by the viewer.
@@ -1319,6 +1478,16 @@ class InkCanvasState extends State<InkCanvas>
         if (_isUsableViewport(viewport)) {
           _viewportSize = viewport;
         }
+        if (infinite) {
+          _maybeGrowInfinite(viewport: viewport, fromBuild: true);
+          if (!_fitReady && _isUsableViewport(viewport)) {
+            _fitScale = 1;
+            _fitReady = true;
+            _fittedViewport = viewport;
+          }
+        }
+        final pageSize = infinite ? _boardForMode : widget.pageSize;
+        final margin = infinite ? 48.0 : 120.0;
         _keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
         Matrix4? pageDisplay;
         if (!infinite && _isUsableViewport(viewport)) {

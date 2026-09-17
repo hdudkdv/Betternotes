@@ -80,6 +80,8 @@ class SubjectWeight extends Equatable {
     required this.subject,
     this.majorPercent = 50,
     this.isLeistungskurs = false,
+    this.minMajorByPeriod = const {},
+    this.minMinorByPeriod = const {},
   });
 
   final String subject;
@@ -90,21 +92,45 @@ class SubjectWeight extends Equatable {
   /// Leistungskurs — counts double in the Abitur Block-I projection.
   final bool isLeistungskurs;
 
+  /// Minimum Klausuren / schriftliche Noten per Halbjahr (`GradePeriod.name`).
+  final Map<String, int> minMajorByPeriod;
+
+  /// Minimum kleine / mündliche Noten per Halbjahr.
+  final Map<String, int> minMinorByPeriod;
+
   int get minorPercent => 100 - majorPercent;
 
   int get abiCourseMultiplier => isLeistungskurs ? 2 : 1;
+
+  int minMajorFor(GradePeriod period) =>
+      (minMajorByPeriod[period.name] ?? 0).clamp(0, 99);
+
+  int minMinorFor(GradePeriod period) =>
+      (minMinorByPeriod[period.name] ?? 0).clamp(0, 99);
 
   Map<String, dynamic> toJson() => {
     'subject': subject,
     'majorPercent': majorPercent,
     'isLeistungskurs': isLeistungskurs,
+    'minMajorByPeriod': minMajorByPeriod,
+    'minMinorByPeriod': minMinorByPeriod,
   };
+
+  static Map<String, int> _intMap(dynamic raw) {
+    if (raw is! Map) return const {};
+    return {
+      for (final entry in raw.entries)
+        entry.key.toString(): (entry.value as num?)?.round().clamp(0, 99) ?? 0,
+    };
+  }
 
   factory SubjectWeight.fromJson(Map<String, dynamic> json) {
     return SubjectWeight(
       subject: json['subject'] as String? ?? '',
       majorPercent: (json['majorPercent'] as num?)?.round().clamp(0, 100) ?? 50,
       isLeistungskurs: json['isLeistungskurs'] as bool? ?? false,
+      minMajorByPeriod: _intMap(json['minMajorByPeriod']),
+      minMinorByPeriod: _intMap(json['minMinorByPeriod']),
     );
   }
 
@@ -112,16 +138,57 @@ class SubjectWeight extends Equatable {
     String? subject,
     int? majorPercent,
     bool? isLeistungskurs,
+    Map<String, int>? minMajorByPeriod,
+    Map<String, int>? minMinorByPeriod,
   }) {
     return SubjectWeight(
       subject: subject ?? this.subject,
       majorPercent: majorPercent ?? this.majorPercent,
       isLeistungskurs: isLeistungskurs ?? this.isLeistungskurs,
+      minMajorByPeriod: minMajorByPeriod ?? this.minMajorByPeriod,
+      minMinorByPeriod: minMinorByPeriod ?? this.minMinorByPeriod,
     );
   }
 
+  SubjectWeight withQuota({
+    required GradePeriod period,
+    int? minMajor,
+    int? minMinor,
+  }) {
+    final major = Map<String, int>.from(minMajorByPeriod);
+    final minor = Map<String, int>.from(minMinorByPeriod);
+    if (minMajor != null) major[period.name] = minMajor.clamp(0, 99);
+    if (minMinor != null) minor[period.name] = minMinor.clamp(0, 99);
+    return copyWith(minMajorByPeriod: major, minMinorByPeriod: minor);
+  }
+
   @override
-  List<Object?> get props => [subject, majorPercent, isLeistungskurs];
+  List<Object?> get props => [
+    subject,
+    majorPercent,
+    isLeistungskurs,
+    minMajorByPeriod,
+    minMinorByPeriod,
+  ];
+}
+
+class GradeQuotaProgress {
+  const GradeQuotaProgress({
+    required this.majorHave,
+    required this.majorNeed,
+    required this.minorHave,
+    required this.minorNeed,
+  });
+
+  final int majorHave;
+  final int majorNeed;
+  final int minorHave;
+  final int minorNeed;
+
+  bool get isConfigured => majorNeed > 0 || minorNeed > 0;
+
+  bool get isMet =>
+      isConfigured && majorHave >= majorNeed && minorHave >= minorNeed;
 }
 
 class PlannerEvent extends Equatable {
@@ -154,9 +221,24 @@ class PlannerEvent extends Equatable {
   String get displaySubject =>
       subject.trim().isEmpty ? title.trim() : subject.trim();
 
-  String get calendarLabel {
-    final label = title.trim();
-    return label.isEmpty ? displaySubject : label;
+  String calendarLabel({String examKindLabel = 'Klausur'}) {
+    final subject = this.subject.trim();
+    final title = this.title.trim();
+    if (kind == PlannerEventKind.exam) {
+      final titleIsSubject =
+          title.isEmpty ||
+          (subject.isNotEmpty && title.toLowerCase() == subject.toLowerCase());
+      if (titleIsSubject && subject.isNotEmpty) {
+        final suffix = examKindLabel.trim();
+        if (suffix.isEmpty) return subject;
+        if (subject.toLowerCase().endsWith(suffix.toLowerCase())) {
+          return subject;
+        }
+        return '$subject $suffix';
+      }
+      if (title.isEmpty) return examKindLabel;
+    }
+    return title.isEmpty ? displaySubject : title;
   }
 
   Map<String, dynamic> toJson() => {
@@ -708,6 +790,36 @@ class PlannerState extends Equatable {
       if (subjectKey(w.subject) == key) return w;
     }
     return SubjectWeight(subject: subject.trim(), majorPercent: 50);
+  }
+
+  GradeQuotaProgress quotaFor(
+    String subject, {
+    required GradePeriod period,
+    EducationLevel? level,
+    SchoolYear? year,
+  }) {
+    final weight = weightFor(subject);
+    final grades = gradesForSubject(
+      subject,
+      period: period,
+      level: level,
+      year: year,
+    );
+    var majorHave = 0;
+    var minorHave = 0;
+    for (final grade in grades) {
+      if (grade.category == GradeCategory.major) {
+        majorHave++;
+      } else {
+        minorHave++;
+      }
+    }
+    return GradeQuotaProgress(
+      majorHave: majorHave,
+      majorNeed: weight.minMajorFor(period),
+      minorHave: minorHave,
+      minorNeed: weight.minMinorFor(period),
+    );
   }
 
   List<GradeEntry> gradesForLevel(EducationLevel level) => [

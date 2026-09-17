@@ -793,6 +793,24 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: 12),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.abWeeks, style: _label),
+                subtitle: Text(l10n.abWeeksHint, style: _body),
+                value: settings.abWeeksEnabled,
+                onChanged: (v) =>
+                    ref.read(settingsProvider.notifier).setAbWeeksEnabled(v),
+              ),
+              if (settings.abWeeksEnabled)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.abWeeksSwap, style: _label),
+                  subtitle: Text(l10n.abWeeksSwapHint, style: _body),
+                  value: settings.abWeeksSwapped,
+                  onChanged: (v) =>
+                      ref.read(settingsProvider.notifier).setAbWeeksSwapped(v),
+                ),
+              const SizedBox(height: 12),
               Text(l10n.federalState, style: _label),
               const SizedBox(height: 6),
               DropdownButtonFormField<GermanState>(

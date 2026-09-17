@@ -213,7 +213,7 @@ class EditorController extends ChangeNotifier {
   Offset? _shapeHoldAnchor;
 
   static const _shapeHoldStillness = 12.0;
-  static const _shapeHoldDuration = Duration(milliseconds: 420);
+  static const _shapeHoldDuration = Duration(milliseconds: 1800);
 
   NotePage? get currentPage =>
       pages.isEmpty ? null : pages[pageIndex.clamp(0, pages.length - 1)];
@@ -2129,10 +2129,6 @@ class EditorController extends ChangeNotifier {
     if (_disposed) return;
     if (_beginRecognizedShapePreview()) {
       _convertedByHold = true;
-      return;
-    }
-    if (ink.activeStroke != null && ink.tool.isFreehand) {
-      _shapeHoldTimer = Timer(_shapeHoldDuration, _tryHoldRecognize);
     }
   }
 

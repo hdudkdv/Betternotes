@@ -57,6 +57,39 @@ int displayLessonColor(TimetableLesson lesson) {
   return colorForSubject(lesson.subject);
 }
 
+/// A/B week for rotating timetables. [both] is the default (every week).
+enum TimetableWeek { both, a, b }
+
+extension TimetableWeekX on TimetableWeek {
+  bool appliesTo(TimetableWeek current) =>
+      this == TimetableWeek.both || this == current;
+
+  static TimetableWeek parse(String? raw) {
+    return TimetableWeek.values.firstWhere(
+      (week) => week.name == raw,
+      orElse: () => TimetableWeek.both,
+    );
+  }
+}
+
+/// ISO-8601 week number (week 1 contains 4 January).
+int isoWeekNumber(DateTime date) {
+  final utc = DateTime.utc(date.year, date.month, date.day);
+  final thursday = utc.add(Duration(days: DateTime.thursday - utc.weekday));
+  final jan4 = DateTime.utc(thursday.year, 1, 4);
+  final week1Thursday = jan4.add(
+    Duration(days: DateTime.thursday - jan4.weekday),
+  );
+  return 1 + thursday.difference(week1Thursday).inDays ~/ 7;
+}
+
+/// Odd ISO weeks are A, even weeks are B — [swapped] flips the mapping.
+TimetableWeek currentAbWeek(DateTime date, {required bool swapped}) {
+  final odd = isoWeekNumber(date).isOdd;
+  if (swapped) return odd ? TimetableWeek.b : TimetableWeek.a;
+  return odd ? TimetableWeek.a : TimetableWeek.b;
+}
+
 /// One subject filling (full block or one half of a split block).
 class TimetableLesson extends Equatable {
   const TimetableLesson({
@@ -122,6 +155,7 @@ class TimetableSlot extends Equatable {
     this.split = false,
     this.first = const TimetableLesson(),
     this.second = const TimetableLesson(),
+    this.week = TimetableWeek.both,
   });
 
   /// 0 = Monday … 4 = Friday
@@ -130,6 +164,9 @@ class TimetableSlot extends Equatable {
   final bool split;
   final TimetableLesson first;
   final TimetableLesson second;
+
+  /// [TimetableWeek.both] applies every week; A/B override the shared slot.
+  final TimetableWeek week;
 
   bool get isEmpty => first.isEmpty && (!split || second.isEmpty);
 
@@ -147,6 +184,7 @@ class TimetableSlot extends Equatable {
     bool? split,
     TimetableLesson? first,
     TimetableLesson? second,
+    TimetableWeek? week,
   }) {
     return TimetableSlot(
       day: day,
@@ -154,6 +192,7 @@ class TimetableSlot extends Equatable {
       split: split ?? this.split,
       first: first ?? this.first,
       second: second ?? this.second,
+      week: week ?? this.week,
     );
   }
 
@@ -161,6 +200,7 @@ class TimetableSlot extends Equatable {
     'day': day,
     'period': period,
     'split': split,
+    'week': week.name,
     'first': first.toJson(),
     'second': second.toJson(),
     // legacy fields for older readers
@@ -170,11 +210,13 @@ class TimetableSlot extends Equatable {
   };
 
   factory TimetableSlot.fromJson(Map<String, dynamic> json) {
+    final week = TimetableWeekX.parse(json['week'] as String?);
     if (json['first'] is Map) {
       return TimetableSlot(
         day: (json['day'] as num?)?.toInt() ?? 0,
         period: (json['period'] as num?)?.toInt() ?? 0,
         split: json['split'] as bool? ?? false,
+        week: week,
         first: TimetableLesson.fromJson(
           Map<String, dynamic>.from(json['first'] as Map),
         ),
@@ -190,6 +232,7 @@ class TimetableSlot extends Equatable {
       day: (json['day'] as num?)?.toInt() ?? 0,
       period: (json['period'] as num?)?.toInt() ?? 0,
       split: false,
+      week: week,
       first: TimetableLesson(
         subject: json['subject'] as String? ?? '',
         room: json['room'] as String? ?? '',
@@ -199,7 +242,7 @@ class TimetableSlot extends Equatable {
   }
 
   @override
-  List<Object?> get props => [day, period, split, first, second];
+  List<Object?> get props => [day, period, split, first, second, week];
 }
 
 class TimetablePeriod extends Equatable {
@@ -335,11 +378,15 @@ class Timetable extends Equatable {
 
   static const dayCount = 5;
 
-  TimetableSlot? slotAt(int day, int period) {
+  TimetableSlot? slotAt(int day, int period, {TimetableWeek? week}) {
+    TimetableSlot? both;
     for (final s in slots) {
-      if (s.day == day && s.period == period) return s;
+      if (s.day != day || s.period != period) continue;
+      if (week == null) return s;
+      if (s.week == week) return s;
+      if (s.week == TimetableWeek.both) both = s;
     }
-    return null;
+    return both;
   }
 
   /// Timetable day index 0=Mon … 4=Fri from a calendar [DateTime.weekday].
@@ -349,11 +396,12 @@ class Timetable extends Equatable {
   }
 
   /// Distinct non-empty lessons (by subject name), optionally for one day index.
-  List<TimetableLesson> distinctLessons({int? day}) {
+  List<TimetableLesson> distinctLessons({int? day, TimetableWeek? week}) {
     final seen = <String>{};
     final out = <TimetableLesson>[];
     for (final slot in slots) {
       if (day != null && slot.day != day) continue;
+      if (week != null && !slot.week.appliesTo(week)) continue;
       if (slot.isEmpty) continue;
       void add(TimetableLesson lesson) {
         if (lesson.isEmpty) return;
@@ -378,14 +426,40 @@ class Timetable extends Equatable {
   Timetable upsertSlot(TimetableSlot slot) {
     final next = [
       for (final s in slots)
-        if (!(s.day == slot.day && s.period == slot.period)) s,
+        if (!(s.day == slot.day &&
+            s.period == slot.period &&
+            s.week == slot.week))
+          s,
     ];
     if (!slot.isEmpty) next.add(slot);
     return copyWith(slots: next, updatedAt: DateTime.now());
   }
 
+  Timetable clearSlotAt(int day, int period, {TimetableWeek? week}) {
+    if (week == null) {
+      return copyWith(
+        slots: [
+          for (final s in slots)
+            if (!(s.day == day && s.period == period)) s,
+        ],
+        updatedAt: DateTime.now(),
+      );
+    }
+    final hasExact = slots.any(
+      (s) => s.day == day && s.period == period && s.week == week,
+    );
+    final target = hasExact ? week : TimetableWeek.both;
+    return copyWith(
+      slots: [
+        for (final s in slots)
+          if (!(s.day == day && s.period == period && s.week == target)) s,
+      ],
+      updatedAt: DateTime.now(),
+    );
+  }
+
   /// Active lesson for [now] (local time), or null if free / weekend.
-  NowLesson? lessonAt(DateTime now) {
+  NowLesson? lessonAt(DateTime now, {TimetableWeek? week}) {
     final weekday = now.weekday; // 1=Mon … 7=Sun
     if (weekday < 1 || weekday > 5) return null;
     final day = weekday - 1;
@@ -394,7 +468,7 @@ class Timetable extends Equatable {
     for (var p = 0; p < periods.length; p++) {
       final period = periods[p];
       if (!period.containsMinuteOfDay(minuteOfDay)) continue;
-      final slot = slotAt(day, p);
+      final slot = slotAt(day, p, week: week);
       if (slot == null || slot.isEmpty) return null;
 
       if (slot.split) {
@@ -777,16 +851,8 @@ class TimetableNotifier extends StateNotifier<Timetable> {
     await _commit(state.upsertSlot(slot));
   }
 
-  Future<void> clearSlot(int day, int period) async {
-    await _commit(
-      state.copyWith(
-        slots: [
-          for (final s in state.slots)
-            if (!(s.day == day && s.period == period)) s,
-        ],
-        updatedAt: DateTime.now(),
-      ),
-    );
+  Future<void> clearSlot(int day, int period, {TimetableWeek? week}) async {
+    await _commit(state.clearSlotAt(day, period, week: week));
   }
 
   Future<void> setPeriod(int index, TimetablePeriod period) async {
@@ -856,7 +922,11 @@ final _clockTickProvider = StreamProvider<DateTime>((ref) {
 
 final nowLessonProvider = Provider<NowLesson?>((ref) {
   ref.watch(_clockTickProvider);
-  return ref.watch(timetableProvider).lessonAt(DateTime.now());
+  final settings = ref.watch(settingsProvider);
+  final week = settings.abWeeksEnabled
+      ? currentAbWeek(DateTime.now(), swapped: settings.abWeeksSwapped)
+      : null;
+  return ref.watch(timetableProvider).lessonAt(DateTime.now(), week: week);
 });
 
 /// Class taught in the current period, or null between lessons / weekends.

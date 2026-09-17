@@ -44,10 +44,15 @@ class PageBackgroundPainter extends CustomPainter {
     // Finite notebook pages are always rendered in full. Their transformed
     // viewport is not a reliable paint clip during a pan and would otherwise
     // make ruled/grid lines disappear temporarily.
-    final clip = infinite
+    var clip = infinite
         ? (visibleWorldRect ?? fullRect).intersect(fullRect).inflate(64)
         : fullRect;
-    if (clip.isEmpty) return;
+    if (clip.isEmpty) {
+      // Never skip the page after a pan/zoom — an empty cull used to flash
+      // a blank white board.
+      clip = visibleWorldRect ?? fullRect;
+      if (clip.isEmpty) clip = fullRect;
+    }
 
     final style = paper?.style ?? template.name;
     final linePaint = Paint()

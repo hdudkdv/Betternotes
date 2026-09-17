@@ -8209,6 +8209,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This notebook belongs to another account and is locked.'**
   String get accountNotebookLocked;
+
+  /// No description provided for @gradeQuotaHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum grades this half-year. A checkmark appears when you reach them — you can still add more.'**
+  String get gradeQuotaHint;
+
+  /// No description provided for @minMajorGrades.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum exams'**
+  String get minMajorGrades;
+
+  /// No description provided for @minMinorGrades.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum other grades'**
+  String get minMinorGrades;
+
+  /// No description provided for @gradeQuotaMet.
+  ///
+  /// In en, this message translates to:
+  /// **'Required grades reached'**
+  String get gradeQuotaMet;
+
+  /// No description provided for @dayEventsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Events on {date}'**
+  String dayEventsTitle(String date);
+
+  /// No description provided for @noEventsOnDay.
+  ///
+  /// In en, this message translates to:
+  /// **'No events on this day.'**
+  String get noEventsOnDay;
+
+  /// No description provided for @abWeeks.
+  ///
+  /// In en, this message translates to:
+  /// **'A/B weeks'**
+  String get abWeeks;
+
+  /// No description provided for @abWeeksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Two rotating timetables. Odd calendar weeks are week A, even weeks are week B.'**
+  String get abWeeksHint;
+
+  /// No description provided for @abWeeksSwap.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap weeks'**
+  String get abWeeksSwap;
+
+  /// No description provided for @abWeeksSwapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Turns the current A week into B and the other way around.'**
+  String get abWeeksSwapHint;
+
+  /// No description provided for @weekA.
+  ///
+  /// In en, this message translates to:
+  /// **'Week A'**
+  String get weekA;
+
+  /// No description provided for @weekB.
+  ///
+  /// In en, this message translates to:
+  /// **'Week B'**
+  String get weekB;
+
+  /// No description provided for @currentAbWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently {week}'**
+  String currentAbWeek(String week);
+
+  /// No description provided for @slotAppliesToBothWeeks.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to both weeks'**
+  String get slotAppliesToBothWeeks;
 }
 
 class _AppLocalizationsDelegate

@@ -38,13 +38,20 @@ class TimetableScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     int day,
-    int period,
-  ) async {
+    int period, {
+    TimetableWeek week = TimetableWeek.both,
+    required bool abWeeksEnabled,
+  }) async {
     final table = ref.read(timetableProvider);
     final folders = await ref.read(allFoldersProvider.future);
     if (!context.mounted) return;
     final existing =
-        table.slotAt(day, period) ?? TimetableSlot(day: day, period: period);
+        table.slotAt(day, period, week: abWeeksEnabled ? week : null) ??
+        TimetableSlot(
+          day: day,
+          period: period,
+          week: abWeeksEnabled ? week : TimetableWeek.both,
+        );
     final result = await showDialog<_SlotEditResult?>(
       context: context,
       builder: (context) => _SlotEditorDialog(
@@ -54,11 +61,19 @@ class TimetableScreen extends ConsumerWidget {
         folders: folders,
         showClassField: ref.read(settingsProvider).isTeacher,
         defaultSchoolClass: '',
+        abWeeksEnabled: abWeeksEnabled,
+        editWeek: week,
       ),
     );
     if (result == null) return;
     if (result.slot.isEmpty) {
-      await ref.read(timetableProvider.notifier).clearSlot(day, period);
+      await ref
+          .read(timetableProvider.notifier)
+          .clearSlot(
+            day,
+            period,
+            week: abWeeksEnabled ? result.slot.week : null,
+          );
       return;
     }
     final slot = await _attachCreatedFolders(
@@ -97,6 +112,7 @@ class TimetableScreen extends ConsumerWidget {
       split: slot.split,
       first: first,
       second: second,
+      week: slot.week,
     );
   }
 
@@ -143,6 +159,10 @@ class TimetableScreen extends ConsumerWidget {
   Future<void> _share(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
     final table = ref.read(timetableProvider);
+    final settings = ref.read(settingsProvider);
+    final week = settings.abWeeksEnabled
+        ? currentAbWeek(DateTime.now(), swapped: settings.abWeeksSwapped)
+        : null;
     final doc = pw.Document();
     doc.addPage(
       pw.Page(
@@ -185,7 +205,7 @@ class TimetableScreen extends ConsumerWidget {
                           small: true,
                         ),
                         for (var d = 0; d < Timetable.dayCount; d++)
-                          _pdfCell(_slotPdfText(table.slotAt(d, p))),
+                          _pdfCell(_slotPdfText(table.slotAt(d, p, week: week))),
                       ],
                     ),
                 ],
@@ -247,6 +267,10 @@ class TimetableScreen extends ConsumerWidget {
     final table = ref.watch(timetableProvider);
     final now = ref.watch(nowLessonProvider);
     final isTeacher = ref.watch(settingsProvider).isTeacher;
+    final settings = ref.watch(settingsProvider);
+    final abWeek = settings.abWeeksEnabled
+        ? currentAbWeek(DateTime.now(), swapped: settings.abWeeksSwapped)
+        : null;
 
     return Scaffold(
       backgroundColor: AppTheme.paper,
@@ -317,6 +341,34 @@ class TimetableScreen extends ConsumerWidget {
         children: [
           if (now != null)
             _NowBanner(now: now, dayLabel: _dayLabel(l10n, now.day)),
+          if (abWeek != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentSoft,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      l10n.currentAbWeek(
+                        abWeek == TimetableWeek.a ? l10n.weekA : l10n.weekB,
+                      ),
+                      style: AppTheme.body(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: AppTheme.ink,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
             child: Text(
@@ -336,9 +388,16 @@ class TimetableScreen extends ConsumerWidget {
               child: SingleChildScrollView(
                 child: _TimetableGrid(
                   table: table,
+                  week: abWeek,
                   dayLabel: (d) => _dayLabel(l10n, d),
-                  onTapSlot: (day, period) =>
-                      _editSlot(context, ref, day, period),
+                  onTapSlot: (day, period) => _editSlot(
+                    context,
+                    ref,
+                    day,
+                    period,
+                    week: abWeek ?? TimetableWeek.both,
+                    abWeeksEnabled: settings.abWeeksEnabled,
+                  ),
                   onTapPeriod: (p) => _editPeriod(context, ref, p),
                 ),
               ),
@@ -647,6 +706,8 @@ class _SlotEditorDialog extends StatefulWidget {
     required this.folders,
     this.showClassField = false,
     this.defaultSchoolClass = '',
+    this.abWeeksEnabled = false,
+    this.editWeek = TimetableWeek.both,
   });
 
   final String dayLabel;
@@ -655,6 +716,8 @@ class _SlotEditorDialog extends StatefulWidget {
   final List<LibraryFolder> folders;
   final bool showClassField;
   final String defaultSchoolClass;
+  final bool abWeeksEnabled;
+  final TimetableWeek editWeek;
 
   @override
   State<_SlotEditorDialog> createState() => _SlotEditorDialogState();
@@ -672,6 +735,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
   late TextEditingController _subject2;
   late bool _createFolder1;
   late bool _createFolder2;
+  late bool _bothWeeks;
 
   @override
   void initState() {
@@ -695,6 +759,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     _subject2 = TextEditingController(text: _second.subject);
     _createFolder1 = _first.folderId == null;
     _createFolder2 = _second.folderId == null;
+    _bothWeeks = widget.initial.week == TimetableWeek.both;
   }
 
   @override
@@ -764,6 +829,9 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       split: _split,
       first: first,
       second: second,
+      week: widget.abWeeksEnabled
+          ? (_bothWeeks ? TimetableWeek.both : widget.editWeek)
+          : TimetableWeek.both,
     );
   }
 
@@ -781,6 +849,18 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.abWeeksEnabled) ...[
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _bothWeeks,
+                  onChanged: (v) => setState(() => _bothWeeks = v ?? false),
+                  title: Text(
+                    l10n.slotAppliesToBothWeeks,
+                    style: AppTheme.body(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               Text(
                 l10n.blockMode,
                 style: AppTheme.body(fontWeight: FontWeight.w700),
@@ -865,6 +945,9 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                 slot: TimetableSlot(
                   day: widget.initial.day,
                   period: widget.initial.period,
+                  week: widget.abWeeksEnabled
+                      ? (_bothWeeks ? TimetableWeek.both : widget.editWeek)
+                      : TimetableWeek.both,
                 ),
               ),
             ),
@@ -1038,9 +1121,11 @@ class _TimetableGrid extends StatelessWidget {
     required this.dayLabel,
     required this.onTapSlot,
     required this.onTapPeriod,
+    this.week,
   });
 
   final Timetable table;
+  final TimetableWeek? week;
   final String Function(int day) dayLabel;
   final void Function(int day, int period) onTapSlot;
   final ValueChanged<int> onTapPeriod;
@@ -1120,7 +1205,7 @@ class _TimetableGrid extends StatelessWidget {
                 ),
               ),
               for (var d = 0; d < Timetable.dayCount; d++)
-                _slotCell(table.slotAt(d, p), () => onTapSlot(d, p)),
+                _slotCell(table.slotAt(d, p, week: week), () => onTapSlot(d, p)),
             ],
           ),
       ],
@@ -1242,11 +1327,16 @@ class TimetableHomeCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final table = ref.watch(timetableProvider);
     final now = ref.watch(nowLessonProvider);
+    final settings = ref.watch(settingsProvider);
+    final week = settings.abWeeksEnabled
+        ? currentAbWeek(DateTime.now(), swapped: settings.abWeeksSwapped)
+        : null;
     final today = (DateTime.now().weekday - 1).clamp(0, 4);
     final todaySlots = [
       for (var p = 0; p < table.periods.length; p++)
-        if (table.slotAt(today, p) != null && !table.slotAt(today, p)!.isEmpty)
-          table.slotAt(today, p)!,
+        if (table.slotAt(today, p, week: week) != null &&
+            !table.slotAt(today, p, week: week)!.isEmpty)
+          table.slotAt(today, p, week: week)!,
     ];
 
     final heading = l10n.timetable;

@@ -4517,4 +4517,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get accountNotebookLocked =>
       'This notebook belongs to another account and is locked.';
+
+  @override
+  String get gradeQuotaHint =>
+      'Minimum grades this half-year. A checkmark appears when you reach them — you can still add more.';
+
+  @override
+  String get minMajorGrades => 'Minimum exams';
+
+  @override
+  String get minMinorGrades => 'Minimum other grades';
+
+  @override
+  String get gradeQuotaMet => 'Required grades reached';
+
+  @override
+  String dayEventsTitle(String date) {
+    return 'Events on $date';
+  }
+
+  @override
+  String get noEventsOnDay => 'No events on this day.';
+
+  @override
+  String get abWeeks => 'A/B weeks';
+
+  @override
+  String get abWeeksHint =>
+      'Two rotating timetables. Odd calendar weeks are week A, even weeks are week B.';
+
+  @override
+  String get abWeeksSwap => 'Swap weeks';
+
+  @override
+  String get abWeeksSwapHint =>
+      'Turns the current A week into B and the other way around.';
+
+  @override
+  String get weekA => 'Week A';
+
+  @override
+  String get weekB => 'Week B';
+
+  @override
+  String currentAbWeek(String week) {
+    return 'Currently $week';
+  }
+
+  @override
+  String get slotAppliesToBothWeeks => 'Applies to both weeks';
 }

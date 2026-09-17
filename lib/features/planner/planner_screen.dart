@@ -336,6 +336,96 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     }
   }
 
+  Future<void> _openDayOverlay(DateTime day) async {
+    setState(() => _selectedDay = day);
+    final l10n = AppLocalizations.of(context)!;
+    final dateLabel = DateFormat.yMMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(day);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.72,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (ctx, scroll) {
+            return Consumer(
+              builder: (ctx, ref, _) {
+                final planner = ref.watch(plannerProvider);
+                final events = planner.eventsOn(day);
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  child: ListView(
+                    controller: scroll,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppTheme.ink.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        l10n.dayEventsTitle(dateLabel),
+                        style: AppTheme.headline(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (events.isEmpty)
+                        Text(
+                          l10n.noEventsOnDay,
+                          style: AppTheme.body(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.inkMuted,
+                          ),
+                        )
+                      else
+                        for (final event in events)
+                          _EventTile(
+                            event: event,
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _editEvent(event);
+                            },
+                            onShare: () => _shareEvent(event),
+                            onDelete: () => ref
+                                .read(plannerProvider.notifier)
+                                .deleteEvent(event.id),
+                          ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _editEvent();
+                        },
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.addAppointment),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _maybeCreateGradeForExam(PlannerEvent event) async {
     final l10n = AppLocalizations.of(context)!;
     final create = await showDialog<bool>(
@@ -553,11 +643,42 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                if (settings.abWeeksEnabled) ...[
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentSoft,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        l10n.currentAbWeek(
+                          currentAbWeek(
+                                    _selectedDay,
+                                    swapped: settings.abWeeksSwapped,
+                                  ) ==
+                                  TimetableWeek.a
+                              ? l10n.weekA
+                              : l10n.weekB,
+                        ),
+                        style: AppTheme.body(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: AppTheme.ink,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 _MonthGrid(
                   month: DateTime(_selectedDay.year, _selectedDay.month),
                   selected: _selectedDay,
                   state: settings.germanState,
-                  onSelect: (d) => setState(() => _selectedDay = d),
+                  onSelect: _openDayOverlay,
                 ),
                 if (holiday != null) ...[
                   const SizedBox(height: 14),
@@ -789,22 +910,24 @@ class _MonthGrid extends ConsumerWidget {
                       ),
                       const SizedBox(height: 3),
                       Expanded(
-                        child: ClipRect(
-                          child: Column(
-                            children: [
-                              for (final event in dayEvents.take(2))
-                                _MonthEventChip(event: event),
-                              if (dayEvents.length > 2)
-                                Text(
-                                  '+${dayEvents.length - 2}',
-                                  textAlign: TextAlign.center,
-                                  style: AppTheme.body(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.inkMuted,
+                        child: IgnorePointer(
+                          child: ClipRect(
+                            child: Column(
+                              children: [
+                                for (final event in dayEvents.take(2))
+                                  _MonthEventChip(event: event),
+                                if (dayEvents.length > 2)
+                                  Text(
+                                    '+${dayEvents.length - 2}',
+                                    textAlign: TextAlign.center,
+                                    style: AppTheme.body(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.inkMuted,
+                                    ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -827,8 +950,9 @@ class _MonthEventChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final color = Color(event.colorValue);
-    final label = event.calendarLabel;
+    final label = event.calendarLabel(examKindLabel: l10n.kindExam);
     if (label.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 2),
@@ -882,6 +1006,7 @@ class _EventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final time = DateFormat.Hm().format(event.start);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -909,9 +1034,7 @@ class _EventTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        event.title.trim().isEmpty
-                            ? event.displaySubject
-                            : event.title,
+                        event.calendarLabel(examKindLabel: l10n.kindExam),
                         style: AppTheme.body(
                           fontWeight: FontWeight.w800,
                           fontSize: 16,
@@ -1034,8 +1157,12 @@ class _EventEditorSheetState extends ConsumerState<_EventEditorSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final table = ref.watch(timetableProvider);
+    final settings = ref.watch(settingsProvider);
     final dayIndex = Timetable.dayIndexFromWeekday(_start.weekday);
-    final dayLessons = table.distinctLessons(day: dayIndex);
+    final week = settings.abWeeksEnabled
+        ? currentAbWeek(_start, swapped: settings.abWeeksSwapped)
+        : null;
+    final dayLessons = table.distinctLessons(day: dayIndex, week: week);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
 
     return Padding(
@@ -1379,16 +1506,23 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
     await ref.read(plannerProvider.notifier).upsertGrade(result);
   }
 
-  Future<void> _editWeight(String subject, EducationLevel level) async {
+  Future<void> _editWeight(
+    String subject,
+    EducationLevel level,
+    GradePeriod period,
+  ) async {
     final planner = ref.read(plannerProvider);
     final l10n = AppLocalizations.of(context)!;
     final current = planner.weightFor(subject);
     var percent = current.majorPercent;
     var isLk = current.isLeistungskurs;
+    var minMajor = current.minMajorFor(period);
+    var minMinor = current.minMinorFor(period);
 
     final result = await showModalBottomSheet<SubjectWeight>(
       context: context,
       backgroundColor: AppTheme.paper,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1396,11 +1530,17 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
         return StatefulBuilder(
           builder: (ctx, setLocal) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              padding: EdgeInsets.fromLTRB(
+                20,
+                16,
+                20,
+                28 + MediaQuery.viewInsetsOf(ctx).bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   Text(
                     l10n.weightForSubject(subject),
                     style: AppTheme.headline(
@@ -1445,6 +1585,28 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                       color: AppTheme.ink,
                     ),
                   ),
+                  if (level != EducationLevel.university) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.gradeQuotaHint,
+                      style: AppTheme.body(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: AppTheme.inkMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _QuotaStepper(
+                      label: l10n.minMajorGrades,
+                      value: minMajor,
+                      onChanged: (v) => setLocal(() => minMajor = v),
+                    ),
+                    _QuotaStepper(
+                      label: l10n.minMinorGrades,
+                      value: minMinor,
+                      onChanged: (v) => setLocal(() => minMinor = v),
+                    ),
+                  ],
                   if (level == EducationLevel.sek2) ...[
                     const SizedBox(height: 8),
                     SwitchListTile(
@@ -1472,15 +1634,19 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                   FilledButton(
                     onPressed: () => Navigator.pop(
                       ctx,
-                      SubjectWeight(
-                        subject: subject,
+                      current.copyWith(
                         majorPercent: percent,
                         isLeistungskurs: isLk,
+                      ).withQuota(
+                        period: period,
+                        minMajor: minMajor,
+                        minMinor: minMinor,
                       ),
                     ),
                     child: Text(l10n.save),
                   ),
                 ],
+                ),
               ),
             );
           },
@@ -1743,6 +1909,12 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                   period: level == EducationLevel.university ? null : period,
                 ),
                 weight: planner.weightFor(subject),
+                quota: planner.quotaFor(
+                  subject,
+                  period: period,
+                  level: level,
+                  year: year,
+                ),
                 gradeCount: planner
                     .gradesForSubject(
                       subject,
@@ -1763,7 +1935,7 @@ class _GradesScreenState extends ConsumerState<GradesScreen> {
                   levelOverride: level,
                   yearOverride: year,
                 ),
-                onWeight: () => _editWeight(subject, level),
+                onWeight: () => _editWeight(subject, level, period),
                 onToggleLeistungskurs: () {
                   final current = planner.weightFor(subject);
                   ref
@@ -2192,12 +2364,60 @@ class _UniPrognosisCard extends StatelessWidget {
   }
 }
 
+class _QuotaStepper extends StatelessWidget {
+  const _QuotaStepper({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        label,
+        style: AppTheme.body(
+          fontWeight: FontWeight.w800,
+          color: AppTheme.ink,
+        ),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: value <= 0 ? null : () => onChanged(value - 1),
+            icon: const Icon(Icons.remove),
+          ),
+          Text(
+            '$value',
+            style: AppTheme.body(
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+              color: AppTheme.ink,
+            ),
+          ),
+          IconButton(
+            onPressed: value >= 20 ? null : () => onChanged(value + 1),
+            icon: const Icon(Icons.add),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SubjectGradeCard extends StatelessWidget {
   const _SubjectGradeCard({
     required this.subject,
     required this.color,
     required this.average,
     required this.weight,
+    required this.quota,
     required this.gradeCount,
     required this.majorLabel,
     required this.minorLabel,
@@ -2214,6 +2434,7 @@ class _SubjectGradeCard extends StatelessWidget {
   final int color;
   final double? average;
   final SubjectWeight weight;
+  final GradeQuotaProgress quota;
   final int gradeCount;
   final String majorLabel;
   final String minorLabel;
@@ -2261,13 +2482,28 @@ class _SubjectGradeCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            subject,
-                            style: AppTheme.body(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 17,
-                              color: AppTheme.ink,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  subject,
+                                  style: AppTheme.body(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 17,
+                                    color: AppTheme.ink,
+                                  ),
+                                ),
+                              ),
+                              if (quota.isMet)
+                                Tooltip(
+                                  message: l10n.gradeQuotaMet,
+                                  child: Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 20,
+                                    color: AppTheme.accent,
+                                  ),
+                                ),
+                            ],
                           ),
                           if (showLeistungskurs) ...[
                             const SizedBox(height: 4),

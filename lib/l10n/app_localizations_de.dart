@@ -4544,4 +4544,53 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get accountNotebookLocked =>
       'Dieses Notizbuch gehört einem anderen Konto und ist gesperrt.';
+
+  @override
+  String get gradeQuotaHint =>
+      'Mindestanzahl Noten in diesem Halbjahr. Wenn sie erreicht ist, erscheint ein Haken — du kannst trotzdem weiter Noten eintragen.';
+
+  @override
+  String get minMajorGrades => 'Mindest-Klausuren';
+
+  @override
+  String get minMinorGrades => 'Mindest-kleine Noten';
+
+  @override
+  String get gradeQuotaMet => 'Soll-Noten erreicht';
+
+  @override
+  String dayEventsTitle(String date) {
+    return 'Termine am $date';
+  }
+
+  @override
+  String get noEventsOnDay => 'Keine Termine an diesem Tag.';
+
+  @override
+  String get abWeeks => 'A/B-Wochen';
+
+  @override
+  String get abWeeksHint =>
+      'Zwei Stundenpläne im Wechsel. Ungerade Kalenderwochen sind Woche A, gerade Woche B.';
+
+  @override
+  String get abWeeksSwap => 'Wochen tauschen';
+
+  @override
+  String get abWeeksSwapHint =>
+      'Macht aus der aktuellen A-Woche eine B-Woche und umgekehrt.';
+
+  @override
+  String get weekA => 'Woche A';
+
+  @override
+  String get weekB => 'Woche B';
+
+  @override
+  String currentAbWeek(String week) {
+    return 'Aktuell $week';
+  }
+
+  @override
+  String get slotAppliesToBothWeeks => 'Gilt für beide Wochen';
 }

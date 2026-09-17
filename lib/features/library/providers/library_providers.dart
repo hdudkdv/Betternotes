@@ -128,6 +128,8 @@ class AppSettings {
     this.twoFingerTapAction = EditorGestureAction.undo,
     this.threeFingerSwipeLeftAction = EditorGestureAction.previousPage,
     this.threeFingerSwipeRightAction = EditorGestureAction.nextPage,
+    this.abWeeksEnabled = false,
+    this.abWeeksSwapped = false,
   });
 
   factory AppSettings.fromPrefs(SharedPreferences prefs) {
@@ -200,6 +202,8 @@ class AppSettings {
         prefs.getString('gestureThreeFingerSwipeRight'),
         EditorGestureAction.nextPage,
       ),
+      abWeeksEnabled: prefs.getBool('abWeeksEnabled') ?? false,
+      abWeeksSwapped: prefs.getBool('abWeeksSwapped') ?? false,
     );
   }
 
@@ -218,6 +222,12 @@ class AppSettings {
   final EditorGestureAction twoFingerTapAction;
   final EditorGestureAction threeFingerSwipeLeftAction;
   final EditorGestureAction threeFingerSwipeRightAction;
+
+  /// Rotate between week-A and week-B timetables.
+  final bool abWeeksEnabled;
+
+  /// Flip which ISO week is A vs B.
+  final bool abWeeksSwapped;
 
   /// Bachelor-Ziel ECTS (typisch 180).
   final int targetEcts;
@@ -282,6 +292,8 @@ class AppSettings {
     EditorGestureAction? twoFingerTapAction,
     EditorGestureAction? threeFingerSwipeLeftAction,
     EditorGestureAction? threeFingerSwipeRightAction,
+    bool? abWeeksEnabled,
+    bool? abWeeksSwapped,
   }) {
     return AppSettings(
       fingerPanZoom: fingerPanZoom ?? this.fingerPanZoom,
@@ -310,6 +322,8 @@ class AppSettings {
           threeFingerSwipeLeftAction ?? this.threeFingerSwipeLeftAction,
       threeFingerSwipeRightAction:
           threeFingerSwipeRightAction ?? this.threeFingerSwipeRightAction,
+      abWeeksEnabled: abWeeksEnabled ?? this.abWeeksEnabled,
+      abWeeksSwapped: abWeeksSwapped ?? this.abWeeksSwapped,
     );
   }
 }
@@ -424,6 +438,16 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
         state = state.copyWith(threeFingerSwipeRightAction: action);
         await _prefs.setString('gestureThreeFingerSwipeRight', action.name);
     }
+  }
+
+  Future<void> setAbWeeksEnabled(bool value) async {
+    state = state.copyWith(abWeeksEnabled: value);
+    await _prefs.setBool('abWeeksEnabled', value);
+  }
+
+  Future<void> setAbWeeksSwapped(bool value) async {
+    state = state.copyWith(abWeeksSwapped: value);
+    await _prefs.setBool('abWeeksSwapped', value);
   }
 }
 

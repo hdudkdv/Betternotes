@@ -1810,5 +1810,29 @@
   "accountHandoverLock": "Lokal speichern und verschlüsseln",
   "accountHandoverLockHint": "Die Hefte bleiben auf dem Gerät, sind aber nur mit dem Ursprungskonto zu öffnen.",
   "accountHandoverLockUnavailable": "Verschlüsseln geht nur beim Abmelden, solange das Ursprungskonto noch aktiv ist.",
-  "accountNotebookLocked": "Dieses Notizbuch gehört einem anderen Konto und ist gesperrt."
+  "accountNotebookLocked": "Dieses Notizbuch gehört einem anderen Konto und ist gesperrt.",
+  "gradeQuotaHint": "Mindestanzahl Noten in diesem Halbjahr. Wenn sie erreicht ist, erscheint ein Haken — du kannst trotzdem weiter Noten eintragen.",
+  "minMajorGrades": "Mindest-Klausuren",
+  "minMinorGrades": "Mindest-kleine Noten",
+  "gradeQuotaMet": "Soll-Noten erreicht",
+  "dayEventsTitle": "Termine am {date}",
+  "@dayEventsTitle": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "noEventsOnDay": "Keine Termine an diesem Tag.",
+  "abWeeks": "A/B-Wochen",
+  "abWeeksHint": "Zwei Stundenpläne im Wechsel. Ungerade Kalenderwochen sind Woche A, gerade Woche B.",
+  "abWeeksSwap": "Wochen tauschen",
+  "abWeeksSwapHint": "Macht aus der aktuellen A-Woche eine B-Woche und umgekehrt.",
+  "weekA": "Woche A",
+  "weekB": "Woche B",
+  "currentAbWeek": "Aktuell {week}",
+  "@currentAbWeek": {
+    "placeholders": {
+      "week": {"type": "String"}
+    }
+  },
+  "slotAppliesToBothWeeks": "Gilt für beide Wochen"
 }

@@ -1,7 +1,7 @@
 name: betternotes
 description: Notis — tablet-first handwritten notes for school and study.
 publish_to: 'none'
-version: 1.0.8+27
+version: 1.0.9+28
 
 environment:
   sdk: ^3.11.4
