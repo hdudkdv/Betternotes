@@ -130,6 +130,22 @@ void _bindCloudLive(Ref ref, EditorController controller, String notebookId) {
   ref.onDispose(() => engine.unwatchNotebook(notebookId));
 }
 
+enum _EditKind { ink, objects }
+
+class _ObjectSnapshot {
+  const _ObjectSnapshot({
+    required this.shapes,
+    required this.images,
+    required this.textBlocks,
+    required this.stickers,
+  });
+
+  final List<ShapeElement> shapes;
+  final List<ImageElement> images;
+  final List<TextBlock> textBlocks;
+  final List<StickerElement> stickers;
+}
+
 class EditorController extends ChangeNotifier {
   EditorController({
     required this.notebookId,
@@ -193,6 +209,13 @@ class EditorController extends ChangeNotifier {
   bool loading = true;
   String? error;
   Timer? _saveTimer;
+  DateTime? _localEditedAt;
+  bool _pendingLocalSave = false;
+
+  final List<_EditKind> _editLog = [];
+  final List<_EditKind> _redoLog = [];
+  final List<_ObjectSnapshot> _objectUndo = [];
+  final List<_ObjectSnapshot> _objectRedo = [];
 
   /// Guards background decoding against fast page flips.
   int _bindToken = 0;
@@ -223,9 +246,33 @@ class EditorController extends ChangeNotifier {
     final index = pages.indexWhere((item) => item.id == page.id);
     if (index < 0) {
       pages = [...pages, page]..sort((a, b) => a.index.compareTo(b.index));
-    } else {
-      pages[index] = page;
+      notifyListeners();
+      return;
     }
+    final local = pages[index];
+    final remoteTime = page.updatedAt;
+    final localTime = local.updatedAt ?? _localEditedAt;
+    final localWins =
+        currentPage?.id == page.id &&
+        (_pendingLocalSave ||
+            (_localEditedAt != null &&
+                remoteTime != null &&
+                !_localEditedAt!.isBefore(remoteTime)) ||
+            (localTime != null &&
+                remoteTime != null &&
+                !localTime.isBefore(remoteTime)));
+    if (localWins) {
+      pages[index] = page.copyWith(
+        strokes: ink.strokes,
+        textBlocks: textBlocks,
+        shapes: shapes,
+        images: images,
+        stickers: stickers,
+        updatedAt: localTime ?? DateTime.now(),
+      );
+      return;
+    }
+    pages[index] = page;
     if (currentPage?.id == page.id) {
       ink.replaceStrokes(page.strokes, quiet: true);
       textBlocks = page.textBlocks;
@@ -383,6 +430,10 @@ class EditorController extends ChangeNotifier {
       image?.dispose();
       return;
     }
+    if (image == null && path != null && path.isNotEmpty) {
+      // Transient decode/file hiccup — keep the last worksheet on screen.
+      return;
+    }
     backgroundImage?.dispose();
     backgroundImage = image;
   }
@@ -487,7 +538,15 @@ class EditorController extends ChangeNotifier {
   }
 
   void deleteLassoSelection() {
+    final removeObjects =
+        selectedShapeIds.isNotEmpty ||
+        selectedImageIds.isNotEmpty ||
+        selectedTextIds.isNotEmpty ||
+        selectedStickerIds.isNotEmpty;
+    if (removeObjects) _pushObjectUndo();
+    final inkUndoBefore = ink.undoDepth;
     ink.deleteSelected();
+    if (ink.undoDepth > inkUndoBefore) _noteInkUndo();
     var changed = false;
     if (selectedShapeIds.isNotEmpty) {
       shapes = [
@@ -633,6 +692,12 @@ class EditorController extends ChangeNotifier {
   void beginLassoScale() {
     final bounds = lassoSelectionBounds;
     if (bounds == null) return;
+    if (selectedShapeIds.isNotEmpty ||
+        selectedImageIds.isNotEmpty ||
+        selectedTextIds.isNotEmpty ||
+        selectedStickerIds.isNotEmpty) {
+      _pushObjectUndo();
+    }
     _lassoScaling = true;
     _lassoScaleBounds = bounds;
     _lassoScaleDelta = Offset.zero;
@@ -890,6 +955,8 @@ class EditorController extends ChangeNotifier {
   }
 
   void _scheduleSave() {
+    _localEditedAt = DateTime.now();
+    _pendingLocalSave = true;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 450), _persistCurrent);
   }
@@ -898,6 +965,8 @@ class EditorController extends ChangeNotifier {
     _saveTimer?.cancel();
     final page = currentPage;
     if (page == null) return;
+    _pendingLocalSave = false;
+    _localEditedAt = DateTime.now();
     final previous = currentPage;
     final updated = page.copyWith(
       strokes: ink.strokes,
@@ -920,18 +989,109 @@ class EditorController extends ChangeNotifier {
 
   Future<void> persistForSearchIndex() => _persistCurrent();
 
+  bool get canUndo => _editLog.isNotEmpty || ink.canUndo;
+  bool get canRedo => _redoLog.isNotEmpty || ink.canRedo;
+
+  _ObjectSnapshot _captureObjects() => _ObjectSnapshot(
+    shapes: List.of(shapes),
+    images: List.of(images),
+    textBlocks: List.of(textBlocks),
+    stickers: List.of(stickers),
+  );
+
+  void _pushObjectUndo() {
+    _objectUndo.add(_captureObjects());
+    if (_objectUndo.length > 80) _objectUndo.removeAt(0);
+    _objectRedo.clear();
+    _editLog.add(_EditKind.objects);
+    _redoLog.clear();
+  }
+
+  void _noteInkUndo() {
+    _editLog.add(_EditKind.ink);
+    _redoLog.clear();
+  }
+
+  void _restoreObjects(_ObjectSnapshot snap) {
+    shapes = List.of(snap.shapes);
+    images = List.of(snap.images);
+    textBlocks = List.of(snap.textBlocks);
+    stickers = List.of(snap.stickers);
+  }
+
+  void undo() {
+    if (_editLog.isEmpty) {
+      if (!ink.canUndo) return;
+      ink.undo();
+      notifyListeners();
+      _scheduleSave();
+      return;
+    }
+    final kind = _editLog.removeLast();
+    _redoLog.add(kind);
+    switch (kind) {
+      case _EditKind.ink:
+        if (ink.canUndo) ink.undo();
+      case _EditKind.objects:
+        if (_objectUndo.isEmpty) break;
+        _objectRedo.add(_captureObjects());
+        _restoreObjects(_objectUndo.removeLast());
+    }
+    notifyListeners();
+    _scheduleSave();
+  }
+
+  void redo() {
+    if (_redoLog.isEmpty) {
+      if (!ink.canRedo) return;
+      ink.redo();
+      notifyListeners();
+      _scheduleSave();
+      return;
+    }
+    final kind = _redoLog.removeLast();
+    _editLog.add(kind);
+    switch (kind) {
+      case _EditKind.ink:
+        if (ink.canRedo) ink.redo();
+      case _EditKind.objects:
+        if (_objectRedo.isEmpty) break;
+        _objectUndo.add(_captureObjects());
+        _restoreObjects(_objectRedo.removeLast());
+    }
+    notifyListeners();
+    _scheduleSave();
+  }
+
   Future<void> _refreshSearchIndex(NotePage page) async {
     final indexed = await RecognitionService.instance.indexPage(page);
     if (indexed == null || _disposed) return;
     final i = pages.indexWhere((p) => p.id == page.id);
     if (i < 0) return;
-    pages[i] = indexed;
-    await repository.savePage(indexed);
+    // Never replace live content with the snapshot OCR started from — that
+    // wiped imported images/worksheets once recognition finished.
+    final live = pages[i];
+    final merged = currentPage?.id == live.id
+        ? live.copyWith(
+            searchIndex: indexed.searchIndex,
+            strokes: ink.strokes,
+            textBlocks: textBlocks,
+            shapes: shapes,
+            images: images,
+            stickers: stickers,
+            updatedAt: live.updatedAt ?? _localEditedAt,
+          )
+        : live.copyWith(searchIndex: indexed.searchIndex);
+    pages[i] = merged;
+    await repository.savePage(merged);
   }
 
   /// Re-reads pages from disk after a nearby-sync remote update.
   Future<void> reloadFromRemote({String? pageId}) async {
     if (_disposed) return;
+    if (_pendingLocalSave) {
+      await _persistCurrent(warmPreview: false);
+    }
     final keepIndex = pageIndex;
     pages = await repository.getPages(notebookId);
     notebook = await repository.getNotebook(notebookId);
@@ -1430,6 +1590,8 @@ class EditorController extends ChangeNotifier {
     _scheduleSave();
   }
 
+  void beginObjectEdit() => _pushObjectUndo();
+
   void updateImage(ImageElement image) {
     images = [
       for (final i in images)
@@ -1484,6 +1646,7 @@ class EditorController extends ChangeNotifier {
         dest = p.join(dir, 'images', '${const Uuid().v4()}_crop.png');
         await createFileStore().writeBytes(dest, png);
       }
+      _pushObjectUndo();
       updateImage(
         image.copyWith(
           localPath: dest,
@@ -1493,10 +1656,12 @@ class EditorController extends ChangeNotifier {
           height: image.height * normalized.height,
         ),
       );
+      await _persistCurrent();
     } catch (_) {}
   }
 
   void deleteImage(String id) {
+    _pushObjectUndo();
     images = [
       for (final i in images)
         if (i.id != id) i,
@@ -1587,6 +1752,7 @@ class EditorController extends ChangeNotifier {
       width: width,
       height: height,
     );
+    _pushObjectUndo();
     images = [...images, element];
     selectedImageId = element.id;
     selectedImageIds = {element.id};
@@ -1599,7 +1765,7 @@ class EditorController extends ChangeNotifier {
     ink.selectIds({});
     ink.setTool(InkTool.image);
     notifyListeners();
-    _scheduleSave();
+    await _persistCurrent();
   }
 
   Future<void> insertPngBytes(
@@ -1625,6 +1791,7 @@ class EditorController extends ChangeNotifier {
       width: box.width,
       height: box.height,
     );
+    _pushObjectUndo();
     images = [...images, element];
     selectedImageId = element.id;
     selectedImageIds = {element.id};
@@ -1637,7 +1804,7 @@ class EditorController extends ChangeNotifier {
     ink.selectIds({});
     ink.setTool(InkTool.image);
     notifyListeners();
-    _scheduleSave();
+    await _persistCurrent();
   }
 
   void insertSticker(String catalogId, {Offset? at}) {
@@ -1907,6 +2074,12 @@ class EditorController extends ChangeNotifier {
     _lassoDragStart = pagePoint;
     _lassoAccum = Offset.zero;
     _lassoBeforeMove = List.of(ink.strokes);
+    if (selectedShapeIds.isNotEmpty ||
+        selectedImageIds.isNotEmpty ||
+        selectedTextIds.isNotEmpty ||
+        selectedStickerIds.isNotEmpty) {
+      _pushObjectUndo();
+    }
   }
 
   void applyColorToSelection(int value) {
@@ -2114,6 +2287,9 @@ class EditorController extends ChangeNotifier {
 
   void _armShapeHold(Offset pagePoint) {
     if (!ink.tool.isFreehand) return;
+    // Marker/highlighter stays translucent. Hold-to-shape painted the same
+    // stroke fully opaque and looked like the line "filled in".
+    if (ink.tool == InkTool.marker) return;
     if (ink.activeStroke == null) return;
     final anchor = _shapeHoldAnchor;
     if (anchor != null &&
@@ -2221,6 +2397,7 @@ class EditorController extends ChangeNotifier {
           : ((shape.x2 - shape.x1).abs() > 4 ||
                 (shape.y2 - shape.y1).abs() > 4);
       if (commit) {
+        _pushObjectUndo();
         shapes = [...shapes, shape];
         _scheduleSave();
       }
@@ -2242,7 +2419,9 @@ class EditorController extends ChangeNotifier {
       return;
     }
     // Shape snap is hold-only (same duration as a toolbar long-press).
+    final inkUndoBefore = ink.undoDepth;
     ink.endStroke();
+    if (ink.undoDepth > inkUndoBefore) _noteInkUndo();
     if (ink.tool == InkTool.lasso) {
       _selectObjectsInLasso(ink.lastClosedLasso);
     }
@@ -2729,9 +2908,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
       case EditorGestureAction.openToolWheel:
         setState(() => _toolWheelOpen = !_toolWheelOpen);
       case EditorGestureAction.undo:
-        c.ink.undo();
+        c.undo();
       case EditorGestureAction.redo:
-        c.ink.redo();
+        c.redo();
       case EditorGestureAction.nextPage:
         if (c.interactionMode == InteractionMode.read) return;
         _pagesViewportKey.currentState?.goToAdjacent(1);
@@ -3275,6 +3454,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               selectedId: controller.selectedImageId,
                               editable: !readOnly && !presenting,
                               onSelect: controller.selectImage,
+                              onEditStart: controller.beginObjectEdit,
                               onChanged: controller.updateImage,
                               onDelete: controller.deleteImage,
                               onCrop: (image) async {
@@ -3351,10 +3531,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
             left: _sidebarOpen ? PageSidebar.width + 12 : 12,
             top: 58,
             child: UndoRedoPill(
-              canUndo: controller.ink.canUndo,
-              canRedo: controller.ink.canRedo,
-              onUndo: controller.ink.undo,
-              onRedo: controller.ink.redo,
+              canUndo: controller.canUndo,
+              canRedo: controller.canRedo,
+              onUndo: controller.undo,
+              onRedo: controller.redo,
             ),
           ),
           if (!studying)

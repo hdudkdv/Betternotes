@@ -13,6 +13,7 @@ class ImageElementsLayer extends StatelessWidget {
     required this.editable,
     required this.onSelect,
     required this.onChanged,
+    this.onEditStart,
     this.onDelete,
     this.onCrop,
   });
@@ -22,6 +23,7 @@ class ImageElementsLayer extends StatelessWidget {
   final bool editable;
   final ValueChanged<String?> onSelect;
   final ValueChanged<ImageElement> onChanged;
+  final VoidCallback? onEditStart;
   final ValueChanged<String>? onDelete;
   final ValueChanged<ImageElement>? onCrop;
 
@@ -34,6 +36,7 @@ class ImageElementsLayer extends StatelessWidget {
             left: image.x,
             top: image.y,
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: editable ? () => onSelect(image.id) : null,
               onSecondaryTap: editable ? () => onSelect(image.id) : null,
               onLongPress: editable && onCrop != null
@@ -42,7 +45,13 @@ class ImageElementsLayer extends StatelessWidget {
                       onCrop!(image);
                     }
                   : null,
-              onPanUpdate: editable && selectedId == image.id
+              onPanStart: editable
+                  ? (_) {
+                      if (selectedId != image.id) onSelect(image.id);
+                      onEditStart?.call();
+                    }
+                  : null,
+              onPanUpdate: editable
                   ? (d) => onChanged(
                       image.copyWith(
                         x: image.x + d.delta.dx,
@@ -66,7 +75,7 @@ class ImageElementsLayer extends StatelessWidget {
                     ),
                     child: LocalFileImage(
                       image.localPath,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.fill,
                       errorBuilder: (context, error, stackTrace) {
                         return const ColoredBox(color: Color(0xFFE0E0E0));
                       },
@@ -82,6 +91,7 @@ class ImageElementsLayer extends StatelessWidget {
                       _ResizeHandle(
                         image: image,
                         corner: corner,
+                        onEditStart: onEditStart,
                         onChanged: onChanged,
                       ),
                   if (editable && selectedId == image.id)
@@ -156,11 +166,13 @@ class _ResizeHandle extends StatelessWidget {
     required this.image,
     required this.corner,
     required this.onChanged,
+    this.onEditStart,
   });
 
   final ImageElement image;
   final Alignment corner;
   final ValueChanged<ImageElement> onChanged;
+  final VoidCallback? onEditStart;
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +183,7 @@ class _ResizeHandle extends StatelessWidget {
       bottom: corner.y > 0 ? -10 : null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        onPanStart: (_) => onEditStart?.call(),
         onPanUpdate: (d) {
           final aspect = image.width <= 0 ? 1.0 : image.width / image.height;
           final widthDelta = d.delta.dx * corner.x;

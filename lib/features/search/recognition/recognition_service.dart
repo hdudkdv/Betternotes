@@ -15,8 +15,10 @@ class RecognitionService {
 
   /// Background index for a page that was just saved.
   Future<NotePage?> indexPage(NotePage page) {
-    return _inflight.putIfAbsent(page.id, () {
-      return _index(page).whenComplete(() => _inflight.remove(page.id));
+    final key =
+        '${page.id}:${page.images.length}:${page.updatedAt?.millisecondsSinceEpoch ?? 0}';
+    return _inflight.putIfAbsent(key, () {
+      return _index(page).whenComplete(() => _inflight.remove(key));
     });
   }
 

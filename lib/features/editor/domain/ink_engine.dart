@@ -66,6 +66,8 @@ class InkEngine extends ChangeNotifier {
   int get paintEpoch => _paintEpoch;
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
+  int get undoDepth => _undo.length;
+  int get redoDepth => _redo.length;
 
   void _notifyNow() {
     _paintScheduled = false;

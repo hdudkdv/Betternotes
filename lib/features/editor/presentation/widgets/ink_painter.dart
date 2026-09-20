@@ -139,12 +139,20 @@ class InkPainter extends CustomPainter {
         ..strokeWidth = 1.5
         ..strokeJoin = StrokeJoin.round;
       canvas.drawPath(path, paint);
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = const Color(0x332F6FED)
-          ..style = PaintingStyle.fill,
-      );
+      // Fill only a finished loop. An open path fills first→last and turns a
+      // held lasso / highlight into a solid blob.
+      final closed =
+          lassoPoints.length >= 8 &&
+          (lassoPoints.first - lassoPoints.last).distance <= 28;
+      if (closed) {
+        path.close();
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = const Color(0x332F6FED)
+            ..style = PaintingStyle.fill,
+        );
+      }
     }
 
     final tip = eraserCursor;

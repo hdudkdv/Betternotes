@@ -352,10 +352,8 @@ class InkCanvasState extends State<InkCanvas>
       Offset(oldViewport.width / 2, oldViewport.height / 2),
     );
     _fitScale = _computeFitScale(newViewport);
-    // Keep a real zoom when chrome appears/disappears. Only refit if the
-    // page is already at (or past) the overview scale.
     if (scale <= _fitScale * 1.02) {
-      _applyFit(newViewport);
+      _clampView();
       return;
     }
     final clamped = scale.clamp(_minScale, _maxScale);
@@ -523,22 +521,13 @@ class InkCanvasState extends State<InkCanvas>
 
   void _snapToFitIfNeeded() {
     if (_drawing) return;
-    if (widget.canvasMode == CanvasMode.infinite) return;
     if (!_isUsableViewport(_viewportSize)) return;
-    final scale = _transform.value.getMaxScaleOnAxis();
-    // Snap only when pinched out to the page overview — never throw away
-    // a deliberate zoom the moment a finger lifts.
-    final keepZoom =
-        _fitReady &&
-        _fitScale > 0 &&
-        scale > _fitScale * 1.02 &&
-        !_isBogusIdentityScale(scale);
-    if (keepZoom) {
+    // Never auto-fit on finger-up. A brief second touch or a pinch that
+    // ended near overview used to throw the page back to fit-zoom.
+    if (_fitReady && !_isBogusIdentityScale(_transform.value.getMaxScaleOnAxis())) {
       _clampView();
-      _updateScrollLock();
-      return;
     }
-    _applyFit(_viewportSize);
+    _updateScrollLock();
   }
 
   /// Smoothly pans so [pagePoint] sits near the top of the visible area
@@ -701,6 +690,10 @@ class InkCanvasState extends State<InkCanvas>
       return;
     }
     final factor = dist / _pinchBaseDistance!;
+    // Ignore tiny two-finger jitter so a rest or two-finger tap does not zoom.
+    if (_multiTravel < 16 && (factor - 1).abs() < 0.08) {
+      return;
+    }
     final newScale = (_pinchBaseScale! * factor).clamp(_minScale, _maxScale);
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
