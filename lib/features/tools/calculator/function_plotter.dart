@@ -25,6 +25,10 @@ abstract final class FunctionPlotter {
     Object input, {
     double? xMin,
     double? xMax,
+    double? yMin,
+    double? yMax,
+    double? xStep,
+    double? yStep,
     int width = 780,
     int height = 520,
     bool degrees = false,
@@ -32,11 +36,12 @@ abstract final class FunctionPlotter {
     final series = _coerce(input);
     if (series.isEmpty) return null;
 
-    final minX = xMin ?? (degrees ? -360.0 : -8.0);
-    final maxX = xMax ?? (degrees ? 360.0 : 8.0);
+    var minX = xMin ?? (degrees ? -360.0 : -8.0);
+    var maxX = xMax ?? (degrees ? 360.0 : 8.0);
+    if (maxX <= minX) maxX = minX + 1;
     final engine = CalculatorEngine()..degrees = degrees;
-    const samples = 720;
-    final xs = [
+    const samples = 960;
+    var xs = [
       for (var i = 0; i <= samples; i++)
         minX + (maxX - minX) * (i / samples),
     ];
@@ -67,20 +72,55 @@ abstract final class FunctionPlotter {
         }
       }
     }
-    if (sampled.isEmpty || finite.length < 8) return null;
+    if (sampled.isEmpty || finite.length < 4) return null;
+
+    // If most samples are undefined (e.g. sqrt(1-x^2) on [-8,8]), resample
+    // densely on the actual domain so the curve is not a thin sliver.
+    final finiteXs = <double>[];
+    for (final curve in sampled) {
+      for (var i = 0; i < xs.length; i++) {
+        if (curve.ys[i] != null) finiteXs.add(xs[i]);
+      }
+    }
+    if (finiteXs.length >= 4 && finiteXs.length < xs.length * 0.35) {
+      finiteXs.sort();
+      final dMin = finiteXs.first;
+      final dMax = finiteXs.last;
+      if (dMax - dMin > 1e-6) {
+        xs = [
+          for (var i = 0; i <= samples; i++)
+            dMin + (dMax - dMin) * (i / samples),
+        ];
+        sampled.clear();
+        finite.clear();
+        for (var i = 0; i < series.length; i++) {
+          final item = series[i];
+          final expr = FunctionPlotPrep.normalizeExpression(item.expression);
+          if (expr.isEmpty) continue;
+          final color = item.color ?? kPlotColors[i % kPlotColors.length];
+          final ys = _sample(engine, expr, xs, finite);
+          if (ys.whereType<double>().length >= 4) {
+            sampled.add(_Sampled(item.displayLabel, color, false, ys));
+          }
+        }
+      }
+    }
+    if (sampled.isEmpty || finite.length < 4) return null;
 
     finite.sort();
     final lo = finite[(finite.length * 0.04).floor()];
     final hi = finite[((finite.length - 1) * 0.96).round()];
-    var yMin = lo;
-    var yMax = hi;
-    if ((yMax - yMin).abs() < 1e-6) {
-      yMin -= 1;
-      yMax += 1;
+    var plotYMin = yMin ?? lo;
+    var plotYMax = yMax ?? hi;
+    if ((plotYMax - plotYMin).abs() < 1e-6) {
+      plotYMin -= 1;
+      plotYMax += 1;
     }
-    final padY = (yMax - yMin) * 0.14;
-    yMin -= padY;
-    yMax += padY;
+    if (yMin == null && yMax == null) {
+      final padY = (plotYMax - plotYMin) * 0.14;
+      plotYMin -= padY;
+      plotYMax += padY;
+    }
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(
@@ -92,7 +132,7 @@ abstract final class FunctionPlotter {
       Paint()..color = const Color(0xFFFFFCF7),
     );
 
-    const padL = 48.0;
+    const padL = 52.0;
     const padR = 20.0;
     const padT = 28.0;
     final legendH = 22.0 * sampled.length + 8;
@@ -105,39 +145,53 @@ abstract final class FunctionPlotter {
 
     Offset map(double x, double y) {
       final nx = (x - minX) / (maxX - minX);
-      final ny = (yMax - y) / (yMax - yMin);
+      final ny = (plotYMax - y) / (plotYMax - plotYMin);
       return Offset(plot.left + nx * plot.width, plot.top + ny * plot.height);
     }
 
     final grid = Paint()
       ..color = const Color(0x22000000)
       ..strokeWidth = 1;
-    final xStep = _niceStep(maxX - minX);
-    var xTick = (minX / xStep).ceil() * xStep;
+    final xDiv = (xStep != null && xStep > 0) ? xStep : _niceStep(maxX - minX);
+    var xTick = (minX / xDiv).ceil() * xDiv;
     while (xTick <= maxX + 1e-9) {
-      canvas.drawLine(map(xTick, yMin), map(xTick, yMax), grid);
-      xTick += xStep;
+      canvas.drawLine(map(xTick, plotYMin), map(xTick, plotYMax), grid);
+      final label = map(xTick, plotYMin <= 0 && plotYMax >= 0 ? 0 : plotYMin);
+      _drawTickLabel(
+        canvas,
+        _fmtTick(xTick),
+        Offset(label.dx - 12, label.dy + 4),
+      );
+      xTick += xDiv;
     }
-    final yStep = _niceStep(yMax - yMin);
-    var yTick = (yMin / yStep).ceil() * yStep;
-    while (yTick <= yMax + 1e-9) {
+    final yDiv = (yStep != null && yStep > 0)
+        ? yStep
+        : _niceStep(plotYMax - plotYMin);
+    var yTick = (plotYMin / yDiv).ceil() * yDiv;
+    while (yTick <= plotYMax + 1e-9) {
       canvas.drawLine(map(minX, yTick), map(maxX, yTick), grid);
-      yTick += yStep;
+      final label = map(minX <= 0 && maxX >= 0 ? 0 : minX, yTick);
+      _drawTickLabel(
+        canvas,
+        _fmtTick(yTick),
+        Offset(label.dx - 36, label.dy - 8),
+      );
+      yTick += yDiv;
     }
 
     final axis = Paint()
       ..color = const Color(0xFF1A1A1A)
       ..strokeWidth = 1.4;
-    if (yMin <= 0 && yMax >= 0) {
+    if (plotYMin <= 0 && plotYMax >= 0) {
       canvas.drawLine(map(minX, 0), map(maxX, 0), axis);
     }
     if (minX <= 0 && maxX >= 0) {
-      canvas.drawLine(map(0, yMin), map(0, yMax), axis);
+      canvas.drawLine(map(0, plotYMin), map(0, plotYMax), axis);
     }
 
-    final jump = (yMax - yMin) * 0.45;
+    final jump = (plotYMax - plotYMin) * 0.45;
     for (final curve in sampled) {
-      _drawCurve(canvas, xs, curve, map, yMin, yMax, jump);
+      _drawCurve(canvas, xs, curve, map, plotYMin, plotYMax, jump);
     }
 
     var ly = plot.bottom + 10;
@@ -252,6 +306,16 @@ abstract final class FunctionPlotter {
         ..strokeJoin = StrokeJoin.round
         ..strokeCap = StrokeCap.round,
     );
+  }
+
+  static String _fmtTick(double v) {
+    if (v.abs() < 1e-9) return '0';
+    if (v == v.roundToDouble() && v.abs() < 1e6) return v.round().toString();
+    return v.toStringAsFixed(v.abs() >= 10 ? 0 : 1);
+  }
+
+  static void _drawTickLabel(Canvas canvas, String text, Offset at) {
+    _drawLabel(canvas, text, at, const Color(0xFF5C564E));
   }
 
   static double _niceStep(double range) {

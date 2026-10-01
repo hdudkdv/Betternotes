@@ -132,7 +132,7 @@ class AppTheme {
 
     return base.copyWith(
       textTheme: text,
-      splashFactory: NoSplash.splashFactory,
+      splashFactory: InkRipple.splashFactory,
       splashColor: Colors.transparent,
       highlightColor: palette.ink.withValues(alpha: 0.05),
       pageTransitionsTheme: const PageTransitionsTheme(

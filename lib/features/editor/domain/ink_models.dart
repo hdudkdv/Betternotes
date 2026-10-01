@@ -88,11 +88,15 @@ enum EraserMode {
 /// Page content the eraser or lasso may affect.
 enum ContentKind { pen, pencil, marker, shapes, text, images }
 
+/// Freehand loop or axis-aligned rectangle for the lasso tool.
+enum LassoShape { freehand, rectangle }
+
 /// Ink kinds the tools currently touch (matches previous behaviour).
 const kDefaultContentTargets = {
   ContentKind.pen,
   ContentKind.pencil,
   ContentKind.marker,
+  ContentKind.shapes,
 };
 
 bool matchesContentFilter(InkStroke stroke, Set<ContentKind> kinds) {

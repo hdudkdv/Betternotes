@@ -33,9 +33,15 @@ class InkEngine extends ChangeNotifier {
   Offset? eraserCursor;
   Set<ContentKind> eraseTargets = {...kDefaultContentTargets};
   Set<ContentKind> lassoTargets = {...kDefaultContentTargets};
+  LassoShape lassoShape = LassoShape.freehand;
 
   /// 0 = ignore stylus pressure, 1 = full pressure response.
   double pressureSensitivity = 0.0;
+
+  /// False for 3rd-party pencils that never report a pressure axis.
+  bool reportsPressure = true;
+
+  Offset? hoverCursor;
 
   /// Optional ruler/compass constraint used with freehand tools.
   DrawingGuide guide = DrawingGuide.none;
@@ -45,8 +51,10 @@ class InkEngine extends ChangeNotifier {
 
   List<Offset> _lassoPoints = [];
   List<Offset> _closedLasso = [];
+  Offset? _lassoOrigin;
   Set<String> selectedIds = {};
   Offset? _guideOrigin;
+  bool _strokeReportsPressure = true;
 
   List<InkStroke> get strokes => List.unmodifiable(_strokes);
   InkStroke? get activeStroke => _activeStroke;
@@ -112,7 +120,9 @@ class InkEngine extends ChangeNotifier {
     tool = value;
     selectedIds = {};
     _lassoPoints = [];
+    _lassoOrigin = null;
     eraserCursor = null;
+    hoverCursor = null;
     if (!value.isFreehand) {
       guide = DrawingGuide.none;
     }
@@ -122,6 +132,20 @@ class InkEngine extends ChangeNotifier {
     } else if (value == InkTool.pen) {
       if (pressureSensitivity > 0.95) pressureSensitivity = 0.0;
     }
+    notifyListeners();
+  }
+
+  void setHover(Offset? point) {
+    if (hoverCursor == point) return;
+    hoverCursor = point;
+    _notifyPaint();
+  }
+
+  void setLassoShape(LassoShape value) {
+    if (lassoShape == value) return;
+    lassoShape = value;
+    _lassoPoints = [];
+    _lassoOrigin = null;
     notifyListeners();
   }
 
@@ -159,6 +183,7 @@ class InkEngine extends ChangeNotifier {
   }
 
   double _effectivePressure(double raw) {
+    if (!_strokeReportsPressure) return 0.5;
     final s = pressureSensitivity.clamp(0.0, 1.0);
     return (0.5 + (raw.clamp(0.0, 1.0) - 0.5) * s).clamp(0.05, 1.0);
   }
@@ -279,7 +304,12 @@ class InkEngine extends ChangeNotifier {
     }
 
     if (tool == InkTool.lasso) {
-      _lassoPoints = [point];
+      _lassoOrigin = point;
+      if (lassoShape == LassoShape.rectangle) {
+        _lassoPoints = [point, point, point, point];
+      } else {
+        _lassoPoints = [point];
+      }
       selectedIds = {};
       _notifyNow();
       return;
@@ -292,6 +322,7 @@ class InkEngine extends ChangeNotifier {
       return;
     }
 
+    _strokeReportsPressure = reportsPressure;
     final p = _effectivePressure(pressure);
     final start = _constrained(point);
     final now = t > 0 ? t : DateTime.now().millisecondsSinceEpoch;
@@ -320,6 +351,18 @@ class InkEngine extends ChangeNotifier {
 
     if (tool == InkTool.lasso) {
       if (_lassoPoints.isEmpty) return;
+      if (lassoShape == LassoShape.rectangle) {
+        final origin = _lassoOrigin ?? _lassoPoints.first;
+        final rect = Rect.fromPoints(origin, point);
+        _lassoPoints = [
+          rect.topLeft,
+          rect.topRight,
+          rect.bottomRight,
+          rect.bottomLeft,
+        ];
+        _notifyPaint();
+        return;
+      }
       _lassoPoints = [..._lassoPoints, point];
       _notifyPaint();
       return;
@@ -388,8 +431,13 @@ class InkEngine extends ChangeNotifier {
   bool _isLiftGap(StrokePoint last, double dist2, int now) {
     final prevT = last.t;
     final dt = (now > 0 && prevT > 0 && now > prevT) ? now - prevT : 0;
+    // Fake pencils skip pointer-up between letters and jump in one sample.
+    if (!_strokeReportsPressure) {
+      if (dt >= 40 && dist2 >= 14 * 14) return true;
+      if (dist2 >= 26 * 26) return true;
+      return false;
+    }
     // Hold-to-shape parks the tip; 14pt after a pause is just tremor.
-    // A new letter is a real hop — keep that clearly larger than a rest.
     if (dt >= 70 && dist2 >= 28 * 28) return true;
     if (dist2 >= 48 * 48) return true;
     return false;
@@ -409,6 +457,7 @@ class InkEngine extends ChangeNotifier {
     _activeStroke = null;
     _guideOrigin = null;
     _lassoPoints = [];
+    _lassoOrigin = null;
     notifyListeners();
   }
 
@@ -432,6 +481,7 @@ class InkEngine extends ChangeNotifier {
         selectedIds = hit;
       }
       _lassoPoints = [];
+      _lassoOrigin = null;
       _notifyNow();
       return;
     }

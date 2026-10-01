@@ -200,6 +200,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lasso => 'Lasso';
 
   @override
+  String get lassoFreehand => 'Freihand';
+
+  @override
+  String get lassoRectangle => 'Rechteck';
+
+  @override
+  String get screenshotSelection => 'Auswahl als Bild';
+
+  @override
   String get addTextBox => 'Textfeld hinzufügen';
 
   @override
@@ -957,6 +966,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get clear => 'Leeren';
+
+  @override
+  String get lessonTime => 'Zeit dieser Stunde';
 
   @override
   String get editPeriod => 'Stunde anpassen';
@@ -3671,8 +3683,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get calculator => 'Taschenrechner';
 
   @override
-  String get calculatorHint =>
-      'z. B. 2+3*4, f(x)=sin(x), sin(x); x^2 oder 2x+3=11';
+  String get calculatorHint => 'z. B. 2+3*4, 5±2, x^2=9, sqrt(1-x^2)';
+
+  @override
+  String get calculatorShift => 'SHIFT';
+
+  @override
+  String get calculatorDel => 'DEL';
+
+  @override
+  String get calculatorAc => 'AC';
+
+  @override
+  String get calculatorCopyResult => 'Ergebnis kopieren';
 
   @override
   String get calculatorEquals => '=';
@@ -3710,7 +3733,28 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get graphStudioHint =>
-      'Mehrere Funktionen, Ableitungen und Formeln aus dem Tafelwerk.';
+      'Mehrere Funktionen, Wertebereich und Achseneinteilung.';
+
+  @override
+  String get graphRange => 'Wertebereich';
+
+  @override
+  String get graphXMin => 'x min';
+
+  @override
+  String get graphXMax => 'x max';
+
+  @override
+  String get graphYMin => 'y min';
+
+  @override
+  String get graphYMax => 'y max';
+
+  @override
+  String get graphTickX => 'x-Einteilung';
+
+  @override
+  String get graphTickY => 'y-Einteilung';
 
   @override
   String get graphAddFunction => 'Funktion';
@@ -3809,6 +3853,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get formulaTerm => 'Begriff';
+
+  @override
+  String get formulaSymbol => 'Symbol';
+
+  @override
+  String get formulaMeaning => 'Bedeutung';
+
+  @override
+  String get formulaPronunciation => 'Aussprache';
 
   @override
   String get formulaValue => 'Formel / Wert';

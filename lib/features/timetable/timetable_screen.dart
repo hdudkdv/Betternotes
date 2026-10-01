@@ -113,6 +113,8 @@ class TimetableScreen extends ConsumerWidget {
       first: first,
       second: second,
       week: slot.week,
+      startMinutes: slot.startMinutes,
+      endMinutes: slot.endMinutes,
     );
   }
 
@@ -205,7 +207,12 @@ class TimetableScreen extends ConsumerWidget {
                           small: true,
                         ),
                         for (var d = 0; d < Timetable.dayCount; d++)
-                          _pdfCell(_slotPdfText(table.slotAt(d, p, week: week))),
+                          _pdfCell(
+                            _slotPdfText(
+                              table.slotAt(d, p, week: week),
+                              fallbackTime: table.periods[p].timeRange,
+                            ),
+                          ),
                       ],
                     ),
                 ],
@@ -247,7 +254,10 @@ class TimetableScreen extends ConsumerWidget {
     );
   }
 
-  static String _slotPdfText(TimetableSlot? slot) {
+  static String _slotPdfText(
+    TimetableSlot? slot, {
+    String fallbackTime = '',
+  }) {
     if (slot == null || slot.isEmpty) return '';
     String line(TimetableLesson lesson) {
       final extra = [
@@ -257,8 +267,11 @@ class TimetableScreen extends ConsumerWidget {
       return extra.isEmpty ? lesson.subject : '${lesson.subject}\n$extra';
     }
 
-    if (!slot.split) return line(slot.first);
-    return '${line(slot.first)}\n/\n${line(slot.second)}';
+    final time = slot.hasCustomTime ? slot.timeRange : fallbackTime;
+    final body = !slot.split
+        ? line(slot.first)
+        : '${line(slot.first)}\n/\n${line(slot.second)}';
+    return time.isEmpty ? body : '$time\n$body';
   }
 
   @override
@@ -736,6 +749,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
   late bool _createFolder1;
   late bool _createFolder2;
   late bool _bothWeeks;
+  late int _start;
+  late int _end;
 
   @override
   void initState() {
@@ -743,6 +758,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     _split = widget.initial.split;
     _first = widget.initial.first;
     _second = widget.initial.second;
+    _start = widget.initial.startMinutes ?? widget.period.startMinutes;
+    _end = widget.initial.endMinutes ?? widget.period.endMinutes;
     _room1 = TextEditingController(text: _first.room);
     _room2 = TextEditingController(text: _second.room);
     _class1 = TextEditingController(
@@ -832,16 +849,22 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       week: widget.abWeeksEnabled
           ? (_bothWeeks ? TimetableWeek.both : widget.editWeek)
           : TimetableWeek.both,
+      startMinutes: _start,
+      endMinutes: _end <= _start ? _start + 45 : _end,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final mid = formatHm(widget.period.splitAtMinutes);
+    final effective = widget.period.copyWith(
+      startMinutes: _start,
+      endMinutes: _end <= _start ? _start + 45 : _end,
+    );
+    final mid = formatHm(effective.splitAtMinutes);
 
     return AlertDialog(
-      title: Text('${widget.dayLabel} · ${widget.period.timeRange}'),
+      title: Text('${widget.dayLabel} · ${effective.timeRange}'),
       content: SizedBox(
         width: 400,
         child: SingleChildScrollView(
@@ -849,6 +872,41 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text(
+                l10n.lessonTime,
+                style: AppTheme.body(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.periodStart,
+                style: AppTheme.body(fontWeight: FontWeight.w700),
+              ),
+              TimeWheelPicker(
+                minutes: _start,
+                onChanged: (v) => setState(() {
+                  _start = v;
+                  if (_end <= _start) _end = _start + 45;
+                }),
+              ),
+              Text(
+                l10n.periodEnd,
+                style: AppTheme.body(fontWeight: FontWeight.w700),
+              ),
+              TimeWheelPicker(
+                minutes: _end,
+                onChanged: (v) => setState(() => _end = v),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.blockDuration(effective.durationMinutes),
+                textAlign: TextAlign.center,
+                style: AppTheme.body(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.accent,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 16),
               if (widget.abWeeksEnabled) ...[
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
@@ -886,10 +944,10 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
               Text(
                 _split
                     ? l10n.splitBlockHint(
-                        '${widget.period.start}–$mid',
-                        '$mid–${widget.period.end}',
+                        '${effective.start}–$mid',
+                        '$mid–${effective.end}',
                       )
-                    : l10n.fullBlockHint(widget.period.durationMinutes),
+                    : l10n.fullBlockHint(effective.durationMinutes),
                 style: AppTheme.body(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -1205,7 +1263,11 @@ class _TimetableGrid extends StatelessWidget {
                 ),
               ),
               for (var d = 0; d < Timetable.dayCount; d++)
-                _slotCell(table.slotAt(d, p, week: week), () => onTapSlot(d, p)),
+                _slotCell(
+                  table.slotAt(d, p, week: week),
+                  () => onTapSlot(d, p),
+                  timeLabel: table.periodFor(d, p, week: week).timeRange,
+                ),
             ],
           ),
       ],
@@ -1228,7 +1290,11 @@ class _TimetableGrid extends StatelessWidget {
     );
   }
 
-  Widget _slotCell(TimetableSlot? slot, VoidCallback onTap) {
+  Widget _slotCell(
+    TimetableSlot? slot,
+    VoidCallback onTap, {
+    String? timeLabel,
+  }) {
     final s = slot;
     final empty = s == null || s.isEmpty;
     return InkWell(
@@ -1246,16 +1312,23 @@ class _TimetableGrid extends StatelessWidget {
             : s.split
             ? Column(
                 children: [
-                  Expanded(child: _half(s.first, top: true)),
+                  Expanded(
+                    child: _half(s.first, top: true, timeLabel: timeLabel),
+                  ),
                   Expanded(child: _half(s.second, top: false)),
                 ],
               )
-            : _half(s.first, top: true, fill: true),
+            : _half(s.first, top: true, fill: true, timeLabel: timeLabel),
       ),
     );
   }
 
-  Widget _half(TimetableLesson lesson, {required bool top, bool fill = false}) {
+  Widget _half(
+    TimetableLesson lesson, {
+    required bool top,
+    bool fill = false,
+    String? timeLabel,
+  }) {
     if (lesson.isEmpty) {
       return Container(
         width: double.infinity,
@@ -1295,6 +1368,17 @@ class _TimetableGrid extends StatelessWidget {
               height: 1.1,
             ),
           ),
+          if (timeLabel != null && timeLabel.isNotEmpty)
+            Text(
+              timeLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.body(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.accent,
+              ),
+            ),
           if (lesson.schoolClass.trim().isNotEmpty || lesson.room.isNotEmpty)
             Text(
               [

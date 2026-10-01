@@ -156,6 +156,8 @@ class TimetableSlot extends Equatable {
     this.first = const TimetableLesson(),
     this.second = const TimetableLesson(),
     this.week = TimetableWeek.both,
+    this.startMinutes,
+    this.endMinutes,
   });
 
   /// 0 = Monday … 4 = Friday
@@ -168,7 +170,17 @@ class TimetableSlot extends Equatable {
   /// [TimetableWeek.both] applies every week; A/B override the shared slot.
   final TimetableWeek week;
 
+  /// Optional per-cell times; when unset the row [TimetablePeriod] is used.
+  final int? startMinutes;
+  final int? endMinutes;
+
   bool get isEmpty => first.isEmpty && (!split || second.isEmpty);
+
+  bool get hasCustomTime => startMinutes != null && endMinutes != null;
+
+  String get timeRange => hasCustomTime
+      ? '${formatHm(startMinutes!)}–${formatHm(endMinutes!)}'
+      : '';
 
   /// Display name for the whole cell (joined if split).
   String get displayLabel {
@@ -185,6 +197,9 @@ class TimetableSlot extends Equatable {
     TimetableLesson? first,
     TimetableLesson? second,
     TimetableWeek? week,
+    int? startMinutes,
+    int? endMinutes,
+    bool clearTime = false,
   }) {
     return TimetableSlot(
       day: day,
@@ -193,6 +208,8 @@ class TimetableSlot extends Equatable {
       first: first ?? this.first,
       second: second ?? this.second,
       week: week ?? this.week,
+      startMinutes: clearTime ? null : (startMinutes ?? this.startMinutes),
+      endMinutes: clearTime ? null : (endMinutes ?? this.endMinutes),
     );
   }
 
@@ -203,6 +220,8 @@ class TimetableSlot extends Equatable {
     'week': week.name,
     'first': first.toJson(),
     'second': second.toJson(),
+    if (startMinutes != null) 'startMinutes': startMinutes,
+    if (endMinutes != null) 'endMinutes': endMinutes,
     // legacy fields for older readers
     'subject': first.subject,
     'room': first.room,
@@ -211,12 +230,16 @@ class TimetableSlot extends Equatable {
 
   factory TimetableSlot.fromJson(Map<String, dynamic> json) {
     final week = TimetableWeekX.parse(json['week'] as String?);
+    final start = (json['startMinutes'] as num?)?.toInt();
+    final end = (json['endMinutes'] as num?)?.toInt();
     if (json['first'] is Map) {
       return TimetableSlot(
         day: (json['day'] as num?)?.toInt() ?? 0,
         period: (json['period'] as num?)?.toInt() ?? 0,
         split: json['split'] as bool? ?? false,
         week: week,
+        startMinutes: start,
+        endMinutes: end,
         first: TimetableLesson.fromJson(
           Map<String, dynamic>.from(json['first'] as Map),
         ),
@@ -233,6 +256,8 @@ class TimetableSlot extends Equatable {
       period: (json['period'] as num?)?.toInt() ?? 0,
       split: false,
       week: week,
+      startMinutes: start,
+      endMinutes: end,
       first: TimetableLesson(
         subject: json['subject'] as String? ?? '',
         room: json['room'] as String? ?? '',
@@ -242,7 +267,16 @@ class TimetableSlot extends Equatable {
   }
 
   @override
-  List<Object?> get props => [day, period, split, first, second, week];
+  List<Object?> get props => [
+    day,
+    period,
+    split,
+    first,
+    second,
+    week,
+    startMinutes,
+    endMinutes,
+  ];
 }
 
 class TimetablePeriod extends Equatable {
@@ -389,6 +423,17 @@ class Timetable extends Equatable {
     return both;
   }
 
+  /// Row defaults, overridden by a filled cell's own start/end.
+  TimetablePeriod periodFor(int day, int period, {TimetableWeek? week}) {
+    final base = periods[period];
+    final slot = slotAt(day, period, week: week);
+    if (slot == null || !slot.hasCustomTime) return base;
+    return base.copyWith(
+      startMinutes: slot.startMinutes,
+      endMinutes: slot.endMinutes,
+    );
+  }
+
   /// Timetable day index 0=Mon … 4=Fri from a calendar [DateTime.weekday].
   static int? dayIndexFromWeekday(int weekday) {
     if (weekday < DateTime.monday || weekday > DateTime.friday) return null;
@@ -466,7 +511,7 @@ class Timetable extends Equatable {
     final minuteOfDay = now.hour * 60 + now.minute;
 
     for (var p = 0; p < periods.length; p++) {
-      final period = periods[p];
+      final period = periodFor(day, p, week: week);
       if (!period.containsMinuteOfDay(minuteOfDay)) continue;
       final slot = slotAt(day, p, week: week);
       if (slot == null || slot.isEmpty) return null;
@@ -635,11 +680,24 @@ TimetableSlot mergeLessonSlots(TimetableSlot a, TimetableSlot b) {
   if (a.split) add(a.second);
   add(b.first);
   if (b.split) add(b.second);
+  final start = a.hasCustomTime ? a.startMinutes : b.startMinutes;
+  final end = a.hasCustomTime ? a.endMinutes : b.endMinutes;
   if (lessons.isEmpty) {
-    return TimetableSlot(day: a.day, period: a.period);
+    return TimetableSlot(
+      day: a.day,
+      period: a.period,
+      startMinutes: start,
+      endMinutes: end,
+    );
   }
   if (lessons.length == 1) {
-    return TimetableSlot(day: a.day, period: a.period, first: lessons.first);
+    return TimetableSlot(
+      day: a.day,
+      period: a.period,
+      first: lessons.first,
+      startMinutes: start,
+      endMinutes: end,
+    );
   }
   return TimetableSlot(
     day: a.day,
@@ -647,6 +705,8 @@ TimetableSlot mergeLessonSlots(TimetableSlot a, TimetableSlot b) {
     split: true,
     first: lessons[0],
     second: lessons[1],
+    startMinutes: start,
+    endMinutes: end,
   );
 }
 

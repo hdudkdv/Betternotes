@@ -11,10 +11,13 @@ class InkPainter extends CustomPainter {
     required this.strokes,
     this.activeStroke,
     this.lassoPoints = const [],
-    this.selectedIds = const {},
     this.visibleWorldRect,
     this.eraserCursor,
     this.eraserRadius,
+    this.hoverCursor,
+    this.hoverWidth = 2.4,
+    this.hoverColor = const Color(0xFF1A1A1A),
+    this.lassoClosed = false,
     this.paintEpoch = 0,
     this.cacheSettled = false,
   });
@@ -22,12 +25,15 @@ class InkPainter extends CustomPainter {
   final List<InkStroke> strokes;
   final InkStroke? activeStroke;
   final List<Offset> lassoPoints;
-  final Set<String> selectedIds;
 
   /// When set, only strokes intersecting this rect are painted (infinite canvas).
   final Rect? visibleWorldRect;
   final Offset? eraserCursor;
   final double? eraserRadius;
+  final Offset? hoverCursor;
+  final double hoverWidth;
+  final Color hoverColor;
+  final bool lassoClosed;
 
   /// Detects in-place active-stroke mutations (same object identity).
   final int paintEpoch;
@@ -42,24 +48,21 @@ class InkPainter extends CustomPainter {
   static ui.Picture? _settledPicture;
   static List<InkStroke>? _settledFor;
   static Rect? _settledCull;
-  static Set<String> _settledSelected = const {};
   static int _richUpgradeToken = 0;
 
   static ui.Picture _recordSettled(
     List<InkStroke> strokes,
-    Rect? cull,
-    Set<String> selectedIds, {
+    Rect? cull, {
     required bool rich,
   }) {
     final recorder = ui.PictureRecorder();
     final settledCanvas = Canvas(recorder);
-    final painter = InkPainter(strokes: strokes, selectedIds: selectedIds);
+    final painter = InkPainter(strokes: strokes);
     for (final stroke in strokes) {
       if (cull != null && !stroke.boundingBox.overlaps(cull)) continue;
       painter._paintStroke(
         settledCanvas,
         stroke,
-        selected: selectedIds.contains(stroke.id),
         live: !rich,
       );
     }
@@ -68,10 +71,9 @@ class InkPainter extends CustomPainter {
 
   void _cacheSettledPreviewThenUpgrade(Rect? cull) {
     _settledPicture?.dispose();
-    _settledPicture = _recordSettled(strokes, cull, selectedIds, rich: false);
+    _settledPicture = _recordSettled(strokes, cull, rich: false);
     _settledFor = strokes;
     _settledCull = cull;
-    _settledSelected = Set<String>.of(selectedIds);
 
     final hasPencil = strokes.any((s) => s.isPencil);
     if (!hasPencil) {
@@ -82,11 +84,10 @@ class InkPainter extends CustomPainter {
     final token = ++_richUpgradeToken;
     final strokesRef = strokes;
     final cullRef = cull;
-    final selectedRef = Set<String>.of(selectedIds);
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (token != _richUpgradeToken) return;
       if (!identical(_settledFor, strokesRef)) return;
-      final rich = _recordSettled(strokesRef, cullRef, selectedRef, rich: true);
+      final rich = _recordSettled(strokesRef, cullRef, rich: true);
       _settledPicture?.dispose();
       _settledPicture = rich;
       settledCacheTick.value++;
@@ -99,9 +100,7 @@ class InkPainter extends CustomPainter {
 
     if (cacheSettled) {
       final settledChanged =
-          !identical(_settledFor, strokes) ||
-          _settledCull != cull ||
-          !_setEquals(_settledSelected, selectedIds);
+          !identical(_settledFor, strokes) || _settledCull != cull;
 
       if (settledChanged) {
         // Cheap preview first so page flips stay smooth; rich graphite
@@ -119,7 +118,6 @@ class InkPainter extends CustomPainter {
         _paintStroke(
           canvas,
           stroke,
-          selected: selectedIds.contains(stroke.id),
           live: false,
         );
       }
@@ -142,8 +140,10 @@ class InkPainter extends CustomPainter {
       // Fill only a finished loop. An open path fills first→last and turns a
       // held lasso / highlight into a solid blob.
       final closed =
-          lassoPoints.length >= 8 &&
-          (lassoPoints.first - lassoPoints.last).distance <= 28;
+          lassoClosed ||
+          (lassoPoints.length == 4) ||
+          (lassoPoints.length >= 8 &&
+              (lassoPoints.first - lassoPoints.last).distance <= 28);
       if (closed) {
         path.close();
         canvas.drawPath(
@@ -174,18 +174,31 @@ class InkPainter extends CustomPainter {
           ..style = PaintingStyle.fill,
       );
     }
-  }
 
-  static bool _setEquals(Set<String> a, Set<String> b) {
-    if (identical(a, b)) return true;
-    if (a.length != b.length) return false;
-    return a.containsAll(b);
+    final hover = hoverCursor;
+    if (hover != null && activeStroke == null) {
+      final r = (hoverWidth * 0.55).clamp(1.6, 7.0);
+      canvas.drawCircle(
+        hover,
+        r,
+        Paint()
+          ..color = hoverColor.withValues(alpha: 0.22)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawCircle(
+        hover,
+        r,
+        Paint()
+          ..color = hoverColor.withValues(alpha: 0.85)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.15,
+      );
+    }
   }
 
   void _paintStroke(
     Canvas canvas,
     InkStroke stroke, {
-    bool selected = false,
     required bool live,
   }) {
     if (stroke.points.isEmpty) return;
@@ -196,17 +209,6 @@ class InkPainter extends CustomPainter {
       _paintPressureStroke(canvas, stroke);
     } else {
       _paintUniformStroke(canvas, stroke);
-    }
-
-    if (selected) {
-      final box = stroke.boundingBox.inflate(4);
-      canvas.drawRect(
-        box,
-        Paint()
-          ..color = const Color(0xFF2F6FED)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2,
-      );
     }
   }
 
@@ -481,14 +483,21 @@ class InkPainter extends CustomPainter {
       final a = points[i - 1];
       final b = points[i];
       final pressure = ((a.pressure + b.pressure) / 2).clamp(0.05, 1.0);
-      final wobble = (_hash01(stroke.id.hashCode ^ (i * 7477)) - 0.5) * 0.08;
+      final t = i / (points.length - 1);
+      var taper = 1.0;
+      if (t < 0.1) {
+        taper = 0.42 + 0.58 * (t / 0.1);
+      } else if (t > 0.9) {
+        taper = 0.42 + 0.58 * ((1 - t) / 0.1);
+      }
+      final wobble = (_hash01(stroke.id.hashCode ^ (i * 7477)) - 0.5) * 0.06;
       dust
-        ..color = stroke.color.withValues(alpha: 0.10 + pressure * 0.10)
-        ..strokeWidth = stroke.width * (1.05 + pressure * 0.12);
+        ..color = stroke.color.withValues(alpha: 0.12 + pressure * 0.12)
+        ..strokeWidth = stroke.width * (1.12 + pressure * 0.18) * taper;
       canvas.drawLine(a.offset, b.offset, dust);
       core
-        ..color = stroke.color.withValues(alpha: 0.34 + pressure * 0.36)
-        ..strokeWidth = stroke.width * (0.72 + pressure * 0.28 + wobble);
+        ..color = stroke.color.withValues(alpha: 0.40 + pressure * 0.38)
+        ..strokeWidth = stroke.width * (0.68 + pressure * 0.32 + wobble) * taper;
       canvas.drawLine(a.offset, b.offset, core);
     }
   }
@@ -502,7 +511,7 @@ class InkPainter extends CustomPainter {
     final step = live
         ? math.max(1.6, stroke.width * 0.58)
         : math.max(0.7, stroke.width * 0.28);
-    final specksPerStep = live ? 1 : 2;
+    final specksPerStep = live ? 1 : 3;
     final paint = Paint()
       ..style = PaintingStyle.fill
       ..isAntiAlias = true
@@ -608,10 +617,13 @@ class InkPainter extends CustomPainter {
         oldDelegate.strokes != strokes ||
         oldDelegate.activeStroke != activeStroke ||
         oldDelegate.lassoPoints != lassoPoints ||
-        oldDelegate.selectedIds != selectedIds ||
         oldDelegate.visibleWorldRect != visibleWorldRect ||
         oldDelegate.eraserCursor != eraserCursor ||
-        oldDelegate.eraserRadius != eraserRadius;
+        oldDelegate.eraserRadius != eraserRadius ||
+        oldDelegate.hoverCursor != hoverCursor ||
+        oldDelegate.hoverWidth != hoverWidth ||
+        oldDelegate.hoverColor != hoverColor ||
+        oldDelegate.lassoClosed != lassoClosed;
   }
 
   @override

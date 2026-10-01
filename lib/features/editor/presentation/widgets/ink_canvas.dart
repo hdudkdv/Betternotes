@@ -330,11 +330,6 @@ class InkCanvasState extends State<InkCanvas>
   bool _isUsableViewport(Size viewport) =>
       viewport.width >= 64 && viewport.height >= 64;
 
-  bool _isBogusIdentityScale(double scale) =>
-      (scale - 1.0).abs() < 0.02 &&
-      _fitScale > 0 &&
-      (_fitScale - 1.0).abs() > 0.08;
-
   void _retainViewOnViewportChange(Size oldViewport, Size newViewport) {
     if (!_isUsableViewport(oldViewport) || !_isUsableViewport(newViewport)) {
       _applyFit(newViewport);
@@ -342,7 +337,7 @@ class InkCanvasState extends State<InkCanvas>
     }
     final current = _transform.value;
     final scale = current.getMaxScaleOnAxis();
-    if (_isBogusIdentityScale(scale) || !_fitReady) {
+    if (!_fitReady) {
       _applyFit(newViewport);
       return;
     }
@@ -407,8 +402,7 @@ class InkCanvasState extends State<InkCanvas>
   void _ensureFittedTransform() {
     if (widget.canvasMode == CanvasMode.infinite) return;
     if (!_isUsableViewport(_viewportSize)) return;
-    final scale = _transform.value.getMaxScaleOnAxis();
-    if (!_fitReady || _isBogusIdentityScale(scale)) {
+    if (!_fitReady) {
       _applyFit(_viewportSize);
     }
   }
@@ -522,11 +516,7 @@ class InkCanvasState extends State<InkCanvas>
   void _snapToFitIfNeeded() {
     if (_drawing) return;
     if (!_isUsableViewport(_viewportSize)) return;
-    // Never auto-fit on finger-up. A brief second touch or a pinch that
-    // ended near overview used to throw the page back to fit-zoom.
-    if (_fitReady && !_isBogusIdentityScale(_transform.value.getMaxScaleOnAxis())) {
-      _clampView();
-    }
+    if (_fitReady) _clampView();
     _updateScrollLock();
   }
 
@@ -1083,6 +1073,8 @@ class InkCanvasState extends State<InkCanvas>
     }
 
     _pointerGlobal[event.pointer] = event.position;
+    widget.engine.reportsPressure = event.pressureMax > 1.0;
+    widget.engine.setHover(null);
     _multiMaxPointers = _multiMaxPointers < _pointerGlobal.length
         ? _pointerGlobal.length
         : _multiMaxPointers;
@@ -1432,6 +1424,9 @@ class InkCanvasState extends State<InkCanvas>
     }
     if (wasDrawing) {
       setState(() {});
+    } else if (PointerRouting.stylusIsInAir(event) &&
+        widget.engine.tool.isFreehand) {
+      widget.engine.setHover(_toPageLocal(event.localPosition));
     }
   }
 
@@ -1490,8 +1485,7 @@ class InkCanvasState extends State<InkCanvas>
               _forceNextFit ||
               !_fitReady ||
               _fittedViewport == null ||
-              pageChanged ||
-              _isBogusIdentityScale(_transform.value.getMaxScaleOnAxis());
+              pageChanged;
           if (mustFit) {
             pageDisplay = _fitMatrixForDisplay(viewport);
             _commitFitAfterBuild(viewport, pageDisplay);
@@ -1584,7 +1578,9 @@ class InkCanvasState extends State<InkCanvas>
                                         activeStroke:
                                             widget.engine.activeStroke,
                                         lassoPoints: widget.engine.lassoPoints,
-                                        selectedIds: widget.engine.selectedIds,
+                                        lassoClosed:
+                                            widget.engine.lassoShape ==
+                                            LassoShape.rectangle,
                                         visibleWorldRect: infinite
                                             ? visible
                                             : null,
@@ -1594,6 +1590,11 @@ class InkCanvasState extends State<InkCanvas>
                                         eraserRadius: erasing
                                             ? widget.engine.eraseRadius
                                             : null,
+                                        hoverCursor: widget.engine.hoverCursor,
+                                        hoverWidth: widget.engine.width,
+                                        hoverColor: Color(
+                                          widget.engine.colorValue,
+                                        ),
                                         paintEpoch: widget.engine.paintEpoch,
                                         cacheSettled: true,
                                       ),

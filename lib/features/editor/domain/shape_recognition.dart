@@ -30,6 +30,25 @@ class ShapeRecognition {
 
     final closed = _isClosed(pts, length, loose: loose);
 
+    // Open strokes are almost never circles. Classify a line first so
+    // handwriting / hold-to-shape cannot collapse every loop into a circle.
+    if (!closed) {
+      final line = _asLine(pts, length, loose: loose);
+      if (line != null) {
+        return ShapeElement.create(
+          pageId: pageId,
+          kind: ShapeKind.line,
+          x1: line.$1.dx,
+          y1: line.$1.dy,
+          x2: line.$2.dx,
+          y2: line.$2.dy,
+          colorValue: colorValue,
+          strokeWidth: strokeWidth,
+          style: style.name,
+        );
+      }
+    }
+
     final circle = _asCircle(pts, length, closed: closed, loose: loose);
     if (circle != null) {
       return ShapeElement.create(
@@ -98,13 +117,13 @@ class ShapeRecognition {
     required bool loose,
   }) {
     final gap = (pts.first - pts.last).distance;
-    if (gap < math.max(loose ? 48.0 : 28.0, length * (loose ? 0.32 : 0.16))) {
+    if (gap < math.max(loose ? 18.0 : 22.0, length * (loose ? 0.10 : 0.12))) {
       return true;
     }
-    final window = math.max(4, pts.length ~/ (loose ? 4 : 6));
+    final window = math.max(3, pts.length ~/ 8);
     for (var i = pts.length - window; i < pts.length; i++) {
       if ((pts[i] - pts.first).distance <
-          math.max(loose ? 36.0 : 22.0, length * (loose ? 0.22 : 0.12))) {
+          math.max(loose ? 16.0 : 18.0, length * (loose ? 0.08 : 0.10))) {
         return true;
       }
     }
@@ -158,11 +177,12 @@ class ShapeRecognition {
     required bool closed,
     required bool loose,
   }) {
-    if (!closed && length < (loose ? 48 : 80)) return null;
+    if (!closed) return null;
+    if (length < (loose ? 64 : 80)) return null;
     final box = _bounds(pts);
     final aspect =
         (box.width - box.height).abs() / math.max(box.width, box.height);
-    if (aspect > (loose ? 0.36 : 0.18)) return null;
+    if (aspect > (loose ? 0.22 : 0.18)) return null;
     var cx = 0.0, cy = 0.0;
     for (final p in pts) {
       cx += p.dx;
@@ -184,12 +204,11 @@ class ShapeRecognition {
       varR += d * d;
     }
     varR = math.sqrt(varR / pts.length);
-    if (varR > meanR * (loose ? 0.38 : 0.20)) return null;
+    if (varR > meanR * (loose ? 0.24 : 0.20)) return null;
 
     final expected = 2 * math.pi * meanR;
     final circErr = (length - expected).abs() / expected;
-    if (!closed && circErr > (loose ? 0.48 : 0.28)) return null;
-    if (closed && circErr > (loose ? 0.58 : 0.38)) return null;
+    if (circErr > (loose ? 0.32 : 0.28)) return null;
     return (center: center, radius: meanR);
   }
 

@@ -34,6 +34,7 @@ class ToolOptionsBar extends ConsumerWidget {
     this.hasSelectedImage = false,
     this.hasSelectedSticker = false,
     this.onDeleteSelection,
+    this.onScreenshotSelection,
     this.hasLassoSelection = false,
     this.selectionCanRecolor = false,
     this.onPickColor,
@@ -60,6 +61,7 @@ class ToolOptionsBar extends ConsumerWidget {
   final VoidCallback? onDeleteImage;
   final VoidCallback? onDeleteSticker;
   final VoidCallback? onDeleteSelection;
+  final VoidCallback? onScreenshotSelection;
   final bool hasLassoSelection;
   final bool selectionCanRecolor;
   final ValueChanged<int>? onPickColor;
@@ -333,6 +335,19 @@ class ToolOptionsBar extends ConsumerWidget {
         ];
       case InkTool.lasso:
         return [
+          _labelChip(
+            selected: engine.lassoShape == LassoShape.freehand,
+            icon: Icons.gesture_rounded,
+            label: l10n.lassoFreehand,
+            onTap: () => engine.setLassoShape(LassoShape.freehand),
+          ),
+          _labelChip(
+            selected: engine.lassoShape == LassoShape.rectangle,
+            icon: Icons.crop_square_rounded,
+            label: l10n.lassoRectangle,
+            onTap: () => engine.setLassoShape(LassoShape.rectangle),
+          ),
+          _divider(),
           _targetsChip(
             context,
             l10n,
@@ -342,12 +357,19 @@ class ToolOptionsBar extends ConsumerWidget {
           _divider(),
           if (engine.selectedIds.isEmpty && !hasLassoSelection)
             _hint(l10n.lasso)
-          else
+          else ...[
             _pillAction(
               icon: Icons.delete_outline_rounded,
               label: l10n.deleteSelection,
               onTap: onDeleteSelection ?? engine.deleteSelected,
             ),
+            if (onScreenshotSelection != null)
+              _pillAction(
+                icon: Icons.crop_original_rounded,
+                label: l10n.screenshotSelection,
+                onTap: onScreenshotSelection!,
+              ),
+          ],
           if (hasLassoSelection && selectionCanRecolor) ...[
             _divider(),
             ..._colorDots(context, l10n, presets),

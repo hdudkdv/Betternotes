@@ -1,14 +1,27 @@
 import 'dart:math' as math;
 
 class CalcResult {
-  const CalcResult({required this.ok, required this.value, this.error});
+  const CalcResult({
+    required this.ok,
+    required this.value,
+    this.error,
+    this.displayOverride,
+  });
 
   final bool ok;
   final double value;
   final String? error;
+  final String? displayOverride;
 
   String get display {
+    if (displayOverride != null && displayOverride!.isNotEmpty) {
+      return displayOverride!;
+    }
     if (!ok) return error ?? 'Error';
+    return format(value);
+  }
+
+  static String format(double value) {
     if (value.isNaN || value.isInfinite) return 'Error';
     if (value == value.roundToDouble() && value.abs() < 1e12) {
       return value.round().toString();
@@ -26,6 +39,9 @@ class CalculatorEngine {
   bool degrees = false;
 
   CalcResult evaluate(String source, {double? x}) {
+    source = balanceParens(source);
+    final plusMinus = _evaluatePlusMinus(source, x: x);
+    if (plusMinus != null) return plusMinus;
     try {
       final tokens = _tokenize(source);
       if (tokens.isEmpty) {
@@ -43,6 +59,39 @@ class CalculatorEngine {
     } catch (e) {
       return CalcResult(ok: false, value: 0, error: '$e');
     }
+  }
+
+  CalcResult? _evaluatePlusMinus(String source, {double? x}) {
+    final idx = source.indexOf('±');
+    if (idx <= 0) return null;
+    final left = source.substring(0, idx);
+    final right = source.substring(idx + 1);
+    if (left.trim().isEmpty || right.trim().isEmpty || right.contains('±')) {
+      return null;
+    }
+    final plus = evaluate('($left)+($right)', x: x);
+    final minus = evaluate('($left)-($right)', x: x);
+    if (!plus.ok || !minus.ok) return plus.ok ? plus : minus;
+    return CalcResult(
+      ok: true,
+      value: plus.value,
+      displayOverride:
+          '${CalcResult.format(plus.value)} ; ${CalcResult.format(minus.value)}',
+    );
+  }
+
+  static String balanceParens(String source) {
+    var open = 0;
+    for (var i = 0; i < source.length; i++) {
+      final ch = source[i];
+      if (ch == '(') {
+        open++;
+      } else if (ch == ')') {
+        if (open > 0) open--;
+      }
+    }
+    if (open <= 0) return source;
+    return source + (')' * open);
   }
 
   /// Turns Tafelwerk / handwritten math into evaluator syntax.
@@ -504,11 +553,45 @@ extension CalculatorSolve on CalculatorEngine {
       return l.value - r.value;
     }
 
-    for (final guess in const [0.0, 1.0, -1.0, 2.0, 10.0, -10.0, 0.5]) {
+    final roots = <double>[];
+    for (final guess in const [
+      0.0,
+      1.0,
+      -1.0,
+      2.0,
+      -2.0,
+      10.0,
+      -10.0,
+      0.5,
+      -0.5,
+      4.0,
+      -4.0,
+    ]) {
       final root = _newton(f, guess);
-      if (root != null) return CalcResult(ok: true, value: root);
+      if (root == null) continue;
+      if (roots.any((existing) => (existing - root).abs() < 1e-6)) continue;
+      roots.add(root);
     }
-    return const CalcResult(ok: false, value: 0, error: 'keine Lösung');
+    if (roots.isEmpty) {
+      return const CalcResult(ok: false, value: 0, error: 'keine Lösung');
+    }
+    roots.sort();
+    if (roots.length == 1) return CalcResult(ok: true, value: roots.first);
+    if (roots.length == 2 && (roots[0] + roots[1]).abs() < 1e-6) {
+      final mag = roots[1].abs();
+      return CalcResult(
+        ok: true,
+        value: mag,
+        displayOverride: '±${CalcResult.format(mag)}',
+      );
+    }
+    return CalcResult(
+      ok: true,
+      value: roots.first,
+      displayOverride: [
+        for (final root in roots) CalcResult.format(root),
+      ].join(' ; '),
+    );
   }
 
   double? _newton(double? Function(double x) f, double x0) {

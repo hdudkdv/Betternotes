@@ -440,6 +440,24 @@ abstract class AppLocalizations {
   /// **'Lasso'**
   String get lasso;
 
+  /// No description provided for @lassoFreehand.
+  ///
+  /// In en, this message translates to:
+  /// **'Freehand'**
+  String get lassoFreehand;
+
+  /// No description provided for @lassoRectangle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangle'**
+  String get lassoRectangle;
+
+  /// No description provided for @screenshotSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot selection'**
+  String get screenshotSelection;
+
   /// No description provided for @addTextBox.
   ///
   /// In en, this message translates to:
@@ -1891,6 +1909,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear'**
   String get clear;
+
+  /// No description provided for @lessonTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time for this lesson'**
+  String get lessonTime;
 
   /// No description provided for @editPeriod.
   ///
@@ -6671,8 +6695,32 @@ abstract class AppLocalizations {
   /// No description provided for @calculatorHint.
   ///
   /// In en, this message translates to:
-  /// **'e.g. 2+3*4, f(x)=sin(x), sin(x); x^2 or 2x+3=11'**
+  /// **'e.g. 2+3*4, 5±2, x^2=9, sqrt(1-x^2)'**
   String get calculatorHint;
+
+  /// No description provided for @calculatorShift.
+  ///
+  /// In en, this message translates to:
+  /// **'SHIFT'**
+  String get calculatorShift;
+
+  /// No description provided for @calculatorDel.
+  ///
+  /// In en, this message translates to:
+  /// **'DEL'**
+  String get calculatorDel;
+
+  /// No description provided for @calculatorAc.
+  ///
+  /// In en, this message translates to:
+  /// **'AC'**
+  String get calculatorAc;
+
+  /// No description provided for @calculatorCopyResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy result'**
+  String get calculatorCopyResult;
 
   /// No description provided for @calculatorEquals.
   ///
@@ -6743,8 +6791,50 @@ abstract class AppLocalizations {
   /// No description provided for @graphStudioHint.
   ///
   /// In en, this message translates to:
-  /// **'Several functions, derivatives, and formulas from the formula book.'**
+  /// **'Several functions, value range and axis ticks.'**
   String get graphStudioHint;
+
+  /// No description provided for @graphRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Value range'**
+  String get graphRange;
+
+  /// No description provided for @graphXMin.
+  ///
+  /// In en, this message translates to:
+  /// **'x min'**
+  String get graphXMin;
+
+  /// No description provided for @graphXMax.
+  ///
+  /// In en, this message translates to:
+  /// **'x max'**
+  String get graphXMax;
+
+  /// No description provided for @graphYMin.
+  ///
+  /// In en, this message translates to:
+  /// **'y min'**
+  String get graphYMin;
+
+  /// No description provided for @graphYMax.
+  ///
+  /// In en, this message translates to:
+  /// **'y max'**
+  String get graphYMax;
+
+  /// No description provided for @graphTickX.
+  ///
+  /// In en, this message translates to:
+  /// **'x ticks'**
+  String get graphTickX;
+
+  /// No description provided for @graphTickY.
+  ///
+  /// In en, this message translates to:
+  /// **'y ticks'**
+  String get graphTickY;
 
   /// No description provided for @graphAddFunction.
   ///
@@ -6931,6 +7021,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Term'**
   String get formulaTerm;
+
+  /// No description provided for @formulaSymbol.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol'**
+  String get formulaSymbol;
+
+  /// No description provided for @formulaMeaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Meaning'**
+  String get formulaMeaning;
+
+  /// No description provided for @formulaPronunciation.
+  ///
+  /// In en, this message translates to:
+  /// **'Pronunciation'**
+  String get formulaPronunciation;
 
   /// No description provided for @formulaValue.
   ///

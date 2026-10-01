@@ -486,6 +486,16 @@ class EditorController extends ChangeNotifier {
     return acc;
   }
 
+  /// Several objects live in one lasso group — one outer box, no per-item frames.
+  bool get isGroupSelection {
+    var count = ink.selectedIds.length;
+    count += selectedShapeIds.length;
+    count += selectedImageIds.length;
+    count += selectedTextIds.length;
+    count += selectedStickerIds.length;
+    return count > 1;
+  }
+
   /// Single images / text boxes already have their own resize handle.
   bool get showLassoScaleHandle {
     if (!hasLassoSelection) return false;
@@ -493,11 +503,14 @@ class EditorController extends ChangeNotifier {
     if (bounds == null || (bounds.width < 2 && bounds.height < 2)) {
       return false;
     }
+    if (isGroupSelection) return true;
     final onlyOwnHandle =
         ink.selectedIds.isEmpty &&
         selectedShapeIds.isEmpty &&
-        selectedStickerIds.isEmpty &&
-        selectedImageIds.length + selectedTextIds.length == 1;
+        selectedImageIds.length +
+                selectedTextIds.length +
+                selectedStickerIds.length ==
+            1;
     return !onlyOwnHandle;
   }
 
@@ -1446,9 +1459,9 @@ class EditorController extends ChangeNotifier {
         return;
       }
       x = metrics.marginLeft;
-      // A page document always starts on the first ruled line. Tapping a
-      // lower line later moves the caret; it never creates another document.
-      y = metrics.snapToLine(metrics.marginTop);
+      // Lined paper starts on the first rule; grid starts on the first
+      // inner square so Seitentext sits on the printed lines.
+      y = metrics.firstTextLine;
       width = metrics.contentWidth;
       height = metrics.pageHeight;
       initialText = text == 'New text' || text == 'Neuer Text' ? '' : text;
@@ -2191,6 +2204,12 @@ class EditorController extends ChangeNotifier {
       notifyListeners();
       return true;
     }
+    if (hasLassoSelection ||
+        selectedTextId != null ||
+        selectedImageId != null ||
+        selectedStickerId != null) {
+      clearLassoSelection();
+    }
     return false;
   }
 
@@ -2250,7 +2269,7 @@ class EditorController extends ChangeNotifier {
     _convertedByHold = false;
     _shapeHoldAnchor = pagePoint;
     ink.beginStroke(pagePoint, pressure: pressure, t: t);
-    _armShapeHold(pagePoint);
+    _armShapeHold(pagePoint, pressure: pressure);
     if (ink.tool == InkTool.eraser) {
       _erasePageObjects(pagePoint);
     }
@@ -2282,18 +2301,26 @@ class EditorController extends ChangeNotifier {
     if (ink.tool == InkTool.eraser) {
       _erasePageObjects(pagePoint);
     }
-    _armShapeHold(pagePoint);
+    _armShapeHold(pagePoint, pressure: pressure);
   }
 
-  void _armShapeHold(Offset pagePoint) {
+  void _armShapeHold(Offset pagePoint, {double pressure = 0.5}) {
     if (!ink.tool.isFreehand) return;
     // Marker/highlighter stays translucent. Hold-to-shape painted the same
     // stroke fully opaque and looked like the line "filled in".
     if (ink.tool == InkTool.marker) return;
     if (ink.activeStroke == null) return;
     final anchor = _shapeHoldAnchor;
-    if (anchor != null &&
-        (pagePoint - anchor).distance <= _shapeHoldStillness) {
+    final still =
+        anchor != null &&
+        (pagePoint - anchor).distance <= _shapeHoldStillness;
+    // Real Apple Pencil: a firm press completes the shape instead of waiting.
+    if (ink.reportsPressure && pressure >= 0.78 && still) {
+      _shapeHoldTimer?.cancel();
+      _tryHoldRecognize();
+      return;
+    }
+    if (still) {
       return;
     }
     _shapeHoldAnchor = pagePoint;
@@ -2322,7 +2349,7 @@ class EditorController extends ChangeNotifier {
       colorValue: stroke.colorValue,
       strokeWidth: stroke.width,
       style: stroke.style,
-      loose: true,
+      loose: false,
     );
     if (shape == null) return false;
     ink.cancelStroke();
@@ -3060,6 +3087,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     );
   }
 
+  Future<void> _shareSelection(EditorController controller) async {
+    final nb = controller.notebook;
+    final bounds = controller.lassoSelectionBounds;
+    if (nb == null || bounds == null) return;
+    await controller.persistForSearchIndex();
+    await ref.read(exportServiceProvider).sharePageRegionAsImage(
+      notebook: nb,
+      pages: controller.pages,
+      pageIndex: controller.pageIndex,
+      pageRect: bounds,
+    );
+  }
+
   Future<void> _handleShareAction(
     BuildContext context,
     EditorController controller,
@@ -3374,43 +3414,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               ),
                             ),
                           ),
-                          if (controller.hasLassoSelection)
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: CustomPaint(
-                                  painter: _LassoObjectHighlightPainter(
-                                    shapes: [
-                                      for (final s in controller.shapes)
-                                        if (controller.selectedShapeIds
-                                            .contains(s.id))
-                                          s.bounds,
-                                    ],
-                                    images: [
-                                      for (final i in controller.images)
-                                        if (controller.selectedImageIds
-                                            .contains(i.id))
-                                          i.bounds,
-                                    ],
-                                    texts: [
-                                      for (final b in controller.textBlocks)
-                                        if (controller.selectedTextIds.contains(
-                                          b.id,
-                                        ))
-                                          textBlockBounds(
-                                            block: b,
-                                            metrics: metrics,
-                                          ),
-                                    ],
-                                    stickers: [
-                                      for (final s in controller.stickers)
-                                        if (controller.selectedStickerIds
-                                            .contains(s.id))
-                                          s.bounds,
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
                           if (controller.drawingAids.ruler != null)
                             RulerOverlay(
                               aid: controller.drawingAids.ruler!,
@@ -3451,7 +3454,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                             ignoring: readOnly || presenting,
                             child: ImageElementsLayer(
                               images: controller.images,
-                              selectedId: controller.selectedImageId,
+                              selectedId: controller.isGroupSelection
+                                  ? null
+                                  : controller.selectedImageId,
                               editable: !readOnly && !presenting,
                               onSelect: controller.selectImage,
                               onEditStart: controller.beginObjectEdit,
@@ -3471,7 +3476,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                             ignoring: readOnly || presenting,
                             child: StickerLayer(
                               stickers: controller.stickers,
-                              selectedId: controller.selectedStickerId,
+                              selectedId: controller.isGroupSelection
+                                  ? null
+                                  : controller.selectedStickerId,
                               editable: !readOnly && !presenting,
                               onSelect: controller.selectSticker,
                               onChanged: controller.updateSticker,
@@ -3482,7 +3489,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                             ignoring: readOnly || presenting,
                             child: TextBlockLayer(
                               blocks: controller.textBlocks,
-                              selectedId: controller.selectedTextId,
+                              selectedId: controller.isGroupSelection
+                                  ? null
+                                  : controller.selectedTextId,
                               editingId: controller.editingTextId,
                               editable: !readOnly && !presenting,
                               pageTextEnabled:
@@ -3578,6 +3587,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                   hasLassoSelection: controller.hasLassoSelection,
                   selectionCanRecolor: controller.selectionCanRecolor,
                   onDeleteSelection: controller.deleteLassoSelection,
+                  onScreenshotSelection: controller.hasLassoSelection
+                      ? () => _shareSelection(controller)
+                      : null,
                   onPickColor: controller.applyColorToSelection,
                   hasSelectedImage: controller.selectedImageId != null,
                   onDeleteImage: controller.selectedImageId == null
@@ -3925,7 +3937,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                 _calcPinned = false;
                 if (!_bookOpen) _toolPageId = null;
               }),
-              height: 520,
+              height: 560,
               child: CalculatorPanel(
                 key: ValueKey('calc_${widget.notebookId}'),
                 store: CalculatorStore(ref.read(sharedPreferencesProvider)),
@@ -3941,7 +3953,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         if (_assistantOpen && !presenting)
           Positioned(
             right: 12,
-            top: _calcOpen ? 530 : 56,
+            top: _calcOpen ? 570 : 56,
             child: EditorToolPanel(
               title: l10n.assistant,
               width: 360,
@@ -4462,35 +4474,3 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
   }
 }
 
-class _LassoObjectHighlightPainter extends CustomPainter {
-  const _LassoObjectHighlightPainter({
-    required this.shapes,
-    required this.images,
-    required this.texts,
-    this.stickers = const [],
-  });
-
-  final List<Rect> shapes;
-  final List<Rect> images;
-  final List<Rect> texts;
-  final List<Rect> stickers;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF2F6FED)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6;
-    for (final rect in [...shapes, ...images, ...texts, ...stickers]) {
-      canvas.drawRect(rect.inflate(3), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _LassoObjectHighlightPainter oldDelegate) {
-    return oldDelegate.shapes != shapes ||
-        oldDelegate.images != images ||
-        oldDelegate.texts != texts ||
-        oldDelegate.stickers != stickers;
-  }
-}

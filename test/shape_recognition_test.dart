@@ -120,7 +120,7 @@ void main() {
     );
   });
 
-  test('recognizes an open messy circle when loose', () {
+  test('does not treat an open scribble as a circle', () {
     final pts = <StrokePoint>[];
     for (var i = 0; i < 28; i++) {
       final t = i / 32 * math.pi * 2;
@@ -140,7 +140,7 @@ void main() {
         strokeWidth: 2,
         loose: true,
       )?.kind,
-      anyOf(ShapeKind.circle, ShapeKind.ellipse),
+      isNot(ShapeKind.circle),
     );
   });
 }

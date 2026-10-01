@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:betternotes/features/tools/calculator/calculator_engine.dart';
 import 'package:betternotes/features/tools/calculator/expression_diff.dart';
+import 'package:betternotes/features/tools/calculator/function_plotter.dart';
 import 'package:betternotes/features/tools/calculator/plot_series.dart';
 
 void main() {
@@ -27,6 +28,26 @@ void main() {
     final result = engine.solve('2x+3=11');
     expect(result.ok, isTrue);
     expect(result.value, closeTo(4, 1e-6));
+  });
+
+  test('plus-minus expressions return both results', () {
+    final result = engine.evaluate('5±2');
+    expect(result.ok, isTrue);
+    expect(result.display, '7 ; 3');
+  });
+
+  test('closes missing parentheses for sqrt(1-x^2', () {
+    expect(CalculatorEngine.balanceParens('sqrt(1-x^2'), 'sqrt(1-x^2)');
+    final plotted = engine.evaluate('sqrt(1-x^2)', x: 0);
+    expect(plotted.ok, isTrue);
+    expect(plotted.value, closeTo(1, 1e-6));
+    expect(engine.evaluate('sqrt(1-x^2)', x: 2).ok, isFalse);
+  });
+
+  test('quadratic equations report both roots as plus-minus', () {
+    final result = engine.solve('x^2=9');
+    expect(result.ok, isTrue);
+    expect(result.display, '±3');
   });
 
   test('percent and factorial', () {
@@ -66,5 +87,11 @@ void main() {
   test('differentiates basic functions', () {
     expect(ExpressionDiff.differentiate('x^2'), '(2*x)');
     expect(engine.evaluate(ExpressionDiff.differentiate('x^2')!, x: 3).value, 6);
+  });
+
+  test('plots the upper semicircle sqrt(1-x^2)', () async {
+    final bytes = await FunctionPlotter.renderPng('sqrt(1-x^2)');
+    expect(bytes, isNotNull);
+    expect(bytes!.length, greaterThan(800));
   });
 }

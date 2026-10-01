@@ -36,6 +36,7 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
   late List<CalcHistoryEntry> _history;
   bool _plotting = false;
   bool _degrees = true;
+  bool _shift = false;
   String? _plotError;
   _CalcPad _pad = _CalcPad.numbers;
 
@@ -46,7 +47,7 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
     if (_history.isNotEmpty) {
       _input.text = _history.first.expression;
       _output = _history.first.result;
-      _ans = _history.first.result;
+      _ans = _numericAns(_history.first.result);
     }
   }
 
@@ -56,24 +57,40 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
     super.dispose();
   }
 
+  String _numericAns(String display) {
+    final cleaned = display.replaceFirst(RegExp(r'^x\s*=\s*'), '');
+    if (cleaned.startsWith('±')) return cleaned.substring(1);
+    final first = cleaned.split(';').first.trim();
+    return first.isEmpty ? display : first;
+  }
+
   Future<void> _eval({bool solve = false}) async {
-    var expr = _input.text.trim();
-    if (expr.isEmpty) return;
+    final raw = _input.text.trim();
+    if (raw.isEmpty) return;
+    var expr = raw;
     if (expr.contains('ans') && _ans.isNotEmpty) {
       expr = expr.replaceAll('ans', _ans);
+    }
+    expr = CalculatorEngine.balanceParens(expr);
+    final usesX = RegExp(r'(^|[^a-zA-Z])x([^a-zA-Z]|$)').hasMatch(expr);
+    if (!solve && usesX && !expr.contains('=')) {
+      _input.text = expr;
+      await _plot();
+      return;
     }
     _engine.degrees = _degrees;
     final result = solve || expr.contains('=')
         ? _engine.evaluateOrSolve(expr)
         : _engine.evaluate(expr);
-    setState(() => _output = result.ok && expr.contains('=') && expr.contains('x')
+    final display = result.ok && expr.contains('=') && expr.toLowerCase().contains('x')
         ? 'x = ${result.display}'
-        : result.display);
+        : result.display;
+    setState(() => _output = display);
     if (!result.ok) return;
-    _ans = result.display;
+    _ans = result.ok ? _numericAns(result.display) : _ans;
     final entry = CalcHistoryEntry(
-      expression: expr,
-      result: _output,
+      expression: raw,
+      result: display,
       at: DateTime.now(),
     );
     await widget.store.add(widget.notebookId, entry);
@@ -88,15 +105,109 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
     if (expr.contains('ans') && _ans.isNotEmpty) {
       expr = expr.replaceAll('ans', _ans);
     }
+    expr = CalculatorEngine.balanceParens(expr);
     setState(() {
       _plotting = true;
       _plotError = null;
     });
     try {
-      await widget.onInsertPlot(expr, degrees: _degrees);
+      final ok = await widget.onInsertPlot(expr, degrees: _degrees);
+      if (mounted && !ok) setState(() => _plotError = 'plot');
+    } catch (_) {
+      if (mounted) setState(() => _plotError = 'plot');
     } finally {
       if (mounted) setState(() => _plotting = false);
     }
+  }
+
+  void _onKey(String value) {
+    if (value == 'SHIFT') {
+      setState(() => _shift = !_shift);
+      return;
+    }
+    if (value == '±') {
+      _onPlusMinus();
+      return;
+    }
+    if (value == '=') {
+      _eval();
+      return;
+    }
+    if (value == 'AC') {
+      _append('C');
+      return;
+    }
+    if (value == 'DEL') {
+      _append('⌫');
+      return;
+    }
+    final shifted = _shift ? _shifted(value) : value;
+    if (_shift) setState(() => _shift = false);
+    _append(shifted);
+  }
+
+  String _shifted(String value) {
+    return switch (value) {
+      'sin(' => 'asin(',
+      'cos(' => 'acos(',
+      'tan(' => 'atan(',
+      'ln(' => 'exp(',
+      'log(' => '10^(',
+      '√(' => '^2',
+      'x^2' => '^3',
+      'x^-1' => '^(-1)',
+      _ => value,
+    };
+  }
+
+  void _onPlusMinus() {
+    final text = _input.text;
+    if (text.trim().isEmpty) {
+      _toggleSign(_ans.isEmpty ? '' : _ans);
+      return;
+    }
+    final trimmed = text.trimRight();
+    final last = trimmed.isEmpty ? '' : trimmed[trimmed.length - 1];
+    if (RegExp(r'[0-9)]').hasMatch(last)) {
+      _append('±');
+      return;
+    }
+    _toggleSign(text);
+  }
+
+  void _toggleSign(String source) {
+    final text = source.trim();
+    if (text.isEmpty) {
+      _input.value = const TextEditingValue(
+        text: '-',
+        selection: TextSelection.collapsed(offset: 1),
+      );
+      return;
+    }
+    final simple = RegExp(r'^-?[0-9]+([.,][0-9]+)?$');
+    late final String next;
+    if (simple.hasMatch(text)) {
+      next = text.startsWith('-') ? text.substring(1) : '-$text';
+    } else if (text.startsWith('-(') && text.endsWith(')')) {
+      next = text.substring(2, text.length - 1);
+    } else if (text.startsWith('-')) {
+      next = text.substring(1);
+    } else {
+      next = '-($text)';
+    }
+    _input.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+  }
+
+  void _useOutput() {
+    if (_output.isEmpty || _output == 'Error') return;
+    final next = _output.replaceFirst(RegExp(r'^x\s*=\s*'), '');
+    _input.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
   }
 
   void _append(String value) {
@@ -135,7 +246,7 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
             keyboardType: TextInputType.text,
             inputFormatters: [
               FilteringTextInputFormatter.allow(
-                RegExp(r"[0-9a-zA-Z+\-*/^()=.,;x!%' ]"),
+                RegExp(r"[0-9a-zA-Z+\-*/^()=.,;x!%' ±\u00B1]"),
               ),
             ],
             decoration: InputDecoration(
@@ -146,12 +257,31 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
             onSubmitted: (_) => _eval(),
           ),
           const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              _output.isEmpty ? ' ' : _output,
-              style: AppTheme.headline(fontSize: 22, fontWeight: FontWeight.w800),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _useOutput,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      _output.isEmpty ? ' ' : _output,
+                      style: AppTheme.headline(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.calculatorCopyResult,
+                onPressed: _output.isEmpty
+                    ? null
+                    : () => Clipboard.setData(ClipboardData(text: _output)),
+                icon: const Icon(Icons.copy_rounded, size: 18),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           SegmentedButton<_CalcPad>(
@@ -193,7 +323,12 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
           if (_pad == _CalcPad.more && !widget.calcPlus)
             _CalcPlusLock(onOpen: () => context.push('/marketplace'))
           else
-            _Keypad(pad: _pad, plus: widget.calcPlus, onKey: _append),
+            _Keypad(
+              pad: _pad,
+              plus: widget.calcPlus,
+              shift: _shift,
+              onKey: _onKey,
+            ),
           if (_plotError != null) ...[
             const SizedBox(height: 4),
             Text(
@@ -257,7 +392,10 @@ class _CalculatorPanelState extends State<CalculatorPanel> {
                   trailing: Text(item.result),
                   onTap: () {
                     _input.text = item.expression;
-                    setState(() => _output = item.result);
+                    setState(() {
+                      _output = item.result;
+                      _ans = _numericAns(item.result);
+                    });
                   },
                 );
               },
@@ -299,27 +437,34 @@ class _CalcPlusLock extends StatelessWidget {
 }
 
 class _Keypad extends StatelessWidget {
-  const _Keypad({required this.pad, required this.onKey, this.plus = false});
+  const _Keypad({
+    required this.pad,
+    required this.onKey,
+    this.plus = false,
+    this.shift = false,
+  });
 
   final _CalcPad pad;
   final ValueChanged<String> onKey;
   final bool plus;
+  final bool shift;
 
   @override
   Widget build(BuildContext context) {
     final keys = switch (pad) {
-      _CalcPad.numbers => const [
-        ['C', '⌫', '(', ')'],
-        ['7', '8', '9', '/'],
-        ['4', '5', '6', '*'],
-        ['1', '2', '3', '-'],
-        ['0', '.', '%', '+'],
+      _CalcPad.numbers => [
+        [shift ? 'SHIFT*' : 'SHIFT', 'x^2', '√(', 'x^-1'],
+        ['7', '8', '9', 'DEL'],
+        ['4', '5', '6', '×'],
+        ['1', '2', '3', '−'],
+        ['0', '.', '±', '+'],
+        ['AC', '(', ')', '='],
       ],
-      _CalcPad.functions => const [
-        ['sin(', 'cos(', 'tan(', '√('],
-        ['asin(', 'acos(', 'atan(', 'cbrt('],
-        ['ln(', 'log(', 'exp(', '^'],
-        ['π', 'e', 'x', 'ans'],
+      _CalcPad.functions => [
+        [shift ? 'sin⁻¹' : 'sin', shift ? 'cos⁻¹' : 'cos', shift ? 'tan⁻¹' : 'tan', 'π'],
+        [shift ? 'e^' : 'ln', shift ? '10^' : 'log', 'x', 'Ans'],
+        ['^', 'e', '%', '!'],
+        ['÷', '×', '−', '+'],
       ],
       _CalcPad.more => [
         const ['sinh(', 'cosh(', 'tanh(', '10^('],
@@ -341,20 +486,27 @@ class _Keypad extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 2),
                       child: SizedBox(
-                        height: 34,
+                        height: 36,
                         child: OutlinedButton(
-                          onPressed: () => onKey(switch (key) {
-                            '√(' => 'sqrt(',
-                            'π' => 'pi',
-                            'nCr(' => 'ncr(',
-                            'nPr(' => 'npr(',
-                            _ => key,
-                          }),
+                          onPressed: () => onKey(_emit(key)),
                           style: OutlinedButton.styleFrom(
                             padding: EdgeInsets.zero,
                             visualDensity: VisualDensity.compact,
+                            backgroundColor: _keyColor(key),
+                            foregroundColor: _keyFg(key),
+                            side: BorderSide(
+                              color: _keyFg(key).withValues(alpha: 0.12),
+                            ),
                           ),
-                          child: Text(key, style: const TextStyle(fontSize: 13)),
+                          child: Text(
+                            _label(key),
+                            style: TextStyle(
+                              fontSize: key == 'SHIFT' || key == 'SHIFT*'
+                                  ? 11
+                                  : 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -364,5 +516,67 @@ class _Keypad extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  String _emit(String key) {
+    return switch (key) {
+      'SHIFT*' => 'SHIFT',
+      'sin' => 'sin(',
+      'cos' => 'cos(',
+      'tan' => 'tan(',
+      'sin⁻¹' => 'asin(',
+      'cos⁻¹' => 'acos(',
+      'tan⁻¹' => 'atan(',
+      'ln' => 'ln(',
+      'log' => 'log(',
+      'e^' => 'exp(',
+      '10^' => '10^(',
+      '√(' => 'sqrt(',
+      'x^2' => '^2',
+      'x^-1' => '^(-1)',
+      'π' => 'pi',
+      'Ans' => 'ans',
+      'nCr(' => 'ncr(',
+      'nPr(' => 'npr(',
+      '×' => '*',
+      '÷' => '/',
+      '−' => '-',
+      _ => key,
+    };
+  }
+
+  String _label(String key) {
+    if (key == 'SHIFT*') return 'SHIFT';
+    if (key == 'x^2') return 'x²';
+    if (key == 'x^-1') return 'x⁻¹';
+    return key;
+  }
+
+  Color _keyColor(String key) {
+    if (key == 'SHIFT' || key == 'SHIFT*') {
+      return shift ? const Color(0xFF1D4E89) : const Color(0xFFE8EEF7);
+    }
+    if (key == '=' || key == 'AC') return const Color(0xFFFFE8C2);
+    if (key == 'DEL') return const Color(0xFFF3D6D0);
+    if ('+-×÷−*/'.contains(key) && key.length == 1) {
+      return const Color(0xFFFFF4D6);
+    }
+    if (key == 'sin' ||
+        key == 'cos' ||
+        key == 'tan' ||
+        key == 'ln' ||
+        key == 'log' ||
+        key == '√(' ||
+        key.startsWith('sin') ||
+        key.startsWith('cos') ||
+        key.startsWith('tan')) {
+      return const Color(0xFFE4EEF8);
+    }
+    return const Color(0xFFF7F4EE);
+  }
+
+  Color _keyFg(String key) {
+    if (key == 'SHIFT*') return Colors.white;
+    return const Color(0xFF1A1A1A);
   }
 }

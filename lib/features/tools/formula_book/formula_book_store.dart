@@ -51,6 +51,15 @@ class FormulaBookStore {
     final hay = '${subjectKey ?? ''} ${folderPath ?? ''}'.toLowerCase();
     if (hay.trim().isEmpty) return null;
     const aliases = <String, List<String>>{
+      'symbole': [
+        'symbol',
+        'zeichen',
+        'griech',
+        'aussprache',
+        'pi',
+        'sigma',
+        'delta',
+      ],
       'funktionen': [
         'funktion',
         'sin',

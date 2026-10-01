@@ -117,6 +117,9 @@ void main() {
 
       expect(metrics.snapToLine(50) % metrics.lineSpacing, 0);
       expect(metrics.snapToLine(100) % metrics.lineSpacing, 0);
+      expect(metrics.snapToLine(0), 0);
+      expect(metrics.firstTextLine % metrics.lineSpacing, 0);
+      expect(metrics.firstTextLine, greaterThan(0));
     });
 
     test('custom paper snaps onto its own rules', () {

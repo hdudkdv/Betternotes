@@ -186,6 +186,28 @@ void main() {
     expect(engine.selectedIds, {'marker'});
   });
 
+  test('rectangular lasso selects from opposite corners', () {
+    final engine = InkEngine(
+      initial: [
+        InkStroke(
+          id: 'inside',
+          tool: InkTool.pen,
+          colorValue: 0xFF000000,
+          width: 3,
+          points: const [StrokePoint(x: 12, y: 12), StrokePoint(x: 14, y: 14)],
+        ),
+      ],
+    )
+      ..setTool(InkTool.lasso)
+      ..setLassoShape(LassoShape.rectangle);
+
+    engine.beginStroke(const Offset(0, 0));
+    engine.appendStroke(const Offset(40, 40));
+    engine.endStroke();
+
+    expect(engine.selectedIds, {'inside'});
+  });
+
   test('strokeAt returns the topmost stroke under a point', () {
     final engine = InkEngine(
       initial: [

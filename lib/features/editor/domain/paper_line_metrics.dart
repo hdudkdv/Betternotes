@@ -35,6 +35,14 @@ class PaperLineMetrics {
   double get contentWidth => math.max(120, pageWidth - marginLeft - 36);
   double get rightEdge => pageWidth - 36;
 
+  /// Grid / dotted paper paints from [lineOrigin] (usually 0), not [marginTop].
+  bool get snapsFromPaintedOrigin => lineOrigin + 0.5 < marginTop;
+
+  /// First line a page-text document should sit on.
+  double get firstTextLine => snapToLine(
+    snapsFromPaintedOrigin ? lineSpacing : marginTop,
+  );
+
   factory PaperLineMetrics.from({
     PaperTemplate? paper,
     PageTemplate template = PageTemplate.lined,
@@ -116,7 +124,9 @@ class PaperLineMetrics {
       }
       return best;
     }
-    final first = math.max(lineOrigin, marginTop);
+    final first = snapsFromPaintedOrigin
+        ? lineOrigin
+        : math.max(lineOrigin, marginTop);
     final maxIndex = ((pageHeight - 24 - first) / lineSpacing).floor().clamp(
       0,
       400,

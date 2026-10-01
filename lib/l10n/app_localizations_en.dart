@@ -198,6 +198,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lasso => 'Lasso';
 
   @override
+  String get lassoFreehand => 'Freehand';
+
+  @override
+  String get lassoRectangle => 'Rectangle';
+
+  @override
+  String get screenshotSelection => 'Screenshot selection';
+
+  @override
   String get addTextBox => 'Add text box';
 
   @override
@@ -953,6 +962,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clear => 'Clear';
+
+  @override
+  String get lessonTime => 'Time for this lesson';
 
   @override
   String get editPeriod => 'Edit period';
@@ -3649,8 +3661,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calculator => 'Calculator';
 
   @override
-  String get calculatorHint =>
-      'e.g. 2+3*4, f(x)=sin(x), sin(x); x^2 or 2x+3=11';
+  String get calculatorHint => 'e.g. 2+3*4, 5±2, x^2=9, sqrt(1-x^2)';
+
+  @override
+  String get calculatorShift => 'SHIFT';
+
+  @override
+  String get calculatorDel => 'DEL';
+
+  @override
+  String get calculatorAc => 'AC';
+
+  @override
+  String get calculatorCopyResult => 'Copy result';
 
   @override
   String get calculatorEquals => '=';
@@ -3687,7 +3710,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get graphStudioHint =>
-      'Several functions, derivatives, and formulas from the formula book.';
+      'Several functions, value range and axis ticks.';
+
+  @override
+  String get graphRange => 'Value range';
+
+  @override
+  String get graphXMin => 'x min';
+
+  @override
+  String get graphXMax => 'x max';
+
+  @override
+  String get graphYMin => 'y min';
+
+  @override
+  String get graphYMax => 'y max';
+
+  @override
+  String get graphTickX => 'x ticks';
+
+  @override
+  String get graphTickY => 'y ticks';
 
   @override
   String get graphAddFunction => 'Function';
@@ -3786,6 +3830,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formulaTerm => 'Term';
+
+  @override
+  String get formulaSymbol => 'Symbol';
+
+  @override
+  String get formulaMeaning => 'Meaning';
+
+  @override
+  String get formulaPronunciation => 'Pronunciation';
 
   @override
   String get formulaValue => 'Formula / value';

@@ -56,6 +56,21 @@ class _GraphStudioSheetState extends State<_GraphStudioSheet> {
   late final List<_Row> _rows;
   bool _busy = false;
   String? _error;
+  late final TextEditingController _xMin;
+  late final TextEditingController _xMax;
+  late final TextEditingController _yMin;
+  late final TextEditingController _yMax;
+  late final TextEditingController _xStep;
+  late final TextEditingController _yStep;
+
+  static const _quickFns = [
+    'sin(x)',
+    'x^2',
+    'sqrt(1-x^2)',
+    'e^x',
+    'ln(x)',
+    '1/x',
+  ];
 
   @override
   void initState() {
@@ -67,6 +82,13 @@ class _GraphStudioSheetState extends State<_GraphStudioSheet> {
       if (parts.isEmpty) _Row() else
         for (final part in parts) _Row(expression: part),
     ];
+    final def = widget.degrees ? 360 : 8;
+    _xMin = TextEditingController(text: widget.degrees ? '-360' : '-8');
+    _xMax = TextEditingController(text: '$def');
+    _yMin = TextEditingController();
+    _yMax = TextEditingController();
+    _xStep = TextEditingController();
+    _yStep = TextEditingController();
   }
 
   @override
@@ -74,6 +96,12 @@ class _GraphStudioSheetState extends State<_GraphStudioSheet> {
     for (final row in _rows) {
       row.dispose();
     }
+    _xMin.dispose();
+    _xMax.dispose();
+    _yMin.dispose();
+    _yMax.dispose();
+    _xStep.dispose();
+    _yStep.dispose();
     super.dispose();
   }
 
@@ -102,6 +130,12 @@ class _GraphStudioSheetState extends State<_GraphStudioSheet> {
       final bytes = await FunctionPlotter.renderPng(
         series,
         degrees: widget.degrees,
+        xMin: double.tryParse(_xMin.text.replaceAll(',', '.')),
+        xMax: double.tryParse(_xMax.text.replaceAll(',', '.')),
+        yMin: double.tryParse(_yMin.text.replaceAll(',', '.')),
+        yMax: double.tryParse(_yMax.text.replaceAll(',', '.')),
+        xStep: double.tryParse(_xStep.text.replaceAll(',', '.')),
+        yStep: double.tryParse(_yStep.text.replaceAll(',', '.')),
       );
       if (!mounted) return;
       if (bytes == null) {
@@ -112,6 +146,18 @@ class _GraphStudioSheetState extends State<_GraphStudioSheet> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Widget _numField(TextEditingController controller, String label) {
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        border: const OutlineInputBorder(),
+      ),
+    );
   }
 
   Future<void> _fromBook() async {
@@ -215,6 +261,27 @@ class _GraphStudioSheetState extends State<_GraphStudioSheet> {
                     ),
                   ),
                 Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final fn in _quickFns)
+                      ActionChip(
+                        label: Text(fn, style: const TextStyle(fontSize: 12)),
+                        onPressed: () => setState(() {
+                          final empty = _rows.indexWhere(
+                            (r) => r.controller.text.trim().isEmpty,
+                          );
+                          if (empty >= 0) {
+                            _rows[empty].controller.text = fn;
+                          } else {
+                            _rows.add(_Row(expression: fn));
+                          }
+                        }),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
                   spacing: 4,
                   children: [
                     TextButton.icon(
@@ -227,6 +294,31 @@ class _GraphStudioSheetState extends State<_GraphStudioSheet> {
                       icon: const Icon(Icons.menu_book_outlined),
                       label: Text(l10n.graphFromBook),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  l10n.graphRange,
+                  style: AppTheme.body(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(child: _numField(_xMin, l10n.graphXMin)),
+                    const SizedBox(width: 6),
+                    Expanded(child: _numField(_xMax, l10n.graphXMax)),
+                    const SizedBox(width: 6),
+                    Expanded(child: _numField(_yMin, l10n.graphYMin)),
+                    const SizedBox(width: 6),
+                    Expanded(child: _numField(_yMax, l10n.graphYMax)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(child: _numField(_xStep, l10n.graphTickX)),
+                    const SizedBox(width: 6),
+                    Expanded(child: _numField(_yStep, l10n.graphTickY)),
                   ],
                 ),
                 if (_error != null)

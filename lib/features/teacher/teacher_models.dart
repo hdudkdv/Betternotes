@@ -815,7 +815,7 @@ class TeacherNotifier extends StateNotifier<TeacherState> {
     }) {
       if (lesson.isEmpty) return;
       if (exists(period, lesson.subject, half)) return;
-      final periodInfo = timetable.periods[period];
+      final periodInfo = timetable.periodFor(dayIndex, period);
       final startOffset = half == 'second'
           ? periodInfo.splitAtMinutes
           : periodInfo.startMinutes;
@@ -862,6 +862,7 @@ class TeacherNotifier extends StateNotifier<TeacherState> {
     final roomKey = (room ?? state.session?.room ?? '').trim().toLowerCase();
     final dayLessons = lessonsOn(now);
     final minute = now.hour * 60 + now.minute;
+    final dayIndex = Timetable.dayIndexFromWeekday(now.weekday);
 
     LessonJournalEntry? match;
     for (final lesson in dayLessons) {
@@ -871,7 +872,10 @@ class TeacherNotifier extends StateNotifier<TeacherState> {
           lesson.room.trim().toLowerCase() == roomKey;
       if (!subjectMatches && !roomMatches) continue;
       if (lesson.periodIndex < timetable.periods.length &&
-          timetable.periods[lesson.periodIndex].containsMinuteOfDay(minute)) {
+          (dayIndex == null
+                  ? timetable.periods[lesson.periodIndex]
+                  : timetable.periodFor(dayIndex, lesson.periodIndex))
+              .containsMinuteOfDay(minute)) {
         match = lesson;
         break;
       }
@@ -888,11 +892,10 @@ class TeacherNotifier extends StateNotifier<TeacherState> {
       return match;
     }
 
-    final dayIndex = Timetable.dayIndexFromWeekday(now.weekday);
     var periodIndex = 0;
     if (dayIndex != null) {
       for (var i = 0; i < timetable.periods.length; i++) {
-        if (timetable.periods[i].containsMinuteOfDay(minute)) {
+        if (timetable.periodFor(dayIndex, i).containsMinuteOfDay(minute)) {
           periodIndex = i;
           break;
         }

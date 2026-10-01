@@ -6,36 +6,74 @@ class FormulaRow extends Equatable {
     required this.id,
     required this.term,
     required this.value,
+    this.symbol = '',
+    this.meaning = '',
+    this.pronunciation = '',
   });
 
   final String id;
   final String term;
   final String value;
+  final String symbol;
+  final String meaning;
+  final String pronunciation;
 
-  FormulaRow copyWith({String? term, String? value}) {
+  FormulaRow copyWith({
+    String? term,
+    String? value,
+    String? symbol,
+    String? meaning,
+    String? pronunciation,
+  }) {
     return FormulaRow(
       id: id,
       term: term ?? this.term,
       value: value ?? this.value,
+      symbol: symbol ?? this.symbol,
+      meaning: meaning ?? this.meaning,
+      pronunciation: pronunciation ?? this.pronunciation,
     );
   }
 
-  Map<String, dynamic> toJson() => {'id': id, 'term': term, 'value': value};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'term': term,
+    'value': value,
+    if (symbol.isNotEmpty) 'symbol': symbol,
+    if (meaning.isNotEmpty) 'meaning': meaning,
+    if (pronunciation.isNotEmpty) 'pronunciation': pronunciation,
+  };
 
   factory FormulaRow.fromJson(Map<String, dynamic> json) {
     return FormulaRow(
       id: json['id'] as String? ?? const Uuid().v4(),
       term: json['term'] as String? ?? '',
       value: json['value'] as String? ?? '',
+      symbol: json['symbol'] as String? ?? '',
+      meaning: json['meaning'] as String? ?? '',
+      pronunciation: json['pronunciation'] as String? ?? '',
     );
   }
 
-  factory FormulaRow.create({String term = '', String value = ''}) {
-    return FormulaRow(id: const Uuid().v4(), term: term, value: value);
+  factory FormulaRow.create({
+    String term = '',
+    String value = '',
+    String symbol = '',
+    String meaning = '',
+    String pronunciation = '',
+  }) {
+    return FormulaRow(
+      id: const Uuid().v4(),
+      term: term,
+      value: value,
+      symbol: symbol,
+      meaning: meaning,
+      pronunciation: pronunciation,
+    );
   }
 
   @override
-  List<Object?> get props => [id, term, value];
+  List<Object?> get props => [id, term, value, symbol, meaning, pronunciation];
 }
 
 class FormulaChapter extends Equatable {
@@ -123,8 +161,61 @@ class FormulaBook extends Equatable {
       );
     }
 
+    FormulaChapter symbols(
+      String id,
+      String title,
+      List<(String, String, String, String, String)> rows,
+    ) {
+      return FormulaChapter(
+        id: id,
+        title: title,
+        rows: [
+          for (final r in rows)
+            FormulaRow.create(
+              symbol: r.$1,
+              term: r.$2,
+              meaning: r.$3,
+              pronunciation: r.$4,
+              value: r.$5,
+            ),
+        ],
+      );
+    }
+
     return FormulaBook(
       chapters: [
+        symbols('symbole', 'Symbole', [
+          ('π', 'Pi', 'Kreiszahl', 'Pi', '3,14159…'),
+          ('∑', 'Summe', 'Summenzeichen', 'Summe', 'a₁ + a₂ + … + aₙ'),
+          ('√', 'Wurzel', 'Quadratwurzel', 'Wurzel', '√x'),
+          ('∞', 'Unendlich', 'unendlich groß', 'Unendlich', '∞'),
+          ('±', 'Plusminus', 'plus oder minus', 'plusminus', 'a ± b'),
+          ('Δ', 'Delta', 'Differenz / Änderung', 'Delta', 'Δx = x₂ − x₁'),
+          ('≈', 'Ungefähr', 'ungefähr gleich', 'ungefähr', 'a ≈ b'),
+          ('≠', 'Ungleich', 'nicht gleich', 'ungleich', 'a ≠ b'),
+          ('≤', 'Kleiner gleich', 'kleiner oder gleich', 'kleiner-gleich', 'a ≤ b'),
+          ('≥', 'Größer gleich', 'größer oder gleich', 'größer-gleich', 'a ≥ b'),
+          ('α', 'Alpha', 'Winkel / Faktor', 'Alpha', 'α'),
+          ('β', 'Beta', 'Winkel / Faktor', 'Beta', 'β'),
+          ('γ', 'Gamma', 'Winkel / Faktor', 'Gamma', 'γ'),
+          ('θ', 'Theta', 'Winkel', 'Theta', 'θ'),
+          ('λ', 'Lambda', 'Wellenlänge / Eigenwert', 'Lambda', 'λ'),
+          ('μ', 'Mü', 'Mikro / Mittelwert', 'Mü', 'μ'),
+          ('σ', 'Sigma', 'Standardabweichung', 'Sigma', 'σ'),
+          ('φ', 'Phi', 'Goldener Schnitt / Phase', 'Phi', 'φ ≈ 1,618'),
+          ('ω', 'Omega', 'Kreisfrequenz', 'Omega', 'ω = 2πf'),
+          ('Ω', 'Ohm', 'Widerstandseinheit', 'Omega', 'R in Ω'),
+          ('∈', 'Element von', 'gehört zur Menge', 'Element', 'x ∈ M'),
+          ('∪', 'Vereinigung', 'Vereinigungsmenge', 'Vereinigung', 'A ∪ B'),
+          ('∩', 'Schnitt', 'Schnittmenge', 'Schnitt', 'A ∩ B'),
+          ('|x|', 'Betrag', 'Abstand vom Nullpunkt', 'Betrag', 'abs(x)'),
+          ('n!', 'Fakultät', 'Produkt 1·2·…·n', 'Fakultät', 'n!'),
+          ('∫', 'Integral', 'Fläche unter der Kurve', 'Integral', '∫ f(x) dx'),
+          ('°', 'Grad', 'Winkelgrad', 'Grad', '90°'),
+          ('ρ', 'Rho', 'Dichte', 'Rho', 'ρ = m / V'),
+          ('F', 'Kraft', 'Force, Einheit Newton', 'Eff', 'F = m · a'),
+          ('v', 'Geschwindigkeit', 'Velocity', 'Vau', 'v = s / t'),
+        ]),
         ch('funktionen', 'Funktionen', [
           ('f(x) = x', 'x'),
           ('f(x) = 2x + 1', '2x+1'),
@@ -137,6 +228,7 @@ class FormulaBook extends Equatable {
           ('f(x) = ln(x)', 'ln(x)'),
           ('f(x) = 1/x', '1/x'),
           ('f(x) = √x', 'sqrt(x)'),
+          ('f(x) = √(1−x²)', 'sqrt(1-x^2)'),
           ('f(x) = |x|', 'abs(x)'),
           ('f(x) = sin(x) + cos(x)', 'sin(x)+cos(x)'),
         ]),
