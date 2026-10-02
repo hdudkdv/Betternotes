@@ -30,6 +30,14 @@ class ToolPresets extends ChangeNotifier {
   int penWidthIndex = 1;
   int markerWidthIndex = 1;
   int eraserWidthIndex = 1;
+  int penColor = 0xFF1A1A1A;
+  int fountainColor = 0xFF1D4E89;
+  int pencilColor = 0xFF4A4A4A;
+  int markerColor = 0xFFD4A017;
+  int shapeColor = 0xFF1A1A1A;
+
+  /// Last tool the options bar synced — used to keep colors per type.
+  InkTool? lastSyncedTool;
 
   double widthFor(InkTool tool) {
     switch (tool) {
@@ -62,6 +70,44 @@ class ToolPresets extends ChangeNotifier {
       default:
         return penWidthIndex;
     }
+  }
+
+  bool tracksColor(InkTool tool) => switch (tool) {
+    InkTool.pen ||
+    InkTool.fountain ||
+    InkTool.pencil ||
+    InkTool.marker ||
+    InkTool.shape ||
+    InkTool.ruler ||
+    InkTool.compass => true,
+    _ => false,
+  };
+
+  int colorFor(InkTool tool) => switch (tool) {
+    InkTool.fountain => fountainColor,
+    InkTool.pencil => pencilColor,
+    InkTool.marker => markerColor,
+    InkTool.shape || InkTool.ruler || InkTool.compass => shapeColor,
+    _ => penColor,
+  };
+
+  void setColorFor(InkTool tool, int value) {
+    switch (tool) {
+      case InkTool.fountain:
+        fountainColor = value;
+      case InkTool.pencil:
+        pencilColor = value;
+      case InkTool.marker:
+        markerColor = value;
+      case InkTool.shape:
+      case InkTool.ruler:
+      case InkTool.compass:
+        shapeColor = value;
+      default:
+        penColor = value;
+    }
+    notifyListeners();
+    _save();
   }
 
   void selectWidthIndex(InkTool tool, int index) {
@@ -165,6 +211,11 @@ class ToolPresets extends ChangeNotifier {
       penWidthIndex = (map['penWidthIndex'] as num?)?.toInt() ?? 1;
       markerWidthIndex = (map['markerWidthIndex'] as num?)?.toInt() ?? 1;
       eraserWidthIndex = (map['eraserWidthIndex'] as num?)?.toInt() ?? 1;
+      penColor = (map['penColor'] as num?)?.toInt() ?? penColor;
+      fountainColor = (map['fountainColor'] as num?)?.toInt() ?? fountainColor;
+      pencilColor = (map['pencilColor'] as num?)?.toInt() ?? pencilColor;
+      markerColor = (map['markerColor'] as num?)?.toInt() ?? markerColor;
+      shapeColor = (map['shapeColor'] as num?)?.toInt() ?? shapeColor;
     } catch (_) {}
   }
 
@@ -199,6 +250,11 @@ class ToolPresets extends ChangeNotifier {
         'penWidthIndex': penWidthIndex,
         'markerWidthIndex': markerWidthIndex,
         'eraserWidthIndex': eraserWidthIndex,
+        'penColor': penColor,
+        'fountainColor': fountainColor,
+        'pencilColor': pencilColor,
+        'markerColor': markerColor,
+        'shapeColor': shapeColor,
       }),
     );
   }

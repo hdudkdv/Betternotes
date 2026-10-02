@@ -2691,9 +2691,24 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
     final assignment = ref.read(studentAssignmentProvider);
     final examLock =
         assignment.active && assignment.testMode && !assignment.submitted;
+    _leaveEditor(
+      examLock: examLock,
+      toFolder: true,
+      folderId: controller.notebook?.folderId,
+    );
+  }
+
+  void _leaveEditor({
+    required bool examLock,
+    required bool toFolder,
+    String? folderId,
+  }) {
     if (examLock) {
       unawaited(ref.read(studentAssignmentProvider.notifier).leave('home'));
     }
+    ref.read(currentFolderIdProvider.notifier).state = toFolder
+        ? folderId
+        : null;
     refreshLibraryLists(ref);
     if (mounted) context.go('/');
   }
@@ -2951,6 +2966,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
         if (presets.colors.isEmpty) return;
         final idx = presets.colors.indexOf(c.ink.colorValue);
         final next = presets.colors[(idx + 1) % presets.colors.length];
+        if (presets.tracksColor(c.ink.tool)) {
+          presets.setColorFor(c.ink.tool, next);
+        }
         c.ink.setColor(next);
       case EditorGestureAction.fitZoom:
         _canvasKey.currentState?.fitToViewport();
@@ -4072,17 +4090,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                     context.go('/notebook/$next');
                   }
                 },
-                onHome: () {
-                  if (examLock) {
-                    unawaited(
-                      ref
-                          .read(studentAssignmentProvider.notifier)
-                          .leave('home'),
-                    );
-                  }
-                  refreshLibraryLists(ref);
-                  context.go('/');
-                },
+                onHome: () => _leaveEditor(
+                  examLock: examLock,
+                  toFolder: true,
+                  folderId: controller.notebook?.folderId,
+                ),
+                onLibraryRoot: () => _leaveEditor(
+                  examLock: examLock,
+                  toFolder: false,
+                ),
                 onToggleSidebar: () =>
                     setState(() => _sidebarOpen = !_sidebarOpen),
                 onSearch: () => context.push('/search'),

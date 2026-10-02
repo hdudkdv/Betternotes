@@ -185,6 +185,8 @@
   "readMode": "Read mode",
   "editMode": "Edit mode",
   "libraryHome": "Library",
+  "backToFolder": "Back to folder",
+  "libraryHomeRoot": "Home",
   "freeTextBox": "Free box",
   "pageText": "Page text",
   "newFolder": "New folder",

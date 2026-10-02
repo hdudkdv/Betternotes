@@ -67,6 +67,7 @@ class EditorTopBar extends StatelessWidget {
     required this.onSelectTab,
     required this.onCloseTab,
     required this.onHome,
+    required this.onLibraryRoot,
     required this.onToggleSidebar,
     required this.onSearch,
     required this.onOutline,
@@ -108,6 +109,7 @@ class EditorTopBar extends StatelessWidget {
   final ValueChanged<String> onSelectTab;
   final ValueChanged<String> onCloseTab;
   final VoidCallback onHome;
+  final VoidCallback onLibraryRoot;
   final VoidCallback onToggleSidebar;
   final VoidCallback onSearch;
   final VoidCallback onOutline;
@@ -155,9 +157,14 @@ class EditorTopBar extends StatelessWidget {
               child: Row(
                 children: [
                   _BarIcon(
-                    icon: Icons.home_outlined,
-                    tooltip: AppLocalizations.of(context)!.libraryHome,
+                    icon: Icons.folder_outlined,
+                    tooltip: AppLocalizations.of(context)!.backToFolder,
                     onTap: onHome,
+                  ),
+                  _BarIcon(
+                    icon: Icons.home_outlined,
+                    tooltip: AppLocalizations.of(context)!.libraryHomeRoot,
+                    onTap: onLibraryRoot,
                   ),
                   Expanded(
                     child: _DocumentTabs(

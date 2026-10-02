@@ -171,6 +171,34 @@ class ToolOptionsBar extends ConsumerWidget {
 
   /// Keeps the engine aligned with the persisted per-tool presets.
   void _syncPresets(ToolPresets presets) {
+    final tool = engine.tool;
+    final previous = presets.lastSyncedTool;
+    if (previous != null && previous != tool) {
+      final outgoing = engine.colorValue;
+      final incoming = presets.tracksColor(tool)
+          ? presets.colorFor(tool)
+          : null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (incoming != null &&
+            engine.tool == tool &&
+            engine.colorValue != incoming) {
+          engine.setColor(incoming);
+        }
+        if (presets.tracksColor(previous)) {
+          presets.setColorFor(previous, outgoing);
+        }
+      });
+    } else if (presets.tracksColor(tool) &&
+        engine.colorValue != presets.colorFor(tool)) {
+      final current = engine.colorValue;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (engine.tool == tool && engine.colorValue == current) {
+          presets.setColorFor(tool, current);
+        }
+      });
+    }
+    presets.lastSyncedTool = tool;
+
     final expectedWidth = presets.widthFor(engine.tool);
     final tracksWidth =
         engine.tool == InkTool.pen ||
@@ -211,7 +239,10 @@ class ToolOptionsBar extends ConsumerWidget {
   bool _sameKinds(Set<ContentKind> a, Set<ContentKind> b) =>
       a.length == b.length && a.containsAll(b);
 
-  void _applyColor(int value) {
+  void _applyColor(int value, ToolPresets presets) {
+    if (presets.tracksColor(engine.tool)) {
+      presets.setColorFor(engine.tool, value);
+    }
     if (onPickColor != null) {
       onPickColor!(value);
     } else {
@@ -652,7 +683,7 @@ class ToolOptionsBar extends ConsumerWidget {
         value: value,
         selected: engine.colorValue == value,
         tooltip: l10n.editColorHint,
-        onTap: () => _applyColor(value),
+        onTap: () => _applyColor(value, presets),
         onLongPress: () => _editColor(context, l10n, presets, value),
       ),
     Padding(
@@ -973,7 +1004,7 @@ class ToolOptionsBar extends ConsumerWidget {
     void remove() {
       presets.removeColor(value);
       if (engine.colorValue == value && presets.colors.isNotEmpty) {
-        engine.setColor(presets.colors.first);
+        _applyColor(presets.colors.first, presets);
       }
     }
 
@@ -985,7 +1016,7 @@ class ToolOptionsBar extends ConsumerWidget {
     );
     if (picked == null || picked == value) return;
     presets.replaceColor(value, picked);
-    _applyColor(picked);
+    _applyColor(picked, presets);
   }
 
   Future<void> _pickNewColor(
@@ -1001,7 +1032,7 @@ class ToolOptionsBar extends ConsumerWidget {
     );
     if (picked == null) return;
     presets.addColor(picked);
-    _applyColor(picked);
+    _applyColor(picked, presets);
   }
 }
 

@@ -444,6 +444,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get libraryHome => 'Bibliothek';
 
   @override
+  String get backToFolder => 'Zum Ordner';
+
+  @override
+  String get libraryHomeRoot => 'Zur Startseite';
+
+  @override
   String get freeTextBox => 'Freie Box';
 
   @override

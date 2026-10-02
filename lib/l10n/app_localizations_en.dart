@@ -441,6 +441,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryHome => 'Library';
 
   @override
+  String get backToFolder => 'Back to folder';
+
+  @override
+  String get libraryHomeRoot => 'Home';
+
+  @override
   String get freeTextBox => 'Free box';
 
   @override

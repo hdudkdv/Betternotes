@@ -159,6 +159,8 @@
   "readMode": "Lesemodus",
   "editMode": "Bearbeiten",
   "libraryHome": "Bibliothek",
+  "backToFolder": "Zum Ordner",
+  "libraryHomeRoot": "Zur Startseite",
   "freeTextBox": "Freie Box",
   "pageText": "SeitenText",
   "newFolder": "Neuer Ordner",

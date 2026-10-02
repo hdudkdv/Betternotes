@@ -155,9 +155,7 @@ class LibrarySchoolRow extends ConsumerWidget {
 
     final calSub = upcoming.isEmpty
         ? l10n.plannerEmptyHint
-        : (upcoming.first.title.trim().isEmpty
-              ? upcoming.first.displaySubject
-              : upcoming.first.title);
+        : upcoming.first.calendarLabel(examKindLabel: l10n.kindExam);
 
     final isTeacher = settings.isTeacher;
     return Row(
@@ -633,13 +631,32 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ),
                   ],
                 ),
-                Text(
-                  l10n.holidaysForState(settings.germanState.label(l10n)),
-                  textAlign: TextAlign.center,
-                  style: AppTheme.body(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: AppTheme.inkMuted,
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: DropdownButtonFormField<GermanState>(
+                      initialValue: settings.germanState,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        labelText: l10n.federalState,
+                        helperText: l10n.federalStateHint,
+                      ),
+                      items: [
+                        for (final state in GermanState.values)
+                          DropdownMenuItem(
+                            value: state,
+                            child: Text(state.label(l10n)),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          ref
+                              .read(settingsProvider.notifier)
+                              .setGermanState(value);
+                        }
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -848,7 +865,7 @@ class _MonthGrid extends ConsumerWidget {
             crossAxisCount: 7,
             mainAxisSpacing: 6,
             crossAxisSpacing: 4,
-            childAspectRatio: 0.62,
+            childAspectRatio: 0.42,
           ),
           itemBuilder: (context, index) {
             final dayNum = index - (startWeekday - 1) + 1;
@@ -910,25 +927,13 @@ class _MonthGrid extends ConsumerWidget {
                       ),
                       const SizedBox(height: 3),
                       Expanded(
-                        child: IgnorePointer(
-                          child: ClipRect(
-                            child: Column(
-                              children: [
-                                for (final event in dayEvents.take(2))
-                                  _MonthEventChip(event: event),
-                                if (dayEvents.length > 2)
-                                  Text(
-                                    '+${dayEvents.length - 2}',
-                                    textAlign: TextAlign.center,
-                                    style: AppTheme.body(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppTheme.inkMuted,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+                        child: ListView(
+                          padding: EdgeInsets.zero,
+                          physics: const ClampingScrollPhysics(),
+                          children: [
+                            for (final event in dayEvents)
+                              _MonthEventChip(event: event),
+                          ],
                         ),
                       ),
                     ],
@@ -952,8 +957,10 @@ class _MonthEventChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final color = Color(event.colorValue);
-    final label = event.calendarLabel(examKindLabel: l10n.kindExam);
-    if (label.isEmpty) {
+    final time = DateFormat.Hm().format(event.start);
+    final title = event.calendarLabel(examKindLabel: l10n.kindExam);
+    final label = title.isEmpty ? time : '$time $title';
+    if (title.isEmpty && time.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 2),
         child: Container(
@@ -1004,10 +1011,42 @@ class _EventTile extends StatelessWidget {
   final VoidCallback onShare;
   final VoidCallback onDelete;
 
+  String _kindLabel(AppLocalizations l10n) => switch (event.kind) {
+    PlannerEventKind.appointment => l10n.kindAppointment,
+    PlannerEventKind.exam => l10n.kindExam,
+    PlannerEventKind.homework => l10n.kindHomework,
+    PlannerEventKind.other => l10n.kindAppointment,
+  };
+
+  String _recurrenceLabel(AppLocalizations l10n) {
+    final recurrence = event.recurrence;
+    if (recurrence == null) return '';
+    return switch (recurrence.frequency) {
+      RecurrenceFrequency.daily => l10n.repeatDaily,
+      RecurrenceFrequency.weekly => l10n.repeatWeekly,
+      RecurrenceFrequency.monthly => l10n.repeatMonthly,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final time = DateFormat.Hm().format(event.start);
+    final start = DateFormat.Hm().format(event.start);
+    final time = event.end == null
+        ? start
+        : '$start–${DateFormat.Hm().format(event.end!)}';
+    final subject = event.subject.trim();
+    final title = event.calendarLabel(examKindLabel: l10n.kindExam);
+    final note = event.note.trim();
+    final recurrence = _recurrenceLabel(l10n);
+    final details = [
+      time,
+      _kindLabel(l10n),
+      if (subject.isNotEmpty &&
+          subject.toLowerCase() != title.toLowerCase())
+        subject,
+      if (recurrence.isNotEmpty) recurrence,
+    ].join(' · ');
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
@@ -1022,7 +1061,7 @@ class _EventTile extends StatelessWidget {
               children: [
                 Container(
                   width: 8,
-                  height: 44,
+                  height: note.isEmpty ? 52 : 68,
                   decoration: BoxDecoration(
                     color: Color(event.colorValue),
                     borderRadius: BorderRadius.circular(4),
@@ -1034,7 +1073,7 @@ class _EventTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        event.calendarLabel(examKindLabel: l10n.kindExam),
+                        title,
                         style: AppTheme.body(
                           fontWeight: FontWeight.w800,
                           fontSize: 16,
@@ -1042,17 +1081,24 @@ class _EventTile extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        [
-                          time,
-                          if (event.subject.trim().isNotEmpty)
-                            event.subject.trim(),
-                        ].join(' · '),
+                        details,
                         style: AppTheme.body(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                           color: AppTheme.inkMuted,
                         ),
                       ),
+                      if (note.isNotEmpty)
+                        Text(
+                          note,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.body(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                            color: AppTheme.ink,
+                          ),
+                        ),
                     ],
                   ),
                 ),

@@ -908,6 +908,18 @@ abstract class AppLocalizations {
   /// **'Library'**
   String get libraryHome;
 
+  /// No description provided for @backToFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to folder'**
+  String get backToFolder;
+
+  /// No description provided for @libraryHomeRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get libraryHomeRoot;
+
   /// No description provided for @freeTextBox.
   ///
   /// In en, this message translates to:

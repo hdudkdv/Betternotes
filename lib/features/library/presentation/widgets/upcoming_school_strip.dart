@@ -83,10 +83,10 @@ class UpcomingSchoolStrip extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    event.title.trim().isEmpty
-                                        ? event.displaySubject
-                                        : event.title,
-                                    maxLines: 1,
+                                    event.calendarLabel(
+                                      examKindLabel: l10n.kindExam,
+                                    ),
+                                    maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: AppTheme.body(
                                       fontWeight: FontWeight.w800,
@@ -95,15 +95,20 @@ class UpcomingSchoolStrip extends ConsumerWidget {
                                   ),
                                   Text(
                                     [
-                                      DateFormat.MMMd().add_Hm().format(
-                                        event.start,
-                                      ),
+                                      event.end == null
+                                          ? DateFormat.MMMd().add_Hm().format(
+                                              event.start,
+                                            )
+                                          : '${DateFormat.MMMd().add_Hm().format(event.start)}–${DateFormat.Hm().format(event.end!)}',
                                       if (event.subject.trim().isNotEmpty &&
-                                          event.title.trim().isNotEmpty)
+                                          event.subject.trim().toLowerCase() !=
+                                              event.title.trim().toLowerCase())
                                         event.subject.trim(),
+                                      if (event.note.trim().isNotEmpty)
+                                        event.note.trim(),
                                       if (grade != null) grade.displayValue,
                                     ].join(' · '),
-                                    maxLines: 1,
+                                    maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
                                     style: AppTheme.body(
                                       fontWeight: FontWeight.w600,

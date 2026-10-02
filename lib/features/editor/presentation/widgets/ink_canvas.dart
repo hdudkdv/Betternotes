@@ -338,6 +338,13 @@ class InkCanvasState extends State<InkCanvas>
     final current = _transform.value;
     final scale = current.getMaxScaleOnAxis();
     if (!_fitReady) {
+      final scale = current.getMaxScaleOnAxis();
+      if (scale.isFinite && scale > 1.08) {
+        _fitScale = _computeFitScale(newViewport);
+        _fitReady = true;
+        _clampView();
+        return;
+      }
       _applyFit(newViewport);
       return;
     }
@@ -609,16 +616,9 @@ class InkCanvasState extends State<InkCanvas>
       if (widget.canvasMode == CanvasMode.infinite) {
         _infiniteBoard = Size.zero;
         _maybeGrowInfinite();
-      } else {
-        _fittedViewport = null;
-        _fittedPageSize = null;
-        _fitReady = false;
-        _forceNextFit = true;
-        _zoomedSent = true; // force a false emit after the new fit lands
-        widget.onZoomedChanged?.call(false);
-        widget.onScrollLockChanged?.call(false);
-        _scrollLockSent = false;
       }
+      // Keep the current zoom/pan. Resetting to fit on page flip felt like
+      // a random zoom-out while writing.
     }
   }
 
@@ -681,7 +681,7 @@ class InkCanvasState extends State<InkCanvas>
     }
     final factor = dist / _pinchBaseDistance!;
     // Ignore tiny two-finger jitter so a rest or two-finger tap does not zoom.
-    if (_multiTravel < 16 && (factor - 1).abs() < 0.08) {
+    if (_multiTravel < 28 && (factor - 1).abs() < 0.12) {
       return;
     }
     final newScale = (_pinchBaseScale! * factor).clamp(_minScale, _maxScale);
@@ -1365,7 +1365,7 @@ class InkCanvasState extends State<InkCanvas>
     }
 
     if (wasMulti && _pointerGlobal.length < 2) {
-      if (maxPointers == 2 && travel < 18) {
+      if (maxPointers == 2 && travel < 28) {
         widget.onTwoFingerTap?.call();
       }
       _resetPinch();
@@ -1481,15 +1481,22 @@ class InkCanvasState extends State<InkCanvas>
         if (!infinite && _isUsableViewport(viewport)) {
           final pageChanged = _fittedPageSize != widget.pageSize;
           final viewportChanged = _fittedViewport != viewport;
+          final keepZoom =
+              !_forceNextFit &&
+              _fitReady &&
+              _transform.value.getMaxScaleOnAxis() >
+                  (_fitScale > 0 ? _fitScale * 1.08 : 1.08);
           final mustFit =
               _forceNextFit ||
-              !_fitReady ||
-              _fittedViewport == null ||
-              pageChanged;
+              (!_fitReady && !keepZoom) ||
+              (_fittedViewport == null && !keepZoom) ||
+              (pageChanged && !keepZoom);
           if (mustFit) {
             pageDisplay = _fitMatrixForDisplay(viewport);
             _commitFitAfterBuild(viewport, pageDisplay);
-          } else if (viewportChanged) {
+          } else if (pageChanged) {
+            _fittedPageSize = widget.pageSize;
+          } else if (viewportChanged && _fittedViewport != null) {
             final oldViewport = _fittedViewport!;
             _fittedViewport = viewport;
             WidgetsBinding.instance.addPostFrameCallback((_) {
