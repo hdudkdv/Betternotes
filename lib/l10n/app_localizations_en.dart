@@ -4599,24 +4599,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noEventsOnDay => 'No events on this day.';
 
   @override
-  String get abWeeks => 'A/B weeks';
+  String get abWeeks => 'Odd/even weeks';
 
   @override
   String get abWeeksHint =>
-      'Two rotating timetables. Odd calendar weeks are week A, even weeks are week B.';
+      'Two rotating timetables, like a university plan. Odd and even ISO weeks can have different lessons; weekly lessons stay every week.';
 
   @override
   String get abWeeksSwap => 'Swap weeks';
 
   @override
   String get abWeeksSwapHint =>
-      'Turns the current A week into B and the other way around.';
+      'Swaps odd and even week if your plan starts the other way around.';
 
   @override
-  String get weekA => 'Week A';
+  String get weekA => 'Odd week';
 
   @override
-  String get weekB => 'Week B';
+  String get weekB => 'Even week';
+
+  @override
+  String get weekOdd => 'odd week';
+
+  @override
+  String get weekEven => 'even week';
+
+  @override
+  String get thisWeek => 'This week';
+
+  @override
+  String calendarWeekParity(String week, String parity) {
+    return 'Week $week · $parity';
+  }
 
   @override
   String currentAbWeek(String week) {
@@ -4624,5 +4638,56 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get slotAppliesToBothWeeks => 'Applies to both weeks';
+  String get slotAppliesToBothWeeks => 'Weekly';
+
+  @override
+  String get slotOddWeek => 'Odd week only';
+
+  @override
+  String get slotEvenWeek => 'Even week only';
+
+  @override
+  String get universityPeriodTemplate => 'University slots (90 min)';
+
+  @override
+  String get universityPeriodTemplateHint =>
+      'Blocks from 08:00 to 20:30 including the overlapping midday slot.';
+
+  @override
+  String get overlappingPeriod => 'overlap';
+
+  @override
+  String get overlappingPeriodHint =>
+      'This row sits inside another period. Fill it only when you actually have that block. The other row usually stays empty.';
+
+  @override
+  String get universityTimetableHint =>
+      'University only: odd/even weeks plus 90-minute blocks. 12:00–13:30 overlaps 11:30–13:00 — fill only the row where the class really sits.';
+
+  @override
+  String get importTimetablePdf => 'Timetable PDF';
+
+  @override
+  String get importTimetableScan => 'Scan timetable';
+
+  @override
+  String importTimetableFound(int count) {
+    return '$count classes found. Replace the current timetable?';
+  }
+
+  @override
+  String get importTimetableEmpty =>
+      'No classes were recognized. A digital OPAL PDF with a text layer works best.';
+
+  @override
+  String get importTimetableFailed => 'The timetable could not be read.';
+
+  @override
+  String get weekWeeklyShort => 'weekly';
+
+  @override
+  String get weekOddShort => 'odd';
+
+  @override
+  String get weekEvenShort => 'even';
 }

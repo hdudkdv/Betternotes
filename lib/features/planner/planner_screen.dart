@@ -660,37 +660,54 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                if (settings.abWeeksEnabled) ...[
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentSoft,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      l10n.calendarWeekParity(
+                        '${isoWeekNumber(_selectedDay)}',
+                        isoWeekNumber(_selectedDay).isOdd
+                            ? l10n.weekOdd
+                            : l10n.weekEven,
                       ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentSoft,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(
-                        l10n.currentAbWeek(
-                          currentAbWeek(
-                                    _selectedDay,
-                                    swapped: settings.abWeeksSwapped,
-                                  ) ==
-                                  TimetableWeek.a
-                              ? l10n.weekA
-                              : l10n.weekB,
-                        ),
-                        style: AppTheme.body(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                          color: AppTheme.ink,
-                        ),
+                      style: AppTheme.body(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: AppTheme.ink,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                ),
+                if (settings.abWeeksEnabled) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      l10n.currentAbWeek(
+                        currentAbWeek(
+                                  _selectedDay,
+                                  swapped: settings.abWeeksSwapped,
+                                ) ==
+                                TimetableWeek.a
+                            ? l10n.weekA
+                            : l10n.weekB,
+                      ),
+                      textAlign: TextAlign.center,
+                      style: AppTheme.body(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        color: AppTheme.inkMuted,
+                      ),
+                    ),
+                  ),
                 ],
+                const SizedBox(height: 10),
                 _MonthGrid(
                   month: DateTime(_selectedDay.year, _selectedDay.month),
                   selected: _selectedDay,
@@ -903,7 +920,19 @@ class _MonthGrid extends ConsumerWidget {
                     children: [
                       Align(
                         alignment: Alignment.topCenter,
-                        child: Container(
+                        child: Column(
+                          children: [
+                            if (day.weekday == DateTime.monday)
+                              Text(
+                                'KW ${isoWeekNumber(day)}',
+                                style: AppTheme.body(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 8,
+                                  height: 1,
+                                  color: AppTheme.inkMuted,
+                                ),
+                              ),
+                            Container(
                           width: 22,
                           height: 22,
                           alignment: Alignment.center,
@@ -923,6 +952,8 @@ class _MonthGrid extends ConsumerWidget {
                                   : AppTheme.ink,
                             ),
                           ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 3),

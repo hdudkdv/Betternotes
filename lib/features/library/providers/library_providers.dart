@@ -257,6 +257,7 @@ class AppSettings {
   bool get hasCompletedProfileSetup =>
       userRole != null && profileSetupCompleted;
   bool get isTeacher => userRole == AppUserRole.teacher;
+  bool get isUniversity => educationLevel == EducationLevel.university;
 
   Locale? get localeOverride {
     switch (localeCode) {

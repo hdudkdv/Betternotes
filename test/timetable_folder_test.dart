@@ -87,6 +87,27 @@ void main() {
     expect(table.lessonAt(DateTime(2026, 9, 21, 7, 40)), isNull);
   });
 
+  test('an empty overlapping row does not hide the filled midday lesson', () {
+    final table = Timetable.empty(
+      periods: Timetable.universitySemesterPeriods(),
+    ).copyWith(
+      slots: const [
+        TimetableSlot(
+          day: 0,
+          period: 3,
+          first: TimetableLesson(subject: 'BS Pr'),
+          startMinutes: 12 * 60,
+          endMinutes: 13 * 60 + 30,
+        ),
+      ],
+    );
+    expect(table.periodOverlapsAnother(3), isTrue);
+    expect(
+      table.lessonAt(DateTime(2026, 10, 5, 12, 15))?.lesson.subject,
+      'BS Pr',
+    );
+  });
+
   test('odd ISO weeks are A unless swapped', () {
     final week1 = DateTime(2026, 1, 1);
     expect(isoWeekNumber(week1), 1);

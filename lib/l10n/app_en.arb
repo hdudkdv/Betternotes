@@ -1868,17 +1868,47 @@
     }
   },
   "noEventsOnDay": "No events on this day.",
-  "abWeeks": "A/B weeks",
-  "abWeeksHint": "Two rotating timetables. Odd calendar weeks are week A, even weeks are week B.",
+  "abWeeks": "Odd/even weeks",
+  "abWeeksHint": "Two rotating timetables, like a university plan. Odd and even ISO weeks can have different lessons; weekly lessons stay every week.",
   "abWeeksSwap": "Swap weeks",
-  "abWeeksSwapHint": "Turns the current A week into B and the other way around.",
-  "weekA": "Week A",
-  "weekB": "Week B",
+  "abWeeksSwapHint": "Swaps odd and even week if your plan starts the other way around.",
+  "weekA": "Odd week",
+  "weekB": "Even week",
+  "weekOdd": "odd week",
+  "weekEven": "even week",
+  "thisWeek": "This week",
+  "calendarWeekParity": "Week {week} · {parity}",
+  "@calendarWeekParity": {
+    "placeholders": {
+      "week": {"type": "String"},
+      "parity": {"type": "String"}
+    }
+  },
   "currentAbWeek": "Currently {week}",
   "@currentAbWeek": {
     "placeholders": {
       "week": {"type": "String"}
     }
   },
-  "slotAppliesToBothWeeks": "Applies to both weeks"
+  "slotAppliesToBothWeeks": "Weekly",
+  "slotOddWeek": "Odd week only",
+  "slotEvenWeek": "Even week only",
+  "universityPeriodTemplate": "University slots (90 min)",
+  "universityPeriodTemplateHint": "Blocks from 08:00 to 20:30 including the overlapping midday slot.",
+  "overlappingPeriod": "overlap",
+  "overlappingPeriodHint": "This row sits inside another period. Fill it only when you actually have that block. The other row usually stays empty.",
+  "universityTimetableHint": "University only: odd/even weeks plus 90-minute blocks. 12:00–13:30 overlaps 11:30–13:00 — fill only the row where the class really sits.",
+  "importTimetablePdf": "Timetable PDF",
+  "importTimetableScan": "Scan timetable",
+  "importTimetableFound": "{count} classes found. Replace the current timetable?",
+  "@importTimetableFound": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "importTimetableEmpty": "No classes were recognized. A digital OPAL PDF with a text layer works best.",
+  "importTimetableFailed": "The timetable could not be read.",
+  "weekWeeklyShort": "weekly",
+  "weekOddShort": "odd",
+  "weekEvenShort": "even"
 }

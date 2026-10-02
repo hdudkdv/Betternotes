@@ -412,6 +412,73 @@ class Timetable extends Equatable {
 
   static const dayCount = 5;
 
+  bool get usesUniversityPeriods {
+    final expected = universitySemesterPeriods();
+    if (periods.length != expected.length) return false;
+    for (var i = 0; i < expected.length; i++) {
+      if (periods[i].startMinutes != expected[i].startMinutes ||
+          periods[i].endMinutes != expected[i].endMinutes) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool periodOverlapsAnother(int index) {
+    if (index < 0 || index >= periods.length) return false;
+    final current = periods[index];
+    for (var i = 0; i < periods.length; i++) {
+      if (i == index) continue;
+      final other = periods[i];
+      if (current.startMinutes < other.endMinutes &&
+          current.endMinutes > other.startMinutes) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// 90-minute university blocks, including the overlapping midday slot
+  /// used by plans such as HTW/OPAL (08:00–20:30).
+  static List<TimetablePeriod> universitySemesterPeriods() => const [
+    TimetablePeriod(label: '1', startMinutes: 8 * 60, endMinutes: 9 * 60 + 30),
+    TimetablePeriod(
+      label: '2',
+      startMinutes: 9 * 60 + 45,
+      endMinutes: 11 * 60 + 15,
+    ),
+    TimetablePeriod(
+      label: '3',
+      startMinutes: 11 * 60 + 30,
+      endMinutes: 13 * 60,
+    ),
+    TimetablePeriod(
+      label: '4',
+      startMinutes: 12 * 60,
+      endMinutes: 13 * 60 + 30,
+    ),
+    TimetablePeriod(
+      label: '5',
+      startMinutes: 13 * 60 + 45,
+      endMinutes: 15 * 60 + 15,
+    ),
+    TimetablePeriod(
+      label: '6',
+      startMinutes: 15 * 60 + 30,
+      endMinutes: 17 * 60,
+    ),
+    TimetablePeriod(
+      label: '7',
+      startMinutes: 17 * 60 + 15,
+      endMinutes: 18 * 60 + 45,
+    ),
+    TimetablePeriod(
+      label: '8',
+      startMinutes: 19 * 60,
+      endMinutes: 20 * 60 + 30,
+    ),
+  ];
+
   TimetableSlot? slotAt(int day, int period, {TimetableWeek? week}) {
     TimetableSlot? both;
     for (final s in slots) {
@@ -510,20 +577,23 @@ class Timetable extends Equatable {
     final day = weekday - 1;
     final minuteOfDay = now.hour * 60 + now.minute;
 
+    NowLesson? hit;
+    var hitStart = -1;
     for (var p = 0; p < periods.length; p++) {
       final period = periodFor(day, p, week: week);
       if (!period.containsMinuteOfDay(minuteOfDay)) continue;
       final slot = slotAt(day, p, week: week);
-      if (slot == null || slot.isEmpty) return null;
+      if (slot == null || slot.isEmpty) continue;
 
+      late final NowLesson candidate;
       if (slot.split) {
         final half = minuteOfDay < period.splitAtMinutes ? 0 : 1;
         final lesson = half == 0 ? slot.first : slot.second;
-        if (lesson.isEmpty) return null;
+        if (lesson.isEmpty) continue;
         final range = half == 0
             ? '${period.start}–${formatHm(period.splitAtMinutes)}'
             : '${formatHm(period.splitAtMinutes)}–${period.end}';
-        return NowLesson(
+        candidate = NowLesson(
           lesson: lesson,
           day: day,
           period: p,
@@ -531,19 +601,24 @@ class Timetable extends Equatable {
           periodLabel: period.label,
           timeRange: range,
         );
+      } else if (slot.first.isEmpty) {
+        continue;
+      } else {
+        candidate = NowLesson(
+          lesson: slot.first,
+          day: day,
+          period: p,
+          half: 0,
+          periodLabel: period.label,
+          timeRange: period.timeRange,
+        );
       }
-
-      if (slot.first.isEmpty) return null;
-      return NowLesson(
-        lesson: slot.first,
-        day: day,
-        period: p,
-        half: 0,
-        periodLabel: period.label,
-        timeRange: period.timeRange,
-      );
+      if (hit == null || period.startMinutes >= hitStart) {
+        hit = candidate;
+        hitStart = period.startMinutes;
+      }
     }
-    return null;
+    return hit;
   }
 
   Timetable copyWith({
@@ -925,6 +1000,37 @@ class TimetableNotifier extends StateNotifier<Timetable> {
     await _commit(state.copyWith(periods: next, updatedAt: DateTime.now()));
   }
 
+  Future<void> applyPeriodTemplate(List<TimetablePeriod> periods) async {
+    if (periods.isEmpty) return;
+    await _commit(
+      state.copyWith(
+        periods: periods,
+        slots: [
+          for (final slot in state.slots)
+            if (slot.period < periods.length) slot,
+        ],
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> importUniversityPlan({
+    String? title,
+    required List<TimetableSlot> slots,
+  }) async {
+    final nextTitle = title?.trim();
+    await _commit(
+      state.copyWith(
+        title: (nextTitle != null && nextTitle.isNotEmpty)
+            ? nextTitle
+            : state.title,
+        periods: Timetable.universitySemesterPeriods(),
+        slots: slots,
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
   Future<void> addPeriod({int durationMinutes = 90}) async {
     final n = state.periods.length + 1;
     final lastEnd = state.periods.isEmpty
@@ -960,6 +1066,11 @@ class TimetableNotifier extends StateNotifier<Timetable> {
     );
   }
 }
+
+/// Override the grid to a specific odd/even week. Null follows today.
+final timetablePreviewWeekProvider = StateProvider<TimetableWeek?>(
+  (ref) => null,
+);
 
 final timetableProvider = StateNotifierProvider<TimetableNotifier, Timetable>((
   ref,

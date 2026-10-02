@@ -4626,24 +4626,38 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noEventsOnDay => 'Keine Termine an diesem Tag.';
 
   @override
-  String get abWeeks => 'A/B-Wochen';
+  String get abWeeks => 'Gerade/ungerade Wochen';
 
   @override
   String get abWeeksHint =>
-      'Zwei Stundenpläne im Wechsel. Ungerade Kalenderwochen sind Woche A, gerade Woche B.';
+      'Zwei Stundenpläne im Wechsel wie an der Uni. Ungerade Kalenderwochen und gerade Wochen können eigene Stunden haben; wöchentliche gelten immer.';
 
   @override
   String get abWeeksSwap => 'Wochen tauschen';
 
   @override
   String get abWeeksSwapHint =>
-      'Macht aus der aktuellen A-Woche eine B-Woche und umgekehrt.';
+      'Tauscht ungerade und gerade Woche, falls dein Plan umgekehrt beginnt.';
 
   @override
-  String get weekA => 'Woche A';
+  String get weekA => 'Ungerade Woche';
 
   @override
-  String get weekB => 'Woche B';
+  String get weekB => 'Gerade Woche';
+
+  @override
+  String get weekOdd => 'ungerade Woche';
+
+  @override
+  String get weekEven => 'gerade Woche';
+
+  @override
+  String get thisWeek => 'Diese Woche';
+
+  @override
+  String calendarWeekParity(String week, String parity) {
+    return 'KW $week · $parity';
+  }
 
   @override
   String currentAbWeek(String week) {
@@ -4651,5 +4665,57 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get slotAppliesToBothWeeks => 'Gilt für beide Wochen';
+  String get slotAppliesToBothWeeks => 'Wöchentlich';
+
+  @override
+  String get slotOddWeek => 'Nur ungerade Woche';
+
+  @override
+  String get slotEvenWeek => 'Nur gerade Woche';
+
+  @override
+  String get universityPeriodTemplate => 'Uni-Zeitraster (90 Min)';
+
+  @override
+  String get universityPeriodTemplateHint =>
+      'Blöcke 08:00–20:30 inkl. überlappender Mittagsstunde, wie im Semesterplan.';
+
+  @override
+  String get overlappingPeriod => 'überlappt';
+
+  @override
+  String get overlappingPeriodHint =>
+      'Diese Zeile liegt in der Zeit einer anderen Stunde. Trag hier nur etwas ein, wenn du genau diesen Block hast. Die andere Zeile bleibt dann meist leer.';
+
+  @override
+  String get universityTimetableHint =>
+      'Nur im Studium: ungerade/gerade Woche plus 90-Min-Blöcke. 12:00–13:30 überlappt 11:30–13:00 — nur die Zeile füllen, in der die Veranstaltung wirklich liegt.';
+
+  @override
+  String get importTimetablePdf => 'Stundenplan-PDF';
+
+  @override
+  String get importTimetableScan => 'Stundenplan scannen';
+
+  @override
+  String importTimetableFound(int count) {
+    return '$count Veranstaltungen gefunden. Den aktuellen Stundenplan ersetzen?';
+  }
+
+  @override
+  String get importTimetableEmpty =>
+      'Im Dokument wurden keine Stunden erkannt. Am besten ein OPAL-PDF mit Textschicht nehmen.';
+
+  @override
+  String get importTimetableFailed =>
+      'Der Stundenplan konnte nicht gelesen werden.';
+
+  @override
+  String get weekWeeklyShort => 'wöch.';
+
+  @override
+  String get weekOddShort => 'UW';
+
+  @override
+  String get weekEvenShort => 'GW';
 }

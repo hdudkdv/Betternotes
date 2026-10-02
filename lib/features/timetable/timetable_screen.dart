@@ -13,6 +13,7 @@ import '../import_export/subject_notebook_link.dart';
 import '../library/providers/library_providers.dart';
 import '../teacher/gradebook/gradebook_store.dart';
 import 'timetable_model.dart';
+import 'timetable_pdf_import.dart';
 
 class TimetableScreen extends ConsumerWidget {
   const TimetableScreen({super.key});
@@ -158,6 +159,68 @@ class TimetableScreen extends ConsumerWidget {
     await ref.read(timetableProvider.notifier).setPeriod(index, result);
   }
 
+  Future<void> _importPlan(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool scan,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    var loading = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final imported = scan
+          ? await const TimetablePdfImport().scanOrPickImage()
+          : await const TimetablePdfImport().pickPdf();
+      if (context.mounted && loading) {
+        Navigator.pop(context);
+        loading = false;
+      }
+      if (!context.mounted || imported == null) return;
+      if (imported.slots.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.importTimetableEmpty)),
+        );
+        return;
+      }
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(scan ? l10n.importTimetableScan : l10n.importTimetablePdf),
+          content: Text(l10n.importTimetableFound(imported.lessonCount)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !context.mounted) return;
+      await ref.read(timetableProvider.notifier).importUniversityPlan(
+            title: imported.title,
+            slots: imported.slots,
+          );
+      if (!ref.read(settingsProvider).abWeeksEnabled) {
+        await ref.read(settingsProvider.notifier).setAbWeeksEnabled(true);
+      }
+    } catch (_) {
+      if (context.mounted && loading) Navigator.pop(context);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.importTimetableFailed)),
+        );
+      }
+    }
+  }
+
   Future<void> _share(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
     final table = ref.read(timetableProvider);
@@ -281,8 +344,14 @@ class TimetableScreen extends ConsumerWidget {
     final now = ref.watch(nowLessonProvider);
     final isTeacher = ref.watch(settingsProvider).isTeacher;
     final settings = ref.watch(settingsProvider);
-    final abWeek = settings.abWeeksEnabled
-        ? currentAbWeek(DateTime.now(), swapped: settings.abWeeksSwapped)
+    final isUniversity = settings.isUniversity;
+    final todayWeek = currentAbWeek(
+      DateTime.now(),
+      swapped: settings.abWeeksSwapped,
+    );
+    final previewWeek = ref.watch(timetablePreviewWeekProvider);
+    final abWeek = (settings.abWeeksEnabled || isUniversity)
+        ? (previewWeek ?? todayWeek)
         : null;
 
     return Scaffold(
@@ -295,6 +364,12 @@ class TimetableScreen extends ConsumerWidget {
               tooltip: l10n.timetableOpenGradebook,
               onPressed: () => _openGrades(context, ref),
               icon: const Icon(Icons.bar_chart_rounded),
+            ),
+          if (isUniversity)
+            IconButton(
+              tooltip: l10n.importTimetablePdf,
+              onPressed: () => _importPlan(context, ref, scan: false),
+              icon: const Icon(Icons.upload_file_outlined),
             ),
           IconButton(
             tooltip: l10n.shareExport,
@@ -310,6 +385,21 @@ class TimetableScreen extends ConsumerWidget {
                   await ref.read(timetableProvider.notifier).removeLastPeriod();
                 case 'grades':
                   _openGrades(context, ref);
+                case 'importPdf':
+                  await _importPlan(context, ref, scan: false);
+                case 'importScan':
+                  await _importPlan(context, ref, scan: true);
+                case 'university':
+                  await ref
+                      .read(timetableProvider.notifier)
+                      .applyPeriodTemplate(
+                        Timetable.universitySemesterPeriods(),
+                      );
+                  if (!settings.abWeeksEnabled) {
+                    await ref
+                        .read(settingsProvider.notifier)
+                        .setAbWeeksEnabled(true);
+                  }
                 case 'rename':
                   final c = TextEditingController(text: table.title);
                   final ok = await showDialog<bool>(
@@ -340,6 +430,20 @@ class TimetableScreen extends ConsumerWidget {
               PopupMenuItem(value: 'rename', child: Text(l10n.rename)),
               PopupMenuItem(value: 'add', child: Text(l10n.addPeriod)),
               PopupMenuItem(value: 'remove', child: Text(l10n.removePeriod)),
+              if (isUniversity) ...[
+                PopupMenuItem(
+                  value: 'importPdf',
+                  child: Text(l10n.importTimetablePdf),
+                ),
+                PopupMenuItem(
+                  value: 'importScan',
+                  child: Text(l10n.importTimetableScan),
+                ),
+                PopupMenuItem(
+                  value: 'university',
+                  child: Text(l10n.universityPeriodTemplate),
+                ),
+              ],
               if (isTeacher)
                 PopupMenuItem(
                   value: 'grades',
@@ -354,46 +458,79 @@ class TimetableScreen extends ConsumerWidget {
         children: [
           if (now != null)
             _NowBanner(now: now, dayLabel: _dayLabel(l10n, now.day)),
-          if (abWeek != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentSoft,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      l10n.currentAbWeek(
-                        abWeek == TimetableWeek.a ? l10n.weekA : l10n.weekB,
-                      ),
-                      style: AppTheme.body(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        color: AppTheme.ink,
-                      ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.calendarWeekParity(
+                    '${isoWeekNumber(DateTime.now())}',
+                    isoWeekNumber(DateTime.now()).isOdd
+                        ? l10n.weekOdd
+                        : l10n.weekEven,
+                  ),
+                  style: AppTheme.body(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    color: AppTheme.ink,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (isUniversity) ...[
+                  Text(
+                    table.title,
+                    style: AppTheme.headline(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.ink,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilterChip(
+                        label: Text(l10n.thisWeek),
+                        selected: previewWeek == null,
+                        onSelected: (_) => ref
+                            .read(timetablePreviewWeekProvider.notifier)
+                            .state = null,
+                      ),
+                      FilterChip(
+                        label: Text(l10n.weekA),
+                        selected: previewWeek == TimetableWeek.a,
+                        onSelected: (_) => ref
+                            .read(timetablePreviewWeekProvider.notifier)
+                            .state = TimetableWeek.a,
+                      ),
+                      FilterChip(
+                        label: Text(l10n.weekB),
+                        selected: previewWeek == TimetableWeek.b,
+                        onSelected: (_) => ref
+                            .read(timetablePreviewWeekProvider.notifier)
+                            .state = TimetableWeek.b,
+                      ),
+                    ],
+                  ),
                 ],
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-            child: Text(
-              isTeacher ? l10n.timetableTeacherHint : l10n.timetableHint,
-              style: AppTheme.body(
-                fontSize: 15,
-                height: 1.35,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.inkMuted,
-              ),
+              ],
             ),
           ),
+          if (!isUniversity)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Text(
+                isTeacher ? l10n.timetableTeacherHint : l10n.timetableHint,
+                style: AppTheme.body(
+                  fontSize: 15,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.inkMuted,
+                ),
+              ),
+            ),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -402,6 +539,7 @@ class TimetableScreen extends ConsumerWidget {
                 child: _TimetableGrid(
                   table: table,
                   week: abWeek,
+                  universityStyle: isUniversity,
                   dayLabel: (d) => _dayLabel(l10n, d),
                   onTapSlot: (day, period) => _editSlot(
                     context,
@@ -409,7 +547,7 @@ class TimetableScreen extends ConsumerWidget {
                     day,
                     period,
                     week: abWeek ?? TimetableWeek.both,
-                    abWeeksEnabled: settings.abWeeksEnabled,
+                    abWeeksEnabled: settings.abWeeksEnabled || isUniversity,
                   ),
                   onTapPeriod: (p) => _editPeriod(context, ref, p),
                 ),
@@ -748,7 +886,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
   late TextEditingController _subject2;
   late bool _createFolder1;
   late bool _createFolder2;
-  late bool _bothWeeks;
+  late TimetableWeek _week;
   late int _start;
   late int _end;
 
@@ -776,7 +914,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     _subject2 = TextEditingController(text: _second.subject);
     _createFolder1 = _first.folderId == null;
     _createFolder2 = _second.folderId == null;
-    _bothWeeks = widget.initial.week == TimetableWeek.both;
+    _week = widget.initial.week;
   }
 
   @override
@@ -846,9 +984,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       split: _split,
       first: first,
       second: second,
-      week: widget.abWeeksEnabled
-          ? (_bothWeeks ? TimetableWeek.both : widget.editWeek)
-          : TimetableWeek.both,
+      week: widget.abWeeksEnabled ? _week : TimetableWeek.both,
       startMinutes: _start,
       endMinutes: _end <= _start ? _start + 45 : _end,
     );
@@ -908,14 +1044,34 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
               ),
               const SizedBox(height: 16),
               if (widget.abWeeksEnabled) ...[
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: _bothWeeks,
-                  onChanged: (v) => setState(() => _bothWeeks = v ?? false),
-                  title: Text(
-                    l10n.slotAppliesToBothWeeks,
-                    style: AppTheme.body(fontWeight: FontWeight.w700),
-                  ),
+                Text(
+                  l10n.abWeeks,
+                  style: AppTheme.body(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: Text(l10n.slotAppliesToBothWeeks),
+                      selected: _week == TimetableWeek.both,
+                      onSelected: (_) =>
+                          setState(() => _week = TimetableWeek.both),
+                    ),
+                    ChoiceChip(
+                      label: Text(l10n.slotOddWeek),
+                      selected: _week == TimetableWeek.a,
+                      onSelected: (_) =>
+                          setState(() => _week = TimetableWeek.a),
+                    ),
+                    ChoiceChip(
+                      label: Text(l10n.slotEvenWeek),
+                      selected: _week == TimetableWeek.b,
+                      onSelected: (_) =>
+                          setState(() => _week = TimetableWeek.b),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
               ],
@@ -1003,9 +1159,7 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                 slot: TimetableSlot(
                   day: widget.initial.day,
                   period: widget.initial.period,
-                  week: widget.abWeeksEnabled
-                      ? (_bothWeeks ? TimetableWeek.both : widget.editWeek)
-                      : TimetableWeek.both,
+                  week: widget.abWeeksEnabled ? _week : TimetableWeek.both,
                 ),
               ),
             ),
@@ -1180,30 +1334,34 @@ class _TimetableGrid extends StatelessWidget {
     required this.onTapSlot,
     required this.onTapPeriod,
     this.week,
+    this.universityStyle = false,
   });
 
   final Timetable table;
   final TimetableWeek? week;
+  final bool universityStyle;
   final String Function(int day) dayLabel;
   final void Function(int day, int period) onTapSlot;
   final ValueChanged<int> onTapPeriod;
 
-  static const _colW = 124.0;
-  static const _timeW = 96.0;
-  static const _rowH = 102.0;
+  double get _colW => universityStyle ? 138.0 : 124.0;
+  double get _timeW => universityStyle ? 78.0 : 96.0;
+  double get _rowH => universityStyle ? 94.0 : 102.0;
 
   @override
   Widget build(BuildContext context) {
     return Table(
-      defaultColumnWidth: const FixedColumnWidth(_colW),
-      columnWidths: const {0: FixedColumnWidth(_timeW)},
+      defaultColumnWidth: FixedColumnWidth(_colW),
+      columnWidths: {0: FixedColumnWidth(_timeW)},
       border: TableBorder.all(
-        color: AppTheme.ink.withValues(alpha: 0.18),
-        width: 1,
+        color: AppTheme.ink.withValues(alpha: universityStyle ? 0.28 : 0.18),
+        width: universityStyle ? 0.8 : 1,
       ),
       children: [
         TableRow(
-          decoration: BoxDecoration(color: AppTheme.paperDeep),
+          decoration: BoxDecoration(
+            color: universityStyle ? AppTheme.ink : AppTheme.paperDeep,
+          ),
           children: [
             _headerCell(''),
             for (var d = 0; d < Timetable.dayCount; d++)
@@ -1212,6 +1370,11 @@ class _TimetableGrid extends StatelessWidget {
         ),
         for (var p = 0; p < table.periods.length; p++)
           TableRow(
+            decoration: table.periodOverlapsAnother(p)
+                ? BoxDecoration(
+                    color: AppTheme.accentSoft.withValues(alpha: 0.35),
+                  )
+                : null,
             children: [
               InkWell(
                 onTap: () => onTapPeriod(p),
@@ -1222,51 +1385,19 @@ class _TimetableGrid extends StatelessWidget {
                       horizontal: 6,
                       vertical: 8,
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          table.periods[p].label,
-                          style: AppTheme.body(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            color: AppTheme.ink,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            table.periods[p].timeRange,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            style: AppTheme.body(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.inkMuted,
-                              height: 1.1,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${table.periods[p].durationMinutes}′',
-                          style: AppTheme.body(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.accent,
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: universityStyle
+                        ? _universityTime(context, p)
+                        : _schoolTime(context, p),
                   ),
                 ),
               ),
               for (var d = 0; d < Timetable.dayCount; d++)
                 _slotCell(
+                  context,
                   table.slotAt(d, p, week: week),
                   () => onTapSlot(d, p),
                   timeLabel: table.periodFor(d, p, week: week).timeRange,
+                  overlapping: table.periodOverlapsAnother(p),
                 ),
             ],
           ),
@@ -1274,16 +1405,112 @@ class _TimetableGrid extends StatelessWidget {
     );
   }
 
+  Widget _universityTime(BuildContext context, int p) {
+    final period = table.periods[p];
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          period.start,
+          style: AppTheme.body(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            color: AppTheme.ink,
+            height: 1.05,
+          ),
+        ),
+        Text(
+          '–',
+          style: AppTheme.body(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.inkMuted,
+            height: 1,
+          ),
+        ),
+        Text(
+          period.end,
+          style: AppTheme.body(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            color: AppTheme.ink,
+            height: 1.05,
+          ),
+        ),
+        if (table.periodOverlapsAnother(p))
+          Text(
+            AppLocalizations.of(context)!.overlappingPeriod,
+            textAlign: TextAlign.center,
+            style: AppTheme.body(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.accent,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _schoolTime(BuildContext context, int p) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          table.periods[p].label,
+          style: AppTheme.body(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            color: AppTheme.ink,
+          ),
+        ),
+        if (table.periodOverlapsAnother(p))
+          Text(
+            AppLocalizations.of(context)!.overlappingPeriod,
+            textAlign: TextAlign.center,
+            style: AppTheme.body(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.accent,
+            ),
+          ),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            table.periods[p].timeRange,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: AppTheme.body(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.inkMuted,
+              height: 1.1,
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${table.periods[p].durationMinutes}′',
+          style: AppTheme.body(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.accent,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _headerCell(String text) {
     return SizedBox(
-      height: 44,
+      height: universityStyle ? 40 : 44,
       child: Center(
         child: Text(
           text,
           style: AppTheme.body(
             fontWeight: FontWeight.w800,
-            fontSize: 14,
-            color: AppTheme.ink,
+            fontSize: universityStyle ? 13 : 14,
+            color: universityStyle ? AppTheme.onAccent : AppTheme.ink,
           ),
         ),
       ),
@@ -1291,9 +1518,11 @@ class _TimetableGrid extends StatelessWidget {
   }
 
   Widget _slotCell(
+    BuildContext context,
     TimetableSlot? slot,
     VoidCallback onTap, {
     String? timeLabel,
+    bool overlapping = false,
   }) {
     final s = slot;
     final empty = s == null || s.isEmpty;
@@ -1305,29 +1534,53 @@ class _TimetableGrid extends StatelessWidget {
             ? Center(
                 child: Icon(
                   Icons.add,
-                  size: 18,
-                  color: AppTheme.ink.withValues(alpha: 0.35),
+                  size: universityStyle ? 14 : 18,
+                  color: AppTheme.ink.withValues(
+                    alpha: overlapping ? 0.18 : 0.35,
+                  ),
                 ),
               )
             : s.split
             ? Column(
                 children: [
                   Expanded(
-                    child: _half(s.first, top: true, timeLabel: timeLabel),
+                    child: _half(
+                      context,
+                      s.first,
+                      top: true,
+                      timeLabel: universityStyle ? null : timeLabel,
+                      week: s.week,
+                    ),
                   ),
-                  Expanded(child: _half(s.second, top: false)),
+                  Expanded(
+                    child: _half(
+                      context,
+                      s.second,
+                      top: false,
+                      week: s.week,
+                    ),
+                  ),
                 ],
               )
-            : _half(s.first, top: true, fill: true, timeLabel: timeLabel),
+            : _half(
+                context,
+                s.first,
+                top: true,
+                fill: true,
+                timeLabel: universityStyle ? null : timeLabel,
+                week: s.week,
+              ),
       ),
     );
   }
 
   Widget _half(
+    BuildContext context,
     TimetableLesson lesson, {
     required bool top,
     bool fill = false,
     String? timeLabel,
+    TimetableWeek week = TimetableWeek.both,
   }) {
     if (lesson.isEmpty) {
       return Container(
@@ -1341,12 +1594,22 @@ class _TimetableGrid extends StatelessWidget {
         ),
       );
     }
+    final color = Color(displayLessonColor(lesson));
+    final l10n = AppLocalizations.of(context);
+    final weekLabel = switch (week) {
+      TimetableWeek.both => l10n?.weekWeeklyShort ?? 'wöch.',
+      TimetableWeek.a => l10n?.weekOddShort ?? 'UW',
+      TimetableWeek.b => l10n?.weekEvenShort ?? 'GW',
+    };
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: EdgeInsets.fromLTRB(universityStyle ? 7 : 8, 5, 6, 5),
       decoration: BoxDecoration(
-        color: Color(displayLessonColor(lesson)).withValues(alpha: 0.22),
+        color: color.withValues(alpha: universityStyle ? 0.18 : 0.22),
         border: Border(
+          left: universityStyle
+              ? BorderSide(color: color, width: 4)
+              : BorderSide.none,
           bottom: top && !fill
               ? BorderSide(color: AppTheme.ink.withValues(alpha: 0.12))
               : BorderSide.none,
@@ -1363,7 +1626,7 @@ class _TimetableGrid extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: AppTheme.body(
               fontWeight: FontWeight.w800,
-              fontSize: 13,
+              fontSize: universityStyle ? 12 : 13,
               color: AppTheme.ink,
               height: 1.1,
             ),
@@ -1386,12 +1649,26 @@ class _TimetableGrid extends StatelessWidget {
                   lesson.schoolClass.trim(),
                 if (lesson.room.isNotEmpty) lesson.room,
               ].join(' · '),
-              maxLines: 1,
+              maxLines: universityStyle ? 2 : 1,
               overflow: TextOverflow.ellipsis,
               style: AppTheme.body(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: FontWeight.w600,
                 color: AppTheme.inkMuted,
+                height: 1.15,
+              ),
+            ),
+          if (universityStyle)
+            Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(
+                weekLabel,
+                style: AppTheme.body(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  letterSpacing: 0.2,
+                ),
               ),
             ),
         ],

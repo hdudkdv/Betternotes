@@ -1842,17 +1842,47 @@
     }
   },
   "noEventsOnDay": "Keine Termine an diesem Tag.",
-  "abWeeks": "A/B-Wochen",
-  "abWeeksHint": "Zwei Stundenpläne im Wechsel. Ungerade Kalenderwochen sind Woche A, gerade Woche B.",
+  "abWeeks": "Gerade/ungerade Wochen",
+  "abWeeksHint": "Zwei Stundenpläne im Wechsel wie an der Uni. Ungerade Kalenderwochen und gerade Wochen können eigene Stunden haben; wöchentliche gelten immer.",
   "abWeeksSwap": "Wochen tauschen",
-  "abWeeksSwapHint": "Macht aus der aktuellen A-Woche eine B-Woche und umgekehrt.",
-  "weekA": "Woche A",
-  "weekB": "Woche B",
+  "abWeeksSwapHint": "Tauscht ungerade und gerade Woche, falls dein Plan umgekehrt beginnt.",
+  "weekA": "Ungerade Woche",
+  "weekB": "Gerade Woche",
+  "weekOdd": "ungerade Woche",
+  "weekEven": "gerade Woche",
+  "thisWeek": "Diese Woche",
+  "calendarWeekParity": "KW {week} · {parity}",
+  "@calendarWeekParity": {
+    "placeholders": {
+      "week": {"type": "String"},
+      "parity": {"type": "String"}
+    }
+  },
   "currentAbWeek": "Aktuell {week}",
   "@currentAbWeek": {
     "placeholders": {
       "week": {"type": "String"}
     }
   },
-  "slotAppliesToBothWeeks": "Gilt für beide Wochen"
+  "slotAppliesToBothWeeks": "Wöchentlich",
+  "slotOddWeek": "Nur ungerade Woche",
+  "slotEvenWeek": "Nur gerade Woche",
+  "universityPeriodTemplate": "Uni-Zeitraster (90 Min)",
+  "universityPeriodTemplateHint": "Blöcke 08:00–20:30 inkl. überlappender Mittagsstunde, wie im Semesterplan.",
+  "overlappingPeriod": "überlappt",
+  "overlappingPeriodHint": "Diese Zeile liegt in der Zeit einer anderen Stunde. Trag hier nur etwas ein, wenn du genau diesen Block hast. Die andere Zeile bleibt dann meist leer.",
+  "universityTimetableHint": "Nur im Studium: ungerade/gerade Woche plus 90-Min-Blöcke. 12:00–13:30 überlappt 11:30–13:00 — nur die Zeile füllen, in der die Veranstaltung wirklich liegt.",
+  "importTimetablePdf": "Stundenplan-PDF",
+  "importTimetableScan": "Stundenplan scannen",
+  "importTimetableFound": "{count} Veranstaltungen gefunden. Den aktuellen Stundenplan ersetzen?",
+  "@importTimetableFound": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "importTimetableEmpty": "Im Dokument wurden keine Stunden erkannt. Am besten ein OPAL-PDF mit Textschicht nehmen.",
+  "importTimetableFailed": "Der Stundenplan konnte nicht gelesen werden.",
+  "weekWeeklyShort": "wöch.",
+  "weekOddShort": "UW",
+  "weekEvenShort": "GW"
 }

@@ -8,6 +8,7 @@ import '../../shared/haptics.dart';
 import '../import_export/import_export_providers.dart';
 import '../library/providers/library_providers.dart';
 import '../planner/education_settings.dart';
+import '../timetable/timetable_model.dart';
 import 'app_tour.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -57,6 +58,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       } else {
         await notifier.setTeacherTrack(null);
         await notifier.setEducationLevel(_level!);
+      }
+      if (ref.read(settingsProvider).educationLevel ==
+          EducationLevel.university) {
+        await ref
+            .read(timetableProvider.notifier)
+            .applyPeriodTemplate(Timetable.universitySemesterPeriods());
+        await notifier.setAbWeeksEnabled(true);
       }
       await notifier.setGermanState(_state!);
       if ((isTeacher && _track == TeacherTrack.qualified) ||

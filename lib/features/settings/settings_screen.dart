@@ -703,9 +703,22 @@ class SettingsScreen extends ConsumerWidget {
                     ButtonSegment(value: level, label: Text(level.label(l10n))),
                 ],
                 selected: {settings.educationLevel},
-                onSelectionChanged: (s) => ref
-                    .read(settingsProvider.notifier)
-                    .setEducationLevel(s.first),
+                onSelectionChanged: (s) async {
+                  final level = s.first;
+                  await ref
+                      .read(settingsProvider.notifier)
+                      .setEducationLevel(level);
+                  if (level == EducationLevel.university) {
+                    await ref
+                        .read(timetableProvider.notifier)
+                        .applyPeriodTemplate(
+                          Timetable.universitySemesterPeriods(),
+                        );
+                    await ref
+                        .read(settingsProvider.notifier)
+                        .setAbWeeksEnabled(true);
+                  }
+                },
               ),
               const SizedBox(height: 6),
               Text(
@@ -792,24 +805,27 @@ class SettingsScreen extends ConsumerWidget {
                       .setAbiExamCount(s.first),
                 ),
               ],
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.abWeeks, style: _label),
-                subtitle: Text(l10n.abWeeksHint, style: _body),
-                value: settings.abWeeksEnabled,
-                onChanged: (v) =>
-                    ref.read(settingsProvider.notifier).setAbWeeksEnabled(v),
-              ),
-              if (settings.abWeeksEnabled)
+              if (settings.isUniversity) ...[
+                const SizedBox(height: 12),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.abWeeksSwap, style: _label),
-                  subtitle: Text(l10n.abWeeksSwapHint, style: _body),
-                  value: settings.abWeeksSwapped,
+                  title: Text(l10n.abWeeks, style: _label),
+                  subtitle: Text(l10n.abWeeksHint, style: _body),
+                  value: settings.abWeeksEnabled,
                   onChanged: (v) =>
-                      ref.read(settingsProvider.notifier).setAbWeeksSwapped(v),
+                      ref.read(settingsProvider.notifier).setAbWeeksEnabled(v),
                 ),
+                if (settings.abWeeksEnabled)
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.abWeeksSwap, style: _label),
+                    subtitle: Text(l10n.abWeeksSwapHint, style: _body),
+                    value: settings.abWeeksSwapped,
+                    onChanged: (v) => ref
+                        .read(settingsProvider.notifier)
+                        .setAbWeeksSwapped(v),
+                  ),
+              ],
               const SizedBox(height: 12),
               Text(l10n.federalState, style: _label),
               const SizedBox(height: 6),

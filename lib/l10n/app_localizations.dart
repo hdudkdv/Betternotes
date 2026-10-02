@@ -8369,13 +8369,13 @@ abstract class AppLocalizations {
   /// No description provided for @abWeeks.
   ///
   /// In en, this message translates to:
-  /// **'A/B weeks'**
+  /// **'Odd/even weeks'**
   String get abWeeks;
 
   /// No description provided for @abWeeksHint.
   ///
   /// In en, this message translates to:
-  /// **'Two rotating timetables. Odd calendar weeks are week A, even weeks are week B.'**
+  /// **'Two rotating timetables, like a university plan. Odd and even ISO weeks can have different lessons; weekly lessons stay every week.'**
   String get abWeeksHint;
 
   /// No description provided for @abWeeksSwap.
@@ -8387,20 +8387,44 @@ abstract class AppLocalizations {
   /// No description provided for @abWeeksSwapHint.
   ///
   /// In en, this message translates to:
-  /// **'Turns the current A week into B and the other way around.'**
+  /// **'Swaps odd and even week if your plan starts the other way around.'**
   String get abWeeksSwapHint;
 
   /// No description provided for @weekA.
   ///
   /// In en, this message translates to:
-  /// **'Week A'**
+  /// **'Odd week'**
   String get weekA;
 
   /// No description provided for @weekB.
   ///
   /// In en, this message translates to:
-  /// **'Week B'**
+  /// **'Even week'**
   String get weekB;
+
+  /// No description provided for @weekOdd.
+  ///
+  /// In en, this message translates to:
+  /// **'odd week'**
+  String get weekOdd;
+
+  /// No description provided for @weekEven.
+  ///
+  /// In en, this message translates to:
+  /// **'even week'**
+  String get weekEven;
+
+  /// No description provided for @thisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get thisWeek;
+
+  /// No description provided for @calendarWeekParity.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {week} · {parity}'**
+  String calendarWeekParity(String week, String parity);
 
   /// No description provided for @currentAbWeek.
   ///
@@ -8411,8 +8435,98 @@ abstract class AppLocalizations {
   /// No description provided for @slotAppliesToBothWeeks.
   ///
   /// In en, this message translates to:
-  /// **'Applies to both weeks'**
+  /// **'Weekly'**
   String get slotAppliesToBothWeeks;
+
+  /// No description provided for @slotOddWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Odd week only'**
+  String get slotOddWeek;
+
+  /// No description provided for @slotEvenWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Even week only'**
+  String get slotEvenWeek;
+
+  /// No description provided for @universityPeriodTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'University slots (90 min)'**
+  String get universityPeriodTemplate;
+
+  /// No description provided for @universityPeriodTemplateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocks from 08:00 to 20:30 including the overlapping midday slot.'**
+  String get universityPeriodTemplateHint;
+
+  /// No description provided for @overlappingPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'overlap'**
+  String get overlappingPeriod;
+
+  /// No description provided for @overlappingPeriodHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This row sits inside another period. Fill it only when you actually have that block. The other row usually stays empty.'**
+  String get overlappingPeriodHint;
+
+  /// No description provided for @universityTimetableHint.
+  ///
+  /// In en, this message translates to:
+  /// **'University only: odd/even weeks plus 90-minute blocks. 12:00–13:30 overlaps 11:30–13:00 — fill only the row where the class really sits.'**
+  String get universityTimetableHint;
+
+  /// No description provided for @importTimetablePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Timetable PDF'**
+  String get importTimetablePdf;
+
+  /// No description provided for @importTimetableScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan timetable'**
+  String get importTimetableScan;
+
+  /// No description provided for @importTimetableFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} classes found. Replace the current timetable?'**
+  String importTimetableFound(int count);
+
+  /// No description provided for @importTimetableEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No classes were recognized. A digital OPAL PDF with a text layer works best.'**
+  String get importTimetableEmpty;
+
+  /// No description provided for @importTimetableFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The timetable could not be read.'**
+  String get importTimetableFailed;
+
+  /// No description provided for @weekWeeklyShort.
+  ///
+  /// In en, this message translates to:
+  /// **'weekly'**
+  String get weekWeeklyShort;
+
+  /// No description provided for @weekOddShort.
+  ///
+  /// In en, this message translates to:
+  /// **'odd'**
+  String get weekOddShort;
+
+  /// No description provided for @weekEvenShort.
+  ///
+  /// In en, this message translates to:
+  /// **'even'**
+  String get weekEvenShort;
 }
 
 class _AppLocalizationsDelegate
