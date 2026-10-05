@@ -44,6 +44,7 @@ class NotisPlan {
 
 /// Product matrix. Store SKUs are Lite/Pro per role; Free is the default.
 abstract final class PlanCatalog {
+  static const freeMarketplaceBuys = 3;
   static const liteMarketplaceBuys = 3;
   static const proMarketplaceLoans = 5;
 
@@ -57,11 +58,11 @@ abstract final class PlanCatalog {
     priceEn: 'Free',
     pointsDe: [
       'Notizen, Sticker und Notizzettel',
-      'Marketplace nur mit Coins',
+      'Marketplace: maximal 3 Pakete mit Coins',
     ],
     pointsEn: [
       'Notes, stickers and sticky notes',
-      'Marketplace with coins only',
+      'Marketplace: at most 3 packs with coins',
     ],
   );
 
@@ -117,11 +118,11 @@ abstract final class PlanCatalog {
     priceEn: 'Free',
     pointsDe: [
       'Klassen, Stundenplan und Aufgaben lokal',
-      'Marketplace nur mit Coins',
+      'Marketplace: maximal 3 Pakete mit Coins',
     ],
     pointsEn: [
       'Classes, timetable and assignments on device',
-      'Marketplace with coins only',
+      'Marketplace: at most 3 packs with coins',
     ],
   );
 

@@ -56,6 +56,8 @@ void main() {
     const free = EntitlementState(coins: 999);
     const lite = EntitlementState(tier: AppTier.lite, coins: 999);
     expect(free.canBuyMarketplace, isTrue);
+    expect(free.marketplaceBuyLimit, PlanCatalog.freeMarketplaceBuys);
+    expect(free.marketplaceBuysCapped, isFalse);
     expect(lite.marketplaceBuyLimit, PlanCatalog.liteMarketplaceBuys);
     expect(lite.canBuyMarketplace, isTrue);
     expect(lite.canLoanMarketplace, isFalse);
@@ -136,6 +138,19 @@ void main() {
       ),
       isTrue,
     );
+  });
+
+  test('free can unlock at most three marketplace packs', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final entitlements = EntitlementNotifier(prefs);
+    await entitlements.addCoins(999);
+    final extras = FeatureKeys.marketplace.take(4).toList();
+    expect(await entitlements.unlockWithCoins(extras[0]), isTrue);
+    expect(await entitlements.unlockWithCoins(extras[1]), isTrue);
+    expect(await entitlements.unlockWithCoins(extras[2]), isTrue);
+    expect(entitlements.state.marketplaceBuysCapped, isTrue);
+    expect(await entitlements.unlockWithCoins(extras[3]), isFalse);
   });
 
   test('notifier lets free and lite buy with coins; pro loans', () async {

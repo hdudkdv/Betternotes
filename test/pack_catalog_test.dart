@@ -22,4 +22,11 @@ void main() {
       );
     }
   });
+
+  test('programming pack exposes a code environment and diagrams', () {
+    final pack = PackCatalog.byKey(FeatureKeys.packDev)!;
+    expect(pack.toolsDe, hasLength(4));
+    expect(pack.toolsEn, hasLength(4));
+    expect(pack.titleDe, 'Programmieren');
+  });
 }

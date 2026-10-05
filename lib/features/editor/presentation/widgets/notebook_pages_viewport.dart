@@ -303,7 +303,10 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
 
   /// Called from [InkCanvas] so ink / pinch / zoom cannot pan the page list.
   void setScrollLock(bool locked) {
-    if (_scrollLock == locked) return;
+    if (_scrollLock == locked) {
+      if (locked) _abortIdleFlip();
+      return;
+    }
     final pc = _pageController;
     if (locked && pc != null && pc.hasClients && pc.page != null) {
       // Cancel a half-finished swipe the moment a pinch starts so the page
@@ -313,13 +316,27 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
         pc.jumpToPage(settled);
       }
     }
-    setState(() => _scrollLock = locked);
+    final abortFlip = locked && _flipping && !_committing;
+    setState(() {
+      _scrollLock = locked;
+      if (abortFlip) _flipping = false;
+    });
     if (locked) {
       _swipeAccum = 0;
+      _swipeVelocity = 0;
+      _lastPanMicros = 0;
       _browsePointer = null;
       _browseDown = null;
       _browseLastGlobal = null;
-      PagePreviewCache.instance.setPaused(true);
+      if (abortFlip) {
+        if (pc != null && pc.hasClients && widget.pages.isNotEmpty) {
+          pc.jumpToPage(widget.pageIndex.clamp(0, widget.pages.length - 1));
+        }
+        PagePreviewCache.instance.setPaused(false);
+        _scheduleNeighborPreviews();
+      } else {
+        PagePreviewCache.instance.setPaused(true);
+      }
     } else if (!_flipping) {
       PagePreviewCache.instance.setPaused(false);
       _scheduleNeighborPreviews();
@@ -346,18 +363,36 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
     setState(() => _flipping = true);
   }
 
-  int _viewportPointers = 0;
+  final Set<int> _viewportPointerIds = {};
 
   bool _isBrowseKind(PointerEvent event) {
     return PointerRouting.browsesLikeFinger(event);
   }
 
+  void _abortIdleFlip() {
+    if (!_flipping || _committing) return;
+    _swipeAccum = 0;
+    _swipeVelocity = 0;
+    _lastPanMicros = 0;
+    _browsePointer = null;
+    _browseDown = null;
+    _browseLastGlobal = null;
+    final pc = _pageController;
+    if (pc != null && pc.hasClients && widget.pages.isNotEmpty) {
+      pc.jumpToPage(widget.pageIndex.clamp(0, widget.pages.length - 1));
+    }
+    setState(() => _flipping = false);
+    PagePreviewCache.instance.setPaused(false);
+    _scheduleNeighborPreviews();
+  }
+
   void _onViewportPointerDown(PointerDownEvent event) {
-    _viewportPointers++;
-    if (_viewportPointers >= 2) {
+    _viewportPointerIds.add(event.pointer);
+    if (_viewportPointerIds.length >= 2) {
       _browsePointer = null;
       _browseDown = null;
       _browseLastGlobal = null;
+      _abortIdleFlip();
       return;
     }
     if (_scrollLock || _zoomed || widget.navigationLocked) return;
@@ -368,7 +403,7 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   void _onViewportPointerMove(PointerMoveEvent event) {
-    if (_viewportPointers >= 2) return;
+    if (_viewportPointerIds.length >= 2) return;
     if (_scrollLock || _zoomed || widget.navigationLocked) return;
     if (_browsePointer != null && event.pointer != _browsePointer) return;
     if (_browsePointer == null && !_isBrowseKind(event)) return;
@@ -403,9 +438,9 @@ class NotebookPagesViewportState extends State<NotebookPagesViewport> {
   }
 
   void _finishViewportBrowse(int pointer) {
-    _viewportPointers = (_viewportPointers - 1).clamp(0, 8);
+    _viewportPointerIds.remove(pointer);
     if (_browsePointer != pointer) {
-      if (_viewportPointers == 0 && _flipping && !_committing) {
+      if (_viewportPointerIds.isEmpty && _flipping && !_committing) {
         handleBrowsePanEnd();
       }
       return;

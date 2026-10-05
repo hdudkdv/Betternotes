@@ -191,6 +191,9 @@ class EditorController extends ChangeNotifier {
 
   /// Text block with an active caret. Selection alone only arms dragging.
   String? editingTextId;
+  /// Timestamp of the last empty-box prune, so a simultaneous canvas tap
+  /// cannot spawn a replacement box.
+  int _prunedEmptyTextAtMs = 0;
   String? selectedImageId;
   String? selectedStickerId;
   Set<String> selectedShapeIds = {};
@@ -235,8 +238,8 @@ class EditorController extends ChangeNotifier {
   bool _convertedByHold = false;
   Offset? _shapeHoldAnchor;
 
-  static const _shapeHoldStillness = 12.0;
-  static const _shapeHoldDuration = Duration(milliseconds: 1800);
+  static const _shapeHoldStillness = 8.0;
+  static const _shapeHoldDuration = Duration(milliseconds: 2500);
 
   NotePage? get currentPage =>
       pages.isEmpty ? null : pages[pageIndex.clamp(0, pages.length - 1)];
@@ -443,6 +446,7 @@ class EditorController extends ChangeNotifier {
     // being drawn the surrounding chrome does not have to rebuild with it.
     // Object selection stays until the user taps empty paper or deletes it —
     // switching pens must not drop a selected sticky / stroke.
+    if (ink.tool != InkTool.text) _pruneEmptyText();
     if (ink.activeStroke == null) notifyListeners();
     _scheduleSave();
   }
@@ -543,6 +547,7 @@ class EditorController extends ChangeNotifier {
     _textBeforeScale = null;
     _stickersBeforeScale = null;
     ink.clearSelection();
+    _pruneEmptyText();
     selectedTextId = null;
     editingTextId = null;
     selectedImageId = null;
@@ -1508,18 +1513,37 @@ class EditorController extends ChangeNotifier {
     _scheduleSave();
   }
 
+  /// Live text if the field is focused, otherwise the persisted spans.
+  String _textContent(TextBlock block) {
+    return textRegistry.find(block.id)?.text ?? block.plainText;
+  }
+
+  /// Empty free boxes the user never typed in — not stickies or page text.
+  bool _isDiscardableEmptyText(TextBlock block) {
+    if (block.isSticky) return false;
+    if (block.layoutMode == TextLayoutMode.lineBound) return false;
+    return _textContent(block).trim().isEmpty;
+  }
+
   /// Drops text blocks the user left without any content, except [keepId].
   void _pruneEmptyText([String? keepId]) {
     final kept = [
       for (final block in textBlocks)
-        if (block.id == keepId ||
-            block.isSticky ||
-            block.plainText.trim().isNotEmpty)
-          block,
+        if (block.id == keepId || !_isDiscardableEmptyText(block)) block,
     ];
     if (kept.length == textBlocks.length) return;
+    _prunedEmptyTextAtMs = DateTime.now().millisecondsSinceEpoch;
     textBlocks = kept;
-    textRegistry.retainOnly({for (final block in kept) block.id});
+    final keptIds = {for (final block in kept) block.id};
+    textRegistry.retainOnly(keptIds);
+    if (selectedTextId != null && !keptIds.contains(selectedTextId)) {
+      selectedTextId = null;
+      editingTextId = null;
+    }
+    selectedTextIds = {
+      for (final id in selectedTextIds)
+        if (keptIds.contains(id)) id,
+    };
     _scheduleSave();
   }
 
@@ -1587,6 +1611,17 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void finishTextEdit(String id) {
+    if (editingTextId == id) editingTextId = null;
+    _pruneEmptyText();
+    if (selectedTextId != null &&
+        !textBlocks.any((block) => block.id == selectedTextId)) {
+      selectedTextId = null;
+      selectedTextIds = {};
+    }
+    notifyListeners();
+  }
+
   void deleteTextBlock(TextBlock block) {
     textBlocks = [
       for (final candidate in textBlocks)
@@ -1615,6 +1650,7 @@ class EditorController extends ChangeNotifier {
   }
 
   void selectImage(String? id) {
+    _pruneEmptyText();
     selectedImageId = id;
     selectedTextId = null;
     editingTextId = null;
@@ -1854,6 +1890,7 @@ class EditorController extends ChangeNotifier {
   }
 
   void selectSticker(String? id) {
+    _pruneEmptyText();
     selectedStickerId = id;
     selectedImageId = null;
     selectedTextId = null;
@@ -2175,6 +2212,7 @@ class EditorController extends ChangeNotifier {
     }
     for (final shape in shapes.reversed) {
       if (_shapeHits(shape, pagePoint, 10)) {
+        _pruneEmptyText();
         selectedTextId = null;
         editingTextId = null;
         selectedImageId = null;
@@ -2191,6 +2229,7 @@ class EditorController extends ChangeNotifier {
     }
     final stroke = ink.strokeAt(pagePoint);
     if (stroke != null) {
+      _pruneEmptyText();
       selectedTextId = null;
       editingTextId = null;
       selectedImageId = null;
@@ -2221,6 +2260,10 @@ class EditorController extends ChangeNotifier {
   }) {
     if (interactionMode == InteractionMode.read) return;
 
+    final hadEmptyText = textBlocks.any(_isDiscardableEmptyText);
+    final recentlyPrunedEmpty =
+        DateTime.now().millisecondsSinceEpoch - _prunedEmptyTextAtMs < 80;
+
     // A miss: drop the current object selection, then start the active tool.
     if (hasLassoSelection ||
         selectedTextId != null ||
@@ -2243,7 +2286,18 @@ class EditorController extends ChangeNotifier {
         return;
       }
       // Touches on existing free text belong to that block's own drag handling.
-      if (textBlockAt(pagePoint) == null) addTextBlock(at: pagePoint);
+      if (textBlockAt(pagePoint) == null) {
+        // Tap beside an unused box: delete it. Do not spawn another empty one.
+        final skipNew =
+            hadEmptyText || recentlyPrunedEmpty;
+        _pruneEmptyText();
+        if (skipNew ||
+            DateTime.now().millisecondsSinceEpoch - _prunedEmptyTextAtMs < 80) {
+          notifyListeners();
+          return;
+        }
+        addTextBlock(at: pagePoint);
+      }
       return;
     }
     if (ink.tool == InkTool.image || ink.tool == InkTool.sticker) {
@@ -2269,7 +2323,6 @@ class EditorController extends ChangeNotifier {
     _convertedByHold = false;
     _shapeHoldAnchor = pagePoint;
     ink.beginStroke(pagePoint, pressure: pressure, t: t);
-    _armShapeHold(pagePoint, pressure: pressure);
     if (ink.tool == InkTool.eraser) {
       _erasePageObjects(pagePoint);
     }
@@ -2314,18 +2367,15 @@ class EditorController extends ChangeNotifier {
     final still =
         anchor != null &&
         (pagePoint - anchor).distance <= _shapeHoldStillness;
-    // Real Apple Pencil: a firm press completes the shape instead of waiting.
-    if (ink.reportsPressure && pressure >= 0.78 && still) {
+    if (!still) {
+      _shapeHoldAnchor = pagePoint;
       _shapeHoldTimer?.cancel();
-      _tryHoldRecognize();
+      _shapeHoldTimer = null;
       return;
     }
-    if (still) {
-      return;
-    }
-    _shapeHoldAnchor = pagePoint;
-    _shapeHoldTimer?.cancel();
-    _shapeHoldTimer = Timer(_shapeHoldDuration, _tryHoldRecognize);
+    // Only start the clock once the tip is actually resting — never on
+    // the first down, and never from a firm press (fake pens spike that).
+    _shapeHoldTimer ??= Timer(_shapeHoldDuration, _tryHoldRecognize);
   }
 
   void _tryHoldRecognize() {
@@ -3524,6 +3574,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
                               onBeginEdit: controller.beginTextEdit,
                               onChanged: controller.updateTextBlock,
                               onDelete: controller.deleteTextBlock,
+                              onFinishEdit: controller.finishTextEdit,
                               onCaretPagePoint: (point) {
                                 _canvasKey.currentState?.ensurePagePointVisible(
                                   point,

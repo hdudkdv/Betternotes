@@ -130,6 +130,13 @@ class _DevToolsState extends State<_DevTools> {
   );
   String _lang = 'dart';
   late List<String> _snippets;
+  ChartKind _diagram = ChartKind.flow;
+  final _diagTitle = TextEditingController(text: 'System');
+  final _diagRows = <ChartSeriesRow>[
+    ChartSeriesRow(label: 'User', value: 'id, name', start: 'uses'),
+    ChartSeriesRow(label: 'App', value: 'run()', start: 'calls'),
+    ChartSeriesRow(label: 'API', value: 'GET /', start: ''),
+  ];
 
   @override
   void initState() {
@@ -140,6 +147,7 @@ class _DevToolsState extends State<_DevTools> {
   @override
   void dispose() {
     _code.dispose();
+    _diagTitle.dispose();
     super.dispose();
   }
 
@@ -153,8 +161,88 @@ class _DevToolsState extends State<_DevTools> {
     if (bytes != null) widget.onInsert(bytes);
   }
 
+  Future<void> _insertDiagram() async {
+    final bytes = await ChartRenderer.renderPng(
+      kind: _diagram,
+      title: _diagTitle.text.trim(),
+      rows: _diagRows,
+    );
+    if (bytes != null) widget.onInsert(bytes);
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.index == 3) {
+      return _Pad(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final item in [
+                  (ChartKind.flow, widget.german ? 'Ablauf' : 'Flow'),
+                  (ChartKind.umlClass, widget.german ? 'Klasse' : 'Class'),
+                  (ChartKind.sequence, widget.german ? 'Sequenz' : 'Sequence'),
+                  (ChartKind.er, 'ER'),
+                  (ChartKind.usecase, widget.german ? 'Use-Case' : 'Use case'),
+                ])
+                  ChoiceChip(
+                    label: Text(item.$2),
+                    selected: _diagram == item.$1,
+                    onSelected: (_) => setState(() => _diagram = item.$1),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _diagTitle,
+              decoration: InputDecoration(
+                labelText: widget.german ? 'Titel' : 'Title',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (var i = 0; i < _diagRows.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: _diagRows[i].label,
+                        decoration: InputDecoration(
+                          labelText: widget.german ? 'Name' : 'Name',
+                          isDense: true,
+                          border: const OutlineInputBorder(),
+                        ),
+                        onChanged: (v) => _diagRows[i].label = v,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: _diagRows[i].value,
+                        decoration: InputDecoration(
+                          labelText: widget.german ? 'Felder' : 'Fields',
+                          isDense: true,
+                          border: const OutlineInputBorder(),
+                        ),
+                        onChanged: (v) => _diagRows[i].value = v,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            FilledButton(
+              onPressed: _insertDiagram,
+              child: Text(widget.german ? 'Auf die Seite' : 'Insert on page'),
+            ),
+          ],
+        ),
+      );
+    }
     if (widget.index == 1) {
       return _Pad(
         child: Column(
@@ -218,9 +306,19 @@ class _DevToolsState extends State<_DevTools> {
           const SizedBox(height: 8),
           TextField(
             controller: _code,
-            maxLines: 8,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-            decoration: const InputDecoration(border: OutlineInputBorder()),
+            maxLines: 14,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 13,
+              color: Color(0xFFD4D4D4),
+              height: 1.35,
+            ),
+            cursorColor: const Color(0xFF9CDCFE),
+            decoration: const InputDecoration(
+              filled: true,
+              fillColor: Color(0xFF1E1E1E),
+              border: OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: 8),
           FilledButton(

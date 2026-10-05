@@ -160,9 +160,15 @@ class EntitlementState extends Equatable {
       loaned.where(FeatureKeys.marketplace.contains).length;
 
   int get marketplaceBuyLimit => switch (paidTier) {
+    PaidTier.free => 3,
     PaidTier.lite => 3,
-    _ => 0,
+    PaidTier.pro => 0,
   };
+
+  /// Free stops after 3 unlocks. Lite can keep buying with coins.
+  bool get marketplaceBuysCapped =>
+      paidTier == PaidTier.free &&
+      marketplacePurchases >= marketplaceBuyLimit;
 
   int get marketplaceLoanLimit => switch (paidTier) {
     PaidTier.pro => 5,
@@ -357,6 +363,10 @@ class EntitlementNotifier extends StateNotifier<EntitlementState> {
     if (state.hasAccess(feature)) return true;
     if (FeatureKeys.marketplace.contains(feature) &&
         state.paidTier == PaidTier.pro) {
+      return false;
+    }
+    if (FeatureKeys.marketplace.contains(feature) &&
+        state.marketplaceBuysCapped) {
       return false;
     }
     final cost = FeatureKeys.coinCost(feature);

@@ -3295,7 +3295,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get marketplaceHint =>
-      'Free: unlock items with coins only. Lite: buy 3 permanently, then coins from ads. Pro: borrow 5 at a time.';
+      'Free: at most 3 packs with coins. Lite: buy 3 permanently, then coins from ads. Pro: borrow 5 at a time.';
 
   @override
   String get marketplaceComingSoon =>
@@ -3455,6 +3455,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chartSequence => 'Sequence';
+
+  @override
+  String get chartClass => 'Class';
 
   @override
   String get chartAxes => 'Axes';
@@ -4531,7 +4534,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get marketplaceBuyCap =>
-      'Lite limit reached (3 purchases). Switch to Pro to borrow 5.';
+      'Free limit reached (3 packs). Upgrade to Lite or Pro for more.';
 
   @override
   String get marketplaceLoanCap => 'All 5 loans are in use. Return one first.';

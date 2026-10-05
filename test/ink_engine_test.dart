@@ -90,6 +90,22 @@ void main() {
     expect(engine.strokes, hasLength(1));
   });
 
+  test('fake pens keep a fast 40px jump as one stroke', () {
+    final engine = InkEngine()
+      ..setTool(InkTool.pen)
+      ..setColor(0xFF000000)
+      ..setWidth(3);
+    engine.reportsPressure = false;
+
+    engine.beginStroke(const Offset(10, 10), t: 1000);
+    engine.appendStroke(const Offset(18, 14), t: 1008);
+    engine.appendStroke(const Offset(58, 30), t: 1016);
+    engine.endStroke();
+
+    expect(engine.strokes, hasLength(1));
+    expect(engine.strokes.single.points.length, greaterThan(3));
+  });
+
   test('stroke hit testing works', () {
     final stroke = InkStroke(
       id: '1',

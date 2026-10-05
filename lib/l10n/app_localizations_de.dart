@@ -3317,7 +3317,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get marketplaceHint =>
-      'Free: Artikel nur mit Coins. Lite: 3 dauerhaft kaufen, danach Coins über Werbung. Pro: 5 gleichzeitig leihen.';
+      'Free: maximal 3 Pakete mit Coins. Lite: 3 dauerhaft, danach Coins über Werbung. Pro: 5 gleichzeitig leihen.';
 
   @override
   String get marketplaceComingSoon =>
@@ -3477,6 +3477,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get chartSequence => 'Sequenz';
+
+  @override
+  String get chartClass => 'Klasse';
 
   @override
   String get chartAxes => 'Achsen';
@@ -4557,7 +4560,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get marketplaceBuyCap =>
-      'Lite-Limit erreicht (3 Käufe). Für 5 Leihen auf Pro wechseln.';
+      'Free-Limit erreicht (3 Pakete). Lite oder Pro für mehr.';
 
   @override
   String get marketplaceLoanCap =>

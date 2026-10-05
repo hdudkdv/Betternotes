@@ -156,6 +156,9 @@ class InkCanvasState extends State<InkCanvas>
   bool _browseActive = false;
   Offset _navSlop = Offset.zero;
   bool _navBrowseArmed = false;
+  /// After a pinch, the leftover finger must not start a page-swipe (that
+  /// hid the live canvas and froze zoom until the next pointer-up).
+  bool _suppressNavUntilUp = false;
   bool _drawPending = false;
   int? _pendingPointer;
   Offset? _pendingGlobal;
@@ -191,12 +194,17 @@ class InkCanvasState extends State<InkCanvas>
     if ((scale - 1.0).abs() < 0.02 && (_fitScale - 1.0).abs() > 0.08) {
       return false;
     }
-    return scale > _fitScale * 1.12;
+    return scale > _fitScale * 1.04;
   }
+
+  bool get _isPinching => _pointerGlobal.length >= 2;
 
   double get _minScale {
     if (widget.canvasMode != CanvasMode.infinite) {
-      return _fitScale > 0.05 ? _fitScale : 0.2;
+      final fit = _fitScale > 0.05 ? _fitScale : 0.2;
+      // Slight undershoot while pinching so the gesture does not die against
+      // the fit wall; [_clampView] snaps back on pointer-up.
+      return _isPinching ? fit * 0.9 : fit;
     }
     if (!_isUsableViewport(_viewportSize) || _infiniteBoard == Size.zero) {
       return 0.45;
@@ -306,7 +314,7 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   Matrix4 _fitMatrix(Size viewport) {
-    _fitScale = _computeFitScale(viewport);
+    _setFitScale(_computeFitScale(viewport));
     if (widget.canvasMode == CanvasMode.infinite) {
       return _matrixForScale(_fitScale, viewport);
     }
@@ -328,19 +336,36 @@ class InkCanvasState extends State<InkCanvas>
   /// Keep the same page point under the viewport center when the keyboard
   /// (or any inset) changes the available size — never jump back to fit-zoom.
   bool _isUsableViewport(Size viewport) =>
-      viewport.width >= 64 && viewport.height >= 64;
+      viewport.width >= 96 && viewport.height >= 96;
+
+  void _setFitScale(double next) {
+    if (!next.isFinite || next <= 0.01) return;
+    if (_fitScale > 0.05 &&
+        _pointerGlobal.isNotEmpty &&
+        (next / _fitScale > 1.6 || _fitScale / next > 1.6)) {
+      return;
+    }
+    _fitScale = next;
+  }
 
   void _retainViewOnViewportChange(Size oldViewport, Size newViewport) {
-    if (!_isUsableViewport(oldViewport) || !_isUsableViewport(newViewport)) {
+    if (!_isUsableViewport(newViewport)) return;
+    // A layout blip mid-pinch must not snap the page to fit / lock zoom.
+    if (_isPinching || _drawing) return;
+    if (!_isUsableViewport(oldViewport)) {
+      if (_fitReady) {
+        _setFitScale(_computeFitScale(newViewport));
+        _clampView();
+        return;
+      }
       _applyFit(newViewport);
       return;
     }
     final current = _transform.value;
     final scale = current.getMaxScaleOnAxis();
     if (!_fitReady) {
-      final scale = current.getMaxScaleOnAxis();
       if (scale.isFinite && scale > 1.08) {
-        _fitScale = _computeFitScale(newViewport);
+        _setFitScale(_computeFitScale(newViewport));
         _fitReady = true;
         _clampView();
         return;
@@ -353,9 +378,9 @@ class InkCanvasState extends State<InkCanvas>
       inv,
       Offset(oldViewport.width / 2, oldViewport.height / 2),
     );
-    _fitScale = _computeFitScale(newViewport);
+    _setFitScale(_computeFitScale(newViewport));
     if (scale <= _fitScale * 1.02) {
-      _clampView();
+      if (_pointerGlobal.isEmpty) _clampView();
       return;
     }
     final clamped = scale.clamp(_minScale, _maxScale);
@@ -392,7 +417,15 @@ class InkCanvasState extends State<InkCanvas>
       if (!mounted) return;
       if (!_isUsableViewport(viewport)) return;
       // Never stomp a live pinch — that made finger zoom look dead.
-      if (_pointerGlobal.length >= 2) return;
+      if (_pointerGlobal.length >= 2 || _drawing) return;
+      final liveScale = _transform.value.getMaxScaleOnAxis();
+      if (_fitReady &&
+          !_forceNextFit &&
+          liveScale > (_fitScale > 0 ? _fitScale * 1.02 : 1.02)) {
+        _fittedViewport = viewport;
+        _fittedPageSize = widget.pageSize;
+        return;
+      }
       _fittedViewport = viewport;
       _fittedPageSize = widget.pageSize;
       _fitReady = true;
@@ -409,6 +442,7 @@ class InkCanvasState extends State<InkCanvas>
   void _ensureFittedTransform() {
     if (widget.canvasMode == CanvasMode.infinite) return;
     if (!_isUsableViewport(_viewportSize)) return;
+    if (_isPinching) return;
     if (!_fitReady) {
       _applyFit(_viewportSize);
     }
@@ -692,7 +726,6 @@ class InkCanvasState extends State<InkCanvas>
     final currentScale = current.getMaxScaleOnAxis().clamp(0.01, 100.0);
     final applied = newScale / currentScale;
     if ((applied - 1).abs() < 0.001) {
-      _clampView();
       return;
     }
     final zoom = Matrix4.identity()
@@ -786,6 +819,7 @@ class InkCanvasState extends State<InkCanvas>
   }
 
   void _handleNavPan(Offset delta) {
+    if (_suppressNavUntilUp) return;
     if (widget.canvasMode == CanvasMode.infinite) {
       _applyPanDelta(delta);
       return;
@@ -1055,14 +1089,41 @@ class InkCanvasState extends State<InkCanvas>
     _updateScrollLock();
   }
 
+  void _clearStuckStroke() {
+    if (!_drawing) return;
+    if (_drawPointer != null && _pointerGlobal.containsKey(_drawPointer)) {
+      return;
+    }
+    _stopDrawing(commit: true);
+  }
+
+  bool _isNearActiveStylus(Offset global) {
+    if (!_drawing || !_drawIsStylus || _drawPointer == null) return false;
+    final stylusPos = _pointerGlobal[_drawPointer];
+    if (stylusPos == null) return false;
+    return (global - stylusPos).distance < 88;
+  }
+
+  void _releaseIdleGestures() {
+    _resetPinch();
+    _resetNavBrowse();
+    _clearDrawPending();
+    _suppressNavUntilUp = false;
+    if (_drawing) _stopDrawing(commit: true);
+    _forceScrollUnlock();
+  }
+
   void _handlePointerDown(PointerDownEvent event) {
+    _clearStuckStroke();
     final rightMouse = PointerRouting.isRightMouse(event);
     final stylusLike =
         PointerRouting.drawsLikeStylus(event) && !rightMouse;
-    // Palm rejection: ignore fingers / right-mouse while a stylus writes.
-    // Do not use kind==touch here — some pencils arrive as a small touch.
+    // Palm rejection: ignore fingers / right-mouse while a stylus writes,
+    // but only when the extra contact is next to the tip. Two distant
+    // fingers are a pinch — committing ink so zoom can start.
     if (_drawing && _drawIsStylus && !stylusLike) {
-      return;
+      if (_isNearActiveStylus(event.position)) return;
+      _finishOpenStroke();
     }
 
     // New contact while a stroke is still open (missed up / hover): commit
@@ -1084,9 +1145,12 @@ class InkCanvasState extends State<InkCanvas>
     // active stroke is from a stylus (then the extra touch is treated as palm).
     if (_pointerGlobal.length >= 2) {
       if (_drawing && _drawIsStylus && !stylusLike) {
-        _pointerGlobal.remove(event.pointer);
-        _updateScrollLock();
-        return;
+        if (_isNearActiveStylus(event.position)) {
+          _pointerGlobal.remove(event.pointer);
+          _updateScrollLock();
+          return;
+        }
+        _finishOpenStroke();
       }
       if (_drawing && stylusLike) {
         _finishOpenStroke();
@@ -1185,18 +1249,19 @@ class InkCanvasState extends State<InkCanvas>
       _clearDrawPending();
       final focal = _focalGlobal();
       if (_keyboardOpen) {
+        if (_panLastFocal != null) {
+          _multiTravel += (focal - _panLastFocal!).distance;
+        }
+        _applyPinchScale();
         _panLastFocal = focal;
         return;
       }
       if (_panLastFocal != null) {
         final delta = focal - _panLastFocal!;
         _multiTravel += delta.distance;
-        // Pinch-zoom only; pan only while zoomed-in. Never free-drag at fit.
         _applyPinchScale();
         if (_isZoomed || widget.canvasMode == CanvasMode.infinite) {
-          _applyPanDelta(delta);
-        } else {
-          _clampView();
+          if (!_keyboardOpen) _applyPanDelta(delta);
         }
         if (_pointerGlobal.length >= 3 && _threeFingerStart != null) {
           final swipe = focal - _threeFingerStart!;
@@ -1372,11 +1437,12 @@ class InkCanvasState extends State<InkCanvas>
       _threeFingerStart = null;
       _multiTravel = 0;
       _multiMaxPointers = _pointerGlobal.length;
+      _suppressNavUntilUp = _pointerGlobal.isNotEmpty;
       _snapToFitIfNeeded();
     }
 
     if (_pointerGlobal.isEmpty) {
-      _resetNavBrowse();
+      _releaseIdleGestures();
       if (wasBrowse) {
         widget.onBrowsePanEnd?.call();
         _browseActive = false;
@@ -1448,6 +1514,7 @@ class InkCanvasState extends State<InkCanvas>
       }
       _multiMaxPointers = 0;
       _multiTravel = 0;
+      _releaseIdleGestures();
       _snapToFitIfNeeded();
     }
     _updateScrollLock();
@@ -1485,13 +1552,12 @@ class InkCanvasState extends State<InkCanvas>
               !_forceNextFit &&
               _fitReady &&
               _transform.value.getMaxScaleOnAxis() >
-                  (_fitScale > 0 ? _fitScale * 1.08 : 1.08);
+                  (_fitScale > 0 ? _fitScale * 1.02 : 1.02);
           final mustFit =
               _forceNextFit ||
               (!_fitReady && !keepZoom) ||
-              (_fittedViewport == null && !keepZoom) ||
-              (pageChanged && !keepZoom);
-          if (mustFit) {
+              (_fittedViewport == null && !keepZoom);
+          if (mustFit && !_isPinching) {
             pageDisplay = _fitMatrixForDisplay(viewport);
             _commitFitAfterBuild(viewport, pageDisplay);
           } else if (pageChanged) {

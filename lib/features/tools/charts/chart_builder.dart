@@ -20,6 +20,7 @@ enum ChartKind {
   flow,
   venn,
   sequence,
+  umlClass,
   axes,
   numberline,
   cornell,
@@ -83,6 +84,7 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
     ChartKind.flow,
     ChartKind.venn,
     ChartKind.sequence,
+    ChartKind.umlClass,
   }.contains(_kind);
   bool get _needsHelper => const {
     ChartKind.axes,
@@ -97,6 +99,7 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
     ChartKind.flow,
     ChartKind.venn,
     ChartKind.sequence,
+    ChartKind.umlClass,
   }.contains(_kind);
   bool get _noRows => const {
     ChartKind.axes,
@@ -162,6 +165,7 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
     (ChartKind.flow, l10n.chartFlow),
     (ChartKind.venn, l10n.chartVenn),
     (ChartKind.sequence, l10n.chartSequence),
+    (ChartKind.umlClass, l10n.chartClass),
     (ChartKind.axes, l10n.chartAxes),
     (ChartKind.numberline, l10n.chartNumberline),
     (ChartKind.cornell, l10n.chartCornell),
@@ -177,6 +181,7 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
       ChartKind.flow,
       ChartKind.venn,
       ChartKind.sequence,
+      ChartKind.umlClass,
     };
     const helper = {
       ChartKind.axes,
@@ -195,6 +200,11 @@ class _ChartBuilderSheetState extends State<_ChartBuilderSheet> {
         l10n.chartEntity,
         l10n.chartAttributes,
         l10n.chartRelation,
+      ),
+      ChartKind.umlClass => (
+        l10n.chartClass,
+        l10n.chartAttributes,
+        l10n.chartLabel,
       ),
       ChartKind.usecase => (l10n.chartActor, l10n.chartUsecase, null),
       ChartKind.sequence => (l10n.chartFrom, l10n.chartTo, l10n.chartMessage),
@@ -531,6 +541,8 @@ abstract final class ChartRenderer {
         _venn(canvas, plot, rows);
       case ChartKind.sequence:
         _sequence(canvas, plot, rows);
+      case ChartKind.umlClass:
+        _umlClass(canvas, plot, rows);
       case ChartKind.axes:
         _axes(canvas, plot);
       case ChartKind.numberline:
@@ -903,6 +915,10 @@ abstract final class ChartRenderer {
         );
       }
     }
+  }
+
+  static void _umlClass(Canvas canvas, Rect plot, List<ChartSeriesRow> rows) {
+    _er(canvas, plot, rows);
   }
 
   static void _er(Canvas canvas, Rect plot, List<ChartSeriesRow> rows) {

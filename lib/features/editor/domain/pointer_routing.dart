@@ -23,7 +23,7 @@ abstract final class PointerRouting {
       event.kind == PointerDeviceKind.stylus ||
       event.kind == PointerDeviceKind.invertedStylus ||
       (event.kind == PointerDeviceKind.touch &&
-          (event.pressureMax > 1.0 || (event.size > 0 && event.size < 0.08)));
+          (event.pressureMax > 1.0 || (event.size > 0 && event.size < 0.18)));
 
   /// Pencil in the air: no contact (`down` is false / hover).
   ///

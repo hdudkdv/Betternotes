@@ -90,6 +90,13 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
       ).showSnackBar(SnackBar(content: Text(l10n.marketplaceNeedPro)));
       return;
     }
+    if (FeatureKeys.marketplace.contains(key) &&
+        entitlements.marketplaceBuysCapped) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.marketplaceBuyCap)));
+      return;
+    }
     final ok = await ref
         .read(entitlementProvider.notifier)
         .unlockWithCoins(key);
@@ -192,7 +199,8 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             l10n.marketplaceHint,
             style: AppTheme.body(color: AppTheme.inkMuted),
           ),
-          if (entitlements.paidTier == PaidTier.lite) ...[
+          if (entitlements.paidTier == PaidTier.free ||
+              entitlements.paidTier == PaidTier.lite) ...[
             const SizedBox(height: 8),
             Text(
               l10n.marketplaceBuySlots(

@@ -157,6 +157,7 @@ class TextBlockLayer extends StatelessWidget {
     required this.metrics,
     required this.registry,
     this.pageTextEnabled = true,
+    this.onFinishEdit,
     this.onCaretPagePoint,
   });
 
@@ -170,6 +171,9 @@ class TextBlockLayer extends StatelessWidget {
   final ValueChanged<String> onBeginEdit;
   final ValueChanged<TextBlock> onChanged;
   final ValueChanged<TextBlock> onDelete;
+
+  /// Called when the caret leaves this block (tap outside).
+  final ValueChanged<String>? onFinishEdit;
   final PaperLineMetrics metrics;
   final TextBlockRegistry registry;
 
@@ -240,6 +244,9 @@ class TextBlockLayer extends StatelessWidget {
                   onBeginEdit: () => onBeginEdit(block.id),
                   onChanged: onChanged,
                   onDelete: () => onDelete(block),
+                  onFinishEdit: onFinishEdit == null
+                      ? null
+                      : () => onFinishEdit!(block.id),
                   onCaretPagePoint: onCaretPagePoint,
                 ),
                 ),
@@ -265,6 +272,7 @@ class _TextBlockWidget extends StatefulWidget {
     required this.onBeginEdit,
     required this.onChanged,
     required this.onDelete,
+    this.onFinishEdit,
     this.onCaretPagePoint,
   });
 
@@ -279,6 +287,7 @@ class _TextBlockWidget extends StatefulWidget {
   final VoidCallback onBeginEdit;
   final ValueChanged<TextBlock> onChanged;
   final VoidCallback onDelete;
+  final VoidCallback? onFinishEdit;
   final ValueChanged<Offset>? onCaretPagePoint;
 
   @override
@@ -517,6 +526,21 @@ class _TextBlockWidgetState extends State<_TextBlockWidget> {
             strutStyle: strut,
             onTap: _scheduleCaretReport,
             onChanged: (_) => _scheduleCaretReport(),
+            onTapOutside: _editing && !_lineBound
+                ? (event) {
+                    final box = context.findRenderObject() as RenderBox?;
+                    if (box != null && box.hasSize) {
+                      final local = box.globalToLocal(event.position);
+                      if ((Offset.zero & box.size)
+                          .inflate(28)
+                          .contains(local)) {
+                        return;
+                      }
+                    }
+                    _focus.unfocus();
+                    widget.onFinishEdit?.call();
+                  }
+                : null,
             decoration: const InputDecoration(
               isDense: true,
               filled: false,

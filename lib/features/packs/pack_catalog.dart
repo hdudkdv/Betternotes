@@ -99,14 +99,14 @@ abstract final class PackCatalog {
     PackDef(
       key: FeatureKeys.packDev,
       icon: Icons.terminal_rounded,
-      titleDe: 'Developer & Coder',
-      titleEn: 'Developer & Coder',
+      titleDe: 'Programmieren',
+      titleEn: 'Programming',
       bodyDe:
-          'Code-Blöcke mit Hervorhebung, Snippet-Manager und Terminal-Look für IT und Web.',
+          'Code-Umgebung, Snippets, Terminal und Software-Diagramme (Klasse, Ablauf, Sequenz, ER, Use-Case).',
       bodyEn:
-          'Highlighted code blocks, a snippet manager, and a terminal look for IT and web.',
-      toolsDe: ['Code-Block', 'Snippets', 'Terminal-Karte'],
-      toolsEn: ['Code block', 'Snippets', 'Terminal card'],
+          'Code environment, snippets, terminal, and software diagrams (class, flow, sequence, ER, use case).',
+      toolsDe: ['Code-Umgebung', 'Snippets', 'Terminal', 'Software-Diagramme'],
+      toolsEn: ['Code environment', 'Snippets', 'Terminal', 'Software diagrams'],
     ),
     PackDef(
       key: FeatureKeys.packEdu,

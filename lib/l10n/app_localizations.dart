@@ -6083,7 +6083,7 @@ abstract class AppLocalizations {
   /// No description provided for @marketplaceHint.
   ///
   /// In en, this message translates to:
-  /// **'Free: unlock items with coins only. Lite: buy 3 permanently, then coins from ads. Pro: borrow 5 at a time.'**
+  /// **'Free: at most 3 packs with coins. Lite: buy 3 permanently, then coins from ads. Pro: borrow 5 at a time.'**
   String get marketplaceHint;
 
   /// No description provided for @marketplaceComingSoon.
@@ -6373,6 +6373,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sequence'**
   String get chartSequence;
+
+  /// No description provided for @chartClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Class'**
+  String get chartClass;
 
   /// No description provided for @chartAxes.
   ///
@@ -8255,7 +8261,7 @@ abstract class AppLocalizations {
   /// No description provided for @marketplaceBuyCap.
   ///
   /// In en, this message translates to:
-  /// **'Lite limit reached (3 purchases). Switch to Pro to borrow 5.'**
+  /// **'Free limit reached (3 packs). Upgrade to Lite or Pro for more.'**
   String get marketplaceBuyCap;
 
   /// No description provided for @marketplaceLoanCap.

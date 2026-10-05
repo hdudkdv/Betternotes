@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -420,6 +421,24 @@ class InkEngine extends ChangeNotifier {
       return;
     }
 
+    // Cheap styluses skip samples. Fill the gap so letters stay connected
+    // instead of turning into a chain of dots.
+    final dist = math.sqrt(dist2);
+    if (dist > 6) {
+      final steps = math.min(8, (dist / 4).floor());
+      for (var i = 1; i < steps; i++) {
+        final tLerp = i / steps;
+        active.points.add(
+          StrokePoint(
+            x: last.x + dx * tLerp,
+            y: last.y + dy * tLerp,
+            pressure: p,
+            t: last.t + ((now - last.t) * tLerp).round(),
+          ),
+        );
+      }
+    }
+
     active.points.add(
       StrokePoint(x: point.dx, y: point.dy, pressure: p, t: now),
     );
@@ -431,11 +450,10 @@ class InkEngine extends ChangeNotifier {
   bool _isLiftGap(StrokePoint last, double dist2, int now) {
     final prevT = last.t;
     final dt = (now > 0 && prevT > 0 && now > prevT) ? now - prevT : 0;
-    // Fake pencils skip pointer-up between letters and jump in one sample.
+    // Fake pencils skip samples mid-stroke. Only split after a real pause,
+    // never from distance alone.
     if (!_strokeReportsPressure) {
-      if (dt >= 40 && dist2 >= 14 * 14) return true;
-      if (dist2 >= 26 * 26) return true;
-      return false;
+      return dt >= 140 && dist2 >= 18 * 18;
     }
     // Hold-to-shape parks the tip; 14pt after a pause is just tremor.
     if (dt >= 70 && dist2 >= 28 * 28) return true;

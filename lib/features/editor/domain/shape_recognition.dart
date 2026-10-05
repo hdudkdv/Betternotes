@@ -117,7 +117,7 @@ class ShapeRecognition {
     required bool loose,
   }) {
     final gap = (pts.first - pts.last).distance;
-    if (gap < math.max(loose ? 18.0 : 22.0, length * (loose ? 0.10 : 0.12))) {
+    if (gap < math.max(loose ? 18.0 : 14.0, length * (loose ? 0.10 : 0.08))) {
       return true;
     }
     final window = math.max(3, pts.length ~/ 8);
@@ -204,11 +204,12 @@ class ShapeRecognition {
       varR += d * d;
     }
     varR = math.sqrt(varR / pts.length);
-    if (varR > meanR * (loose ? 0.24 : 0.20)) return null;
+    if (varR > meanR * (loose ? 0.24 : 0.14)) return null;
 
     final expected = 2 * math.pi * meanR;
     final circErr = (length - expected).abs() / expected;
-    if (circErr > (loose ? 0.32 : 0.28)) return null;
+    if (circErr > (loose ? 0.32 : 0.16)) return null;
+    if (_sharpCorners(pts, loose: false).length >= 3) return null;
     return (center: center, radius: meanR);
   }
 
