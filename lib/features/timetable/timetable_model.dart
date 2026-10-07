@@ -57,6 +57,18 @@ int displayLessonColor(TimetableLesson lesson) {
   return colorForSubject(lesson.subject);
 }
 
+/// Kind of university hour. One subject can have a lecture and a lab.
+enum TimetableHourKind { none, lecture, seminar, exercise, practical }
+
+extension TimetableHourKindX on TimetableHourKind {
+  static TimetableHourKind parse(String? raw) {
+    return TimetableHourKind.values.firstWhere(
+      (kind) => kind.name == raw,
+      orElse: () => TimetableHourKind.none,
+    );
+  }
+}
+
 /// A/B week for rotating timetables. [both] is the default (every week).
 enum TimetableWeek { both, a, b }
 
@@ -90,6 +102,19 @@ TimetableWeek currentAbWeek(DateTime date, {required bool swapped}) {
   return odd ? TimetableWeek.a : TimetableWeek.b;
 }
 
+/// Turns a typed website into an http(s) URI, or null if it is not usable.
+Uri? parseLessonWebsite(String raw) {
+  var text = raw.trim();
+  if (text.isEmpty) return null;
+  if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:').hasMatch(text)) {
+    text = 'https://$text';
+  }
+  final uri = Uri.tryParse(text);
+  if (uri == null || uri.host.isEmpty) return null;
+  if (uri.scheme != 'http' && uri.scheme != 'https') return null;
+  return uri;
+}
+
 /// One subject filling (full block or one half of a split block).
 class TimetableLesson extends Equatable {
   const TimetableLesson({
@@ -98,6 +123,9 @@ class TimetableLesson extends Equatable {
     this.schoolClass = '',
     this.folderId,
     this.colorValue = kDefaultLessonColor,
+    this.hourKind = TimetableHourKind.none,
+    this.professor = '',
+    this.website = '',
   });
 
   final String subject;
@@ -105,8 +133,13 @@ class TimetableLesson extends Equatable {
   final String schoolClass;
   final String? folderId;
   final int colorValue;
+  final TimetableHourKind hourKind;
+  final String professor;
+  final String website;
 
   bool get isEmpty => subject.trim().isEmpty && (folderId == null);
+
+  Uri? get websiteUri => parseLessonWebsite(website);
 
   TimetableLesson copyWith({
     String? subject,
@@ -114,6 +147,9 @@ class TimetableLesson extends Equatable {
     String? schoolClass,
     String? folderId,
     int? colorValue,
+    TimetableHourKind? hourKind,
+    String? professor,
+    String? website,
     bool clearFolder = false,
   }) {
     return TimetableLesson(
@@ -122,6 +158,9 @@ class TimetableLesson extends Equatable {
       schoolClass: schoolClass ?? this.schoolClass,
       folderId: clearFolder ? null : (folderId ?? this.folderId),
       colorValue: colorValue ?? this.colorValue,
+      hourKind: hourKind ?? this.hourKind,
+      professor: professor ?? this.professor,
+      website: website ?? this.website,
     );
   }
 
@@ -131,6 +170,9 @@ class TimetableLesson extends Equatable {
     'schoolClass': schoolClass,
     'folderId': folderId,
     'color': colorValue,
+    'hourKind': hourKind.name,
+    'professor': professor,
+    'website': website,
   };
 
   factory TimetableLesson.fromJson(Map<String, dynamic> json) {
@@ -140,11 +182,23 @@ class TimetableLesson extends Equatable {
       schoolClass: json['schoolClass'] as String? ?? '',
       folderId: json['folderId'] as String?,
       colorValue: json['color'] as int? ?? kDefaultLessonColor,
+      hourKind: TimetableHourKindX.parse(json['hourKind'] as String?),
+      professor: json['professor'] as String? ?? '',
+      website: json['website'] as String? ?? '',
     );
   }
 
   @override
-  List<Object?> get props => [subject, room, schoolClass, folderId, colorValue];
+  List<Object?> get props => [
+    subject,
+    room,
+    schoolClass,
+    folderId,
+    colorValue,
+    hourKind,
+    professor,
+    website,
+  ];
 }
 
 /// Cell for one day × block. Can be a single lesson or a split 45/45 block.
@@ -517,8 +571,9 @@ class Timetable extends Equatable {
       if (slot.isEmpty) continue;
       void add(TimetableLesson lesson) {
         if (lesson.isEmpty) return;
-        final key = lesson.subject.trim().toLowerCase();
-        if (key.isEmpty || !seen.add(key)) return;
+        final key =
+            '${lesson.subject.trim().toLowerCase()}|${lesson.hourKind.name}';
+        if (lesson.subject.trim().isEmpty || !seen.add(key)) return;
         out.add(lesson);
       }
 

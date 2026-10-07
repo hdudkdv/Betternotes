@@ -43,7 +43,7 @@ class PageSnapshot extends StatelessWidget {
         final image = cached ?? PagePreviewCache.instance.get(page);
         return DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFFFFBF5),
             border: Border.all(color: EditorChrome.divider),
           ),
           child: image != null

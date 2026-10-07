@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../data/models/notebook.dart';
 import '../../../shared/utils/page_size.dart';
+import '../../pdf/pdf_service.dart';
 import '../domain/sticker_catalog.dart';
 import 'widgets/ink_painter.dart';
 import 'widgets/page_background_painter.dart';
@@ -172,10 +173,13 @@ class PagePreviewCache {
       final canvas = Canvas(recorder);
       canvas.scale(scale, scale);
 
+      final pdfImage = await decodeStoredBackground(page.backgroundPdfPath);
       PageBackgroundPainter(
         template: page.template,
         paper: page.customPaper,
+        pdfImage: pdfImage,
       ).paint(canvas, pageSize);
+      pdfImage?.dispose();
 
       // Preview quality (live path) — much cheaper; fine for flip previews.
       InkPainter(strokes: page.strokes).paint(canvas, pageSize);

@@ -4714,6 +4714,64 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Stundenplan konnte nicht gelesen werden.';
 
   @override
+  String get lessonHourKind => 'Stundenart';
+
+  @override
+  String get hourKindLecture => 'Vorlesung';
+
+  @override
+  String get hourKindSeminar => 'Seminar';
+
+  @override
+  String get hourKindExercise => 'Übung';
+
+  @override
+  String get hourKindPractical => 'Praktikum';
+
+  @override
+  String get hourKindLectureShort => 'VL';
+
+  @override
+  String get hourKindSeminarShort => 'S';
+
+  @override
+  String get hourKindExerciseShort => 'Ü';
+
+  @override
+  String get hourKindPracticalShort => 'Pr';
+
+  @override
+  String get pdfPasswordTitle => 'PDF ist verschlüsselt';
+
+  @override
+  String get pdfPasswordLabel => 'Passwort';
+
+  @override
+  String get pdfPasswordHint => 'Passwort dieser PDF';
+
+  @override
+  String get pdfPasswordUnlock => 'Öffnen';
+
+  @override
+  String get pdfPasswordFailed =>
+      'Das Passwort stimmt nicht oder die PDF konnte nicht geöffnet werden.';
+
+  @override
+  String get lessonProfessor => 'Professor';
+
+  @override
+  String get lessonProfessorHint => 'z. B. Prof. Müller';
+
+  @override
+  String get lessonWebsite => 'Webseite';
+
+  @override
+  String get lessonWebsiteHint => 'z. B. htw-dresden.de/...';
+
+  @override
+  String get openLessonWebsite => 'Webseite öffnen';
+
+  @override
   String get weekWeeklyShort => 'wöch.';
 
   @override

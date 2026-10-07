@@ -31,6 +31,42 @@ void main() {
     expect(legacy.schoolClass, isEmpty);
   });
 
+  test('timetable lesson keeps hour kind through json', () {
+    const lesson = TimetableLesson(
+      subject: 'Mathe',
+      hourKind: TimetableHourKind.lecture,
+    );
+    final roundTrip = TimetableLesson.fromJson(lesson.toJson());
+    expect(roundTrip.hourKind, TimetableHourKind.lecture);
+
+    final legacy = TimetableLesson.fromJson({'subject': 'Mathe'});
+    expect(legacy.hourKind, TimetableHourKind.none);
+  });
+
+  test('timetable lesson keeps professor and website through json', () {
+    const lesson = TimetableLesson(
+      subject: 'Mathe',
+      professor: 'Prof. Müller',
+      website: 'htw-dresden.de/mathe',
+    );
+    final roundTrip = TimetableLesson.fromJson(lesson.toJson());
+    expect(roundTrip.professor, 'Prof. Müller');
+    expect(roundTrip.website, 'htw-dresden.de/mathe');
+    expect(roundTrip.websiteUri?.host, 'htw-dresden.de');
+
+    final legacy = TimetableLesson.fromJson({'subject': 'Mathe'});
+    expect(legacy.professor, isEmpty);
+    expect(legacy.website, isEmpty);
+    expect(legacy.websiteUri, isNull);
+  });
+
+  test('parseLessonWebsite accepts host-only and http(s) links', () {
+    expect(parseLessonWebsite('htw-dresden.de/foo')?.scheme, 'https');
+    expect(parseLessonWebsite('https://example.com')?.host, 'example.com');
+    expect(parseLessonWebsite('mailto:a@b.c'), isNull);
+    expect(parseLessonWebsite('   '), isNull);
+  });
+
   test('A/B week lookup prefers the matching week over a shared slot', () {
     const weekA = TimetableSlot(
       day: 0,

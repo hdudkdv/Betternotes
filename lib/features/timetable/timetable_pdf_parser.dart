@@ -50,6 +50,8 @@ class _DraftLesson {
     required this.week,
     required this.startMinutes,
     required this.endMinutes,
+    this.hourKind = TimetableHourKind.none,
+    this.professor = '',
   });
 
   final int day;
@@ -59,9 +61,11 @@ class _DraftLesson {
   final TimetableWeek week;
   final int startMinutes;
   final int endMinutes;
+  final TimetableHourKind hourKind;
+  final String professor;
 
   String get identity =>
-      '$day|$period|${subject.trim().toLowerCase()}|${room.trim().toLowerCase()}';
+      '$day|$period|${subject.trim().toLowerCase()}|${hourKind.name}|${room.trim().toLowerCase()}|${professor.trim().toLowerCase()}';
 }
 
 /// Parses OPAL / HTW-style semester PDFs (and similar campus grids).
@@ -132,6 +136,35 @@ class TimetablePdfParser {
 
   static ImportedTimetable parsePlainText(String text) {
     return parsePages([_tokensFromPlainText(text)]);
+  }
+
+  /// OPAL suffixes: V = lecture, S = seminar, Ü = exercise, Pr = lab.
+  static TimetableHourKind hourKindFromText(String raw) {
+    final folded = raw.toLowerCase();
+    if (folded.contains('praktik')) return TimetableHourKind.practical;
+    if (folded.contains('seminar')) return TimetableHourKind.seminar;
+    if (folded.contains('vorles')) return TimetableHourKind.lecture;
+    if (folded.contains('übung') || folded.contains('uebung')) {
+      return TimetableHourKind.exercise;
+    }
+    final matches = RegExp(
+      r'(?:^|[\s])(pr|ü|ue|v|s)(\d*)(?:/[A-Za-z0-9+]|$)',
+      caseSensitive: false,
+    ).allMatches(raw);
+    if (matches.isEmpty) return TimetableHourKind.none;
+    switch (matches.last.group(1)!.toLowerCase()) {
+      case 'pr':
+        return TimetableHourKind.practical;
+      case 'ü':
+      case 'ue':
+        return TimetableHourKind.exercise;
+      case 's':
+        return TimetableHourKind.seminar;
+      case 'v':
+        return TimetableHourKind.lecture;
+      default:
+        return TimetableHourKind.none;
+    }
   }
 
   static String tidySubject(String raw) {
@@ -241,6 +274,8 @@ class TimetablePdfParser {
             week: parsed.week,
             startMinutes: row.start,
             endMinutes: row.end,
+            hourKind: parsed.hourKind,
+            professor: parsed.professor,
           ),
         );
       }
@@ -272,6 +307,8 @@ class TimetablePdfParser {
         week: week,
         startMinutes: draft.startMinutes,
         endMinutes: draft.endMinutes,
+        hourKind: draft.hourKind,
+        professor: draft.professor,
       );
       byCell.putIfAbsent('${draft.day}|${draft.period}|${week.name}', () => []).add(merged);
     }
@@ -292,6 +329,8 @@ class TimetablePdfParser {
             subject: first.subject,
             room: first.room,
             colorValue: colorForSubject(first.subject),
+            hourKind: first.hourKind,
+            professor: first.professor,
           ),
           second: second == null
               ? const TimetableLesson()
@@ -299,6 +338,8 @@ class TimetablePdfParser {
                   subject: second.subject,
                   room: second.room,
                   colorValue: colorForSubject(second.subject),
+                  hourKind: second.hourKind,
+                  professor: second.professor,
                 ),
         ),
       );
@@ -497,7 +538,14 @@ class TimetablePdfParser {
     return grouped;
   }
 
-  static ({String subject, String room, TimetableWeek week})? _lessonFromLines(
+  static ({
+    String subject,
+    String room,
+    String professor,
+    TimetableWeek week,
+    TimetableHourKind hourKind,
+  })?
+  _lessonFromLines(
     List<String> lines, {
     required TimetableWeek fallbackWeek,
   }) {
@@ -527,13 +575,16 @@ class TimetablePdfParser {
       }
     }
     if (subjectParts.isEmpty) return null;
-    final subject = tidySubject(subjectParts.join(' '));
+    final joined = subjectParts.join(' ');
+    final subject = tidySubject(joined);
     if (subject.isEmpty) return null;
-    final displayRoom = [
-      if (room.isNotEmpty) room,
-      if (lecturer.isNotEmpty) lecturer,
-    ].join(' · ');
-    return (subject: subject, room: displayRoom, week: week);
+    return (
+      subject: subject,
+      room: room,
+      professor: lecturer,
+      week: week,
+      hourKind: hourKindFromText(joined),
+    );
   }
 
   static bool _looksLikeCourse(String raw) {

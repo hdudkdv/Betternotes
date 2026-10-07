@@ -31,6 +31,7 @@ import '../../teacher/picker/classroom_pick_overlay.dart';
 import '../../teacher/teacher_models.dart';
 import '../../timetable/timetable_model.dart';
 import '../../library/providers/library_providers.dart';
+import '../../pdf/pdf_password_dialog.dart';
 import '../../pdf/pdf_service.dart';
 import '../../scanner/document_scanner_service.dart';
 import '../../search/recognition/recognition_service.dart';
@@ -209,6 +210,7 @@ class EditorController extends ChangeNotifier {
   bool studyInkRevealed = false;
   TextLayoutMode textLayoutMode = TextLayoutMode.free;
   ui.Image? backgroundImage;
+  final Map<String, ui.Image> _backgroundCache = {};
   bool loading = true;
   String? error;
   Timer? _saveTimer;
@@ -424,20 +426,43 @@ class EditorController extends ChangeNotifier {
     ];
   }
 
+  void _rememberBackground(String path, ui.Image image) {
+    final previous = _backgroundCache.remove(path);
+    if (previous != null && !identical(previous, image)) {
+      previous.dispose();
+    }
+    _backgroundCache[path] = image;
+    if (_backgroundCache.length <= 10) return;
+    final stale = _backgroundCache.keys.firstWhere(
+      (key) => key != path,
+      orElse: () => path,
+    );
+    if (stale == path) return;
+    _backgroundCache.remove(stale)?.dispose();
+  }
+
   Future<void> _loadBackground() async {
     final token = _bindToken;
     final path = pages[pageIndex].backgroundPdfPath;
-    if (path == null && backgroundImage == null) return;
+    if (path == null || path.isEmpty) {
+      backgroundImage = null;
+      return;
+    }
+    final cached = _backgroundCache[path];
+    if (cached != null) {
+      backgroundImage = cached;
+      return;
+    }
     final image = await pdfService.loadBackgroundImage(path);
     if (token != _bindToken || _disposed) {
       image?.dispose();
       return;
     }
-    if (image == null && path != null && path.isNotEmpty) {
+    if (image == null) {
       // Transient decode/file hiccup — keep the last worksheet on screen.
       return;
     }
-    backgroundImage?.dispose();
+    _rememberBackground(path, image);
     backgroundImage = image;
   }
 
@@ -1162,8 +1187,9 @@ class EditorController extends ChangeNotifier {
     // Only drop the PDF bitmap when the path actually changes — keeps flips
     // between plain pages from thrashing the background cache.
     if (leavingPath != arrivingPath) {
-      backgroundImage?.dispose();
-      backgroundImage = null;
+      backgroundImage = arrivingPath == null
+          ? null
+          : _backgroundCache[arrivingPath];
     }
     if (page != null && drawingAids.ruler?.fixed == true) {
       drawingAids.updateRuler(
@@ -1379,21 +1405,28 @@ class EditorController extends ChangeNotifier {
     return created.length;
   }
 
-  Future<void> importPdf() async {
+  Future<void> importPdf({Future<String?> Function()? onPassword}) async {
     await _persistCurrent();
-    final created = await pdfService.importPdfAsPages(notebookId: notebookId);
+    final created = await pdfService.importPdfAsPages(
+      notebookId: notebookId,
+      onPassword: onPassword,
+    );
     if (created.isEmpty) return;
     pages = await repository.getPages(notebookId);
     notebook = await repository.getNotebook(notebookId);
     final idx = pages.indexWhere((p) => p.id == created.first.id);
     await _bindPage(idx < 0 ? pageIndex : idx);
+    for (final page in created) {
+      unawaited(PagePreviewCache.instance.ensure(page, force: true));
+    }
     notifyListeners();
   }
 
   /// Import with a progress dialog owned by the screen.
   Future<void> importPdfWithProgress(
-    void Function(int done, int total) onProgress,
-  ) async {
+    void Function(int done, int total) onProgress, {
+    Future<String?> Function()? onPassword,
+  }) async {
     await _persistCurrent();
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
@@ -1407,12 +1440,16 @@ class EditorController extends ChangeNotifier {
       notebookId: notebookId,
       bytes: bytes,
       onProgress: onProgress,
+      onPassword: onPassword,
     );
     if (created.isEmpty) return;
     pages = await repository.getPages(notebookId);
     notebook = await repository.getNotebook(notebookId);
     final idx = pages.indexWhere((p) => p.id == created.first.id);
     await _bindPage(idx < 0 ? pageIndex : idx);
+    for (final page in created) {
+      unawaited(PagePreviewCache.instance.ensure(page, force: true));
+    }
     notifyListeners();
   }
 
@@ -2512,7 +2549,11 @@ class EditorController extends ChangeNotifier {
     ink.removeListener(_onInkChanged);
     drawingAids.removeListener(_onAidsChanged);
     unawaited(_persistCurrent());
-    backgroundImage?.dispose();
+    for (final image in _backgroundCache.values) {
+      image.dispose();
+    }
+    _backgroundCache.clear();
+    backgroundImage = null;
     textRegistry.disposeAll();
     ink.pointConstraint = null;
     ink.dispose();
@@ -4302,9 +4343,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen>
           ),
         );
         try {
-          await controller.importPdfWithProgress((d, t) {
-            progress.value = l10n.pdfImportProgress(d, t);
-          });
+          await controller.importPdfWithProgress(
+            (d, t) {
+              progress.value = l10n.pdfImportProgress(d, t);
+            },
+            onPassword: () => promptPdfPassword(context),
+          );
         } finally {
           if (context.mounted) {
             Navigator.of(context, rootNavigator: true).pop();

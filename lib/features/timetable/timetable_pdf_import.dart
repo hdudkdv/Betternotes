@@ -9,7 +9,9 @@ import 'timetable_pdf_parser.dart';
 class TimetablePdfImport {
   const TimetablePdfImport();
 
-  Future<ImportedTimetable?> pickPdf() async {
+  Future<ImportedTimetable?> pickPdf({
+    Future<String?> Function()? onPassword,
+  }) async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['pdf'],
@@ -18,7 +20,11 @@ class TimetablePdfImport {
     if (result == null || result.files.isEmpty) return null;
     final bytes = result.files.first.bytes;
     if (bytes == null || bytes.isEmpty) return null;
-    return fromPdfBytes(bytes);
+    try {
+      return await fromPdfBytes(bytes, onPassword: onPassword);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<ImportedTimetable?> scanOrPickImage() async {
@@ -35,9 +41,16 @@ class TimetablePdfImport {
     ]);
   }
 
-  Future<ImportedTimetable> fromPdfBytes(Uint8List bytes) async {
+  Future<ImportedTimetable> fromPdfBytes(
+    Uint8List bytes, {
+    Future<String?> Function()? onPassword,
+  }) async {
     await pdfrx.pdfrxFlutterInitialize();
-    final doc = await pdfrx.PdfDocument.openData(bytes);
+    final doc = await pdfrx.PdfDocument.openData(
+      bytes,
+      firstAttemptByEmptyPassword: true,
+      passwordProvider: onPassword,
+    );
     try {
       final pages = <List<TimetableTextToken>>[];
       for (final page in doc.pages) {

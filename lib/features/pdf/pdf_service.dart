@@ -20,13 +20,34 @@ import '../../shared/utils/page_size.dart';
 import '../editor/domain/ink_models.dart';
 import '../editor/domain/sticker_catalog.dart';
 
+/// Decodes a stored page background (file path or `memory:` JPEG).
+Future<ui.Image?> decodeStoredBackground(String? path) async {
+  if (path == null || path.isEmpty) return null;
+  try {
+    late Uint8List bytes;
+    if (path.startsWith('memory:')) {
+      bytes = base64Decode(path.substring(7));
+    } else {
+      bytes = await createFileStore().readBytes(path);
+    }
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    return frame.image;
+  } catch (_) {
+    return null;
+  }
+}
+
 class PdfService {
   PdfService(this._repository);
 
   final NotebookRepository _repository;
   final FileStore _files = createFileStore();
 
-  Future<List<NotePage>> importPdfAsPages({required String notebookId}) async {
+  Future<List<NotePage>> importPdfAsPages({
+    required String notebookId,
+    Future<String?> Function()? onPassword,
+  }) async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['pdf'],
@@ -37,13 +58,18 @@ class PdfService {
     final file = result.files.first;
     final bytes = file.bytes;
     if (bytes == null) return [];
-    return importPdfFromBytes(notebookId: notebookId, bytes: bytes);
+    return importPdfFromBytes(
+      notebookId: notebookId,
+      bytes: bytes,
+      onPassword: onPassword,
+    );
   }
 
   Future<List<NotePage>> importPdfFromBytes({
     required String notebookId,
     required Uint8List bytes,
     void Function(int done, int total)? onProgress,
+    Future<String?> Function()? onPassword,
   }) async {
     await pdfrx.pdfrxFlutterInitialize();
 
@@ -52,7 +78,16 @@ class PdfService {
     final orientation =
         notebook?.defaultOrientation ?? PageOrientation.portrait;
     final pageSize = NotePageSize.resolve(paperFormat, orientation);
-    final doc = await pdfrx.PdfDocument.openData(bytes);
+    late final pdfrx.PdfDocument doc;
+    try {
+      doc = await pdfrx.PdfDocument.openData(
+        bytes,
+        firstAttemptByEmptyPassword: true,
+        passwordProvider: onPassword,
+      );
+    } catch (_) {
+      return const [];
+    }
     final filesDir = await _repository.resolveFilesDir();
     final drafts = <NotePageDraft>[];
     // 1.5× is sharp enough on tablets and much cheaper than 2× PNG.
@@ -81,26 +116,28 @@ class PdfService {
               'height': dartImage.height,
               'bytes': rgba,
             });
-
-            final outPath = p.join(
-              filesDir,
-              '${notebookId}_pdf_${stamp}_${i + 1}.jpg',
+            imagePath = await _storePageBackground(
+              notebookId: notebookId,
+              stamp: stamp,
+              index: i + 1,
+              encoded: encoded,
+              filesDir: filesDir,
             );
-            await _files.writeBytes(outPath, encoded);
-            imagePath = outPath;
           }
         } catch (_) {
           // Keep importing remaining pages.
         }
 
-        drafts.add(
-          NotePageDraft(
-            template: PageTemplate.blank,
-            backgroundPdfPath: imagePath,
-            paperFormat: paperFormat,
-            orientation: orientation,
-          ),
-        );
+        if (imagePath != null) {
+          drafts.add(
+            NotePageDraft(
+              template: PageTemplate.blank,
+              backgroundPdfPath: imagePath,
+              paperFormat: paperFormat,
+              orientation: orientation,
+            ),
+          );
+        }
         onProgress?.call(i + 1, total);
         // Let the UI breathe between heavy raster pages.
         await Future<void>.delayed(Duration.zero);
@@ -109,7 +146,25 @@ class PdfService {
       await doc.dispose();
     }
 
+    if (drafts.isEmpty) return const [];
     return _repository.addPages(notebookId: notebookId, drafts: drafts);
+  }
+
+  Future<String> _storePageBackground({
+    required String notebookId,
+    required int stamp,
+    required int index,
+    required Uint8List encoded,
+    required String filesDir,
+  }) async {
+    // Web has no durable file dir — embed the JPEG on the page like scans.
+    if (kIsWeb) return 'memory:${base64Encode(encoded)}';
+    final outPath = p.join(
+      filesDir,
+      '${notebookId}_pdf_${stamp}_$index.jpg',
+    );
+    await _files.writeBytes(outPath, encoded);
+    return outPath;
   }
 
   /// Turns system-scanner / camera images into notebook pages.
@@ -340,21 +395,8 @@ class PdfService {
     return printNotebook(notebook, pages);
   }
 
-  Future<ui.Image?> loadBackgroundImage(String? path) async {
-    if (path == null || path.isEmpty) return null;
-    try {
-      late Uint8List bytes;
-      if (path.startsWith('memory:')) {
-        bytes = base64Decode(path.substring(7));
-      } else {
-        bytes = await _files.readBytes(path);
-      }
-      final codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
-      return frame.image;
-    } catch (_) {
-      return null;
-    }
+  Future<ui.Image?> loadBackgroundImage(String? path) {
+    return decodeStoredBackground(path);
   }
 
   void _paintTemplate(

@@ -5,15 +5,43 @@ import 'package:go_router/go_router.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../data/models/content_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../import_export/subject_notebook_link.dart';
+import '../pdf/pdf_password_dialog.dart';
 import '../library/providers/library_providers.dart';
 import '../teacher/gradebook/gradebook_store.dart';
 import 'timetable_model.dart';
 import 'timetable_pdf_import.dart';
+
+String hourKindLabel(AppLocalizations? l10n, TimetableHourKind kind) {
+  return switch (kind) {
+    TimetableHourKind.lecture => l10n?.hourKindLecture ?? 'Vorlesung',
+    TimetableHourKind.seminar => l10n?.hourKindSeminar ?? 'Seminar',
+    TimetableHourKind.exercise => l10n?.hourKindExercise ?? 'Übung',
+    TimetableHourKind.practical => l10n?.hourKindPractical ?? 'Praktikum',
+    TimetableHourKind.none => '',
+  };
+}
+
+Future<void> openLessonWebsite(String raw) async {
+  final uri = parseLessonWebsite(raw);
+  if (uri == null) return;
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
+}
+
+String hourKindShort(AppLocalizations? l10n, TimetableHourKind kind) {
+  return switch (kind) {
+    TimetableHourKind.lecture => l10n?.hourKindLectureShort ?? 'VL',
+    TimetableHourKind.seminar => l10n?.hourKindSeminarShort ?? 'S',
+    TimetableHourKind.exercise => l10n?.hourKindExerciseShort ?? 'Ü',
+    TimetableHourKind.practical => l10n?.hourKindPracticalShort ?? 'Pr',
+    TimetableHourKind.none => '',
+  };
+}
 
 class TimetableScreen extends ConsumerWidget {
   const TimetableScreen({super.key});
@@ -61,6 +89,7 @@ class TimetableScreen extends ConsumerWidget {
         initial: existing,
         folders: folders,
         showClassField: ref.read(settingsProvider).isTeacher,
+        showHourKind: ref.read(settingsProvider).isUniversity,
         defaultSchoolClass: '',
         abWeeksEnabled: abWeeksEnabled,
         editWeek: week,
@@ -131,6 +160,9 @@ class TimetableScreen extends ConsumerWidget {
       return lessonFromFolder(existing).copyWith(
         room: lesson.room,
         schoolClass: lesson.schoolClass,
+        hourKind: lesson.hourKind,
+        professor: lesson.professor,
+        website: lesson.website,
       );
     }
     final created = await ref
@@ -140,6 +172,9 @@ class TimetableScreen extends ConsumerWidget {
     return lessonFromFolder(created).copyWith(
       room: lesson.room,
       schoolClass: lesson.schoolClass,
+      hourKind: lesson.hourKind,
+      professor: lesson.professor,
+      website: lesson.website,
     );
   }
 
@@ -174,7 +209,9 @@ class TimetableScreen extends ConsumerWidget {
     try {
       final imported = scan
           ? await const TimetablePdfImport().scanOrPickImage()
-          : await const TimetablePdfImport().pickPdf();
+          : await const TimetablePdfImport().pickPdf(
+              onPassword: () => promptPdfPassword(context),
+            );
       if (context.mounted && loading) {
         Navigator.pop(context);
         loading = false;
@@ -324,8 +361,12 @@ class TimetableScreen extends ConsumerWidget {
     if (slot == null || slot.isEmpty) return '';
     String line(TimetableLesson lesson) {
       final extra = [
+        if (lesson.hourKind != TimetableHourKind.none)
+          hourKindShort(null, lesson.hourKind),
         if (lesson.schoolClass.trim().isNotEmpty) lesson.schoolClass.trim(),
         if (lesson.room.isNotEmpty) lesson.room,
+        if (lesson.professor.trim().isNotEmpty) lesson.professor.trim(),
+        if (lesson.websiteUri != null) lesson.website.trim(),
       ].join(' · ');
       return extra.isEmpty ? lesson.subject : '${lesson.subject}\n$extra';
     }
@@ -856,6 +897,7 @@ class _SlotEditorDialog extends StatefulWidget {
     required this.initial,
     required this.folders,
     this.showClassField = false,
+    this.showHourKind = false,
     this.defaultSchoolClass = '',
     this.abWeeksEnabled = false,
     this.editWeek = TimetableWeek.both,
@@ -866,6 +908,7 @@ class _SlotEditorDialog extends StatefulWidget {
   final TimetableSlot initial;
   final List<LibraryFolder> folders;
   final bool showClassField;
+  final bool showHourKind;
   final String defaultSchoolClass;
   final bool abWeeksEnabled;
   final TimetableWeek editWeek;
@@ -884,6 +927,10 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
   late TextEditingController _class2;
   late TextEditingController _subject1;
   late TextEditingController _subject2;
+  late TextEditingController _professor1;
+  late TextEditingController _professor2;
+  late TextEditingController _website1;
+  late TextEditingController _website2;
   late bool _createFolder1;
   late bool _createFolder2;
   late TimetableWeek _week;
@@ -912,6 +959,10 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     );
     _subject1 = TextEditingController(text: _first.subject);
     _subject2 = TextEditingController(text: _second.subject);
+    _professor1 = TextEditingController(text: _first.professor);
+    _professor2 = TextEditingController(text: _second.professor);
+    _website1 = TextEditingController(text: _first.website);
+    _website2 = TextEditingController(text: _second.website);
     _createFolder1 = _first.folderId == null;
     _createFolder2 = _second.folderId == null;
     _week = widget.initial.week;
@@ -925,6 +976,10 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     _class2.dispose();
     _subject1.dispose();
     _subject2.dispose();
+    _professor1.dispose();
+    _professor2.dispose();
+    _website1.dispose();
+    _website2.dispose();
     super.dispose();
   }
 
@@ -945,6 +1000,9 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       ).copyWith(
         room: firstHalf ? _room1.text : _room2.text,
         schoolClass: firstHalf ? _class1.text : _class2.text,
+        hourKind: firstHalf ? _first.hourKind : _second.hourKind,
+        professor: firstHalf ? _professor1.text : _professor2.text,
+        website: firstHalf ? _website1.text : _website2.text,
       );
       if (firstHalf) {
         _first = lesson;
@@ -963,6 +1021,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       subject: _subject1.text.trim(),
       room: _room1.text.trim(),
       schoolClass: _class1.text.trim(),
+      professor: _professor1.text.trim(),
+      website: _website1.text.trim(),
       colorValue: _first.folderId == null
           ? colorForSubject(_subject1.text)
           : _first.colorValue,
@@ -971,6 +1031,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
       subject: _subject2.text.trim(),
       room: _room2.text.trim(),
       schoolClass: _class2.text.trim(),
+      professor: _professor2.text.trim(),
+      website: _website2.text.trim(),
       colorValue: _second.folderId == null
           ? colorForSubject(_subject2.text)
           : _second.colorValue,
@@ -1117,6 +1179,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                 subjectCtrl: _subject1,
                 roomCtrl: _room1,
                 classCtrl: _class1,
+                professorCtrl: _professor1,
+                websiteCtrl: _website1,
                 lesson: _first,
                 createFolder: _createFolder1,
                 onCreateFolder: (v) => setState(() => _createFolder1 = v),
@@ -1125,6 +1189,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                   _first = _first.copyWith(subject: v, clearFolder: true);
                   if (_first.folderId == null) _createFolder1 = true;
                 }),
+                onHourKind: (kind) =>
+                    setState(() => _first = _first.copyWith(hourKind: kind)),
               ),
               if (_split) ...[
                 const SizedBox(height: 16),
@@ -1136,6 +1202,8 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                   subjectCtrl: _subject2,
                   roomCtrl: _room2,
                   classCtrl: _class2,
+                  professorCtrl: _professor2,
+                  websiteCtrl: _website2,
                   lesson: _second,
                   createFolder: _createFolder2,
                   onCreateFolder: (v) => setState(() => _createFolder2 = v),
@@ -1144,6 +1212,9 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
                     _second = _second.copyWith(subject: v, clearFolder: true);
                     if (_second.folderId == null) _createFolder2 = true;
                   }),
+                  onHourKind: (kind) => setState(
+                    () => _second = _second.copyWith(hourKind: kind),
+                  ),
                 ),
               ],
             ],
@@ -1195,11 +1266,14 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
     required TextEditingController subjectCtrl,
     required TextEditingController roomCtrl,
     required TextEditingController classCtrl,
+    required TextEditingController professorCtrl,
+    required TextEditingController websiteCtrl,
     required TimetableLesson lesson,
     required bool createFolder,
     required ValueChanged<bool> onCreateFolder,
     required ValueChanged<LibraryFolder?> onFolder,
     required ValueChanged<String> onSubject,
+    ValueChanged<TimetableHourKind>? onHourKind,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1280,6 +1354,37 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
           ),
           onChanged: onSubject,
         ),
+        if (widget.showHourKind) ...[
+          const SizedBox(height: 10),
+          Text(
+            l10n.lessonHourKind,
+            style: AppTheme.body(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: AppTheme.inkMuted,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final kind in const [
+                TimetableHourKind.lecture,
+                TimetableHourKind.seminar,
+                TimetableHourKind.exercise,
+                TimetableHourKind.practical,
+              ])
+                ChoiceChip(
+                  label: Text(hourKindLabel(l10n, kind)),
+                  selected: lesson.hourKind == kind,
+                  onSelected: (selected) => onHourKind?.call(
+                    selected ? kind : TimetableHourKind.none,
+                  ),
+                ),
+            ],
+          ),
+        ],
         if (lesson.folderId == null) ...[
           const SizedBox(height: 4),
           CheckboxListTile(
@@ -1308,6 +1413,30 @@ class _SlotEditorDialogState extends State<_SlotEditorDialog> {
           decoration: InputDecoration(
             labelText: l10n.room,
             hintText: l10n.roomHint,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: professorCtrl,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            labelText: l10n.lessonProfessor,
+            hintText: l10n.lessonProfessorHint,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: websiteCtrl,
+          keyboardType: TextInputType.url,
+          autocorrect: false,
+          decoration: InputDecoration(
+            labelText: l10n.lessonWebsite,
+            hintText: l10n.lessonWebsiteHint,
+            suffixIcon: IconButton(
+              tooltip: l10n.openLessonWebsite,
+              icon: const Icon(Icons.open_in_new, size: 18),
+              onPressed: () => openLessonWebsite(websiteCtrl.text),
+            ),
           ),
         ),
         if (widget.showClassField) ...[
@@ -1346,7 +1475,7 @@ class _TimetableGrid extends StatelessWidget {
 
   double get _colW => universityStyle ? 138.0 : 124.0;
   double get _timeW => universityStyle ? 78.0 : 96.0;
-  double get _rowH => universityStyle ? 94.0 : 102.0;
+  double get _rowH => universityStyle ? 108.0 : 102.0;
 
   @override
   Widget build(BuildContext context) {
@@ -1621,7 +1750,9 @@ class _TimetableGrid extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            lesson.subject,
+            lesson.hourKind == TimetableHourKind.none
+                ? lesson.subject
+                : '${lesson.subject} · ${hourKindShort(l10n, lesson.hourKind)}',
             maxLines: fill ? 2 : 1,
             overflow: TextOverflow.ellipsis,
             style: AppTheme.body(
@@ -1657,6 +1788,39 @@ class _TimetableGrid extends StatelessWidget {
                 color: AppTheme.inkMuted,
                 height: 1.15,
               ),
+            ),
+          if (lesson.professor.trim().isNotEmpty || lesson.websiteUri != null)
+            Row(
+              children: [
+                if (lesson.professor.trim().isNotEmpty)
+                  Expanded(
+                    child: Text(
+                      lesson.professor.trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.inkMuted,
+                        height: 1.15,
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                if (lesson.websiteUri != null)
+                  GestureDetector(
+                    onTap: () => openLessonWebsite(lesson.website),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Icon(
+                        Icons.open_in_new,
+                        size: 12,
+                        color: AppTheme.accent,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           if (universityStyle)
             Padding(

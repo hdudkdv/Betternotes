@@ -43,6 +43,29 @@ void main() {
     expect(TimetablePdfParser.tidySubject('Gremien-Blockzeit'), 'Gremien-Blockzeit');
   });
 
+  test('hourKindFromText reads OPAL suffixes', () {
+    expect(
+      TimetablePdfParser.hourKindFromText('I382 Mathe V1/IM'),
+      TimetableHourKind.lecture,
+    );
+    expect(
+      TimetablePdfParser.hourKindFromText('I130 BS Pr1/IM2'),
+      TimetableHourKind.practical,
+    );
+    expect(
+      TimetablePdfParser.hourKindFromText('S413 EnglB2 Ü1/IM2'),
+      TimetableHourKind.exercise,
+    );
+    expect(
+      TimetablePdfParser.hourKindFromText('Seminar Softwaretechnik'),
+      TimetableHourKind.seminar,
+    );
+    expect(
+      TimetablePdfParser.hourKindFromText('Gremien-Blockzeit'),
+      TimetableHourKind.none,
+    );
+  });
+
   test('week and room lines parse OPAL cells', () {
     expect(TimetablePdfParser.weekFromText('Ungerade Woche'), TimetableWeek.a);
     expect(TimetablePdfParser.weekFromText('wöchentlich'), TimetableWeek.both);
@@ -94,12 +117,16 @@ void main() {
         .firstWhere((s) => s.day == day && s.period == period && s.week == week);
 
     expect(slot(0, 0, TimetableWeek.a).first.subject, contains('Mathe'));
+    expect(slot(0, 0, TimetableWeek.a).first.hourKind, TimetableHourKind.lecture);
     expect(slot(0, 0, TimetableWeek.b).first.subject, contains('GdG'));
+    expect(slot(0, 0, TimetableWeek.b).first.hourKind, TimetableHourKind.practical);
     expect(slot(1, 1, TimetableWeek.both).first.subject, contains('GdI'));
     expect(slot(0, 3, TimetableWeek.both).first.subject, contains('BS Pr'));
     expect(slot(2, 2, TimetableWeek.a).first.subject, contains('Engl'));
     expect(slot(3, 4, TimetableWeek.b).first.subject, contains('Engl'));
     expect(slot(0, 3, TimetableWeek.both).first.room, contains('U515'));
+    expect(slot(0, 3, TimetableWeek.both).first.professor, contains('Baumgartl'));
+    expect(slot(0, 0, TimetableWeek.a).first.professor, contains('Lange'));
   });
 
   test('mergeLineFragments joins split OPAL words', () {

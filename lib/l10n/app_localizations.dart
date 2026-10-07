@@ -8516,6 +8516,120 @@ abstract class AppLocalizations {
   /// **'The timetable could not be read.'**
   String get importTimetableFailed;
 
+  /// No description provided for @lessonHourKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Class type'**
+  String get lessonHourKind;
+
+  /// No description provided for @hourKindLecture.
+  ///
+  /// In en, this message translates to:
+  /// **'Lecture'**
+  String get hourKindLecture;
+
+  /// No description provided for @hourKindSeminar.
+  ///
+  /// In en, this message translates to:
+  /// **'Seminar'**
+  String get hourKindSeminar;
+
+  /// No description provided for @hourKindExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get hourKindExercise;
+
+  /// No description provided for @hourKindPractical.
+  ///
+  /// In en, this message translates to:
+  /// **'Lab'**
+  String get hourKindPractical;
+
+  /// No description provided for @hourKindLectureShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Lec'**
+  String get hourKindLectureShort;
+
+  /// No description provided for @hourKindSeminarShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sem'**
+  String get hourKindSeminarShort;
+
+  /// No description provided for @hourKindExerciseShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex'**
+  String get hourKindExerciseShort;
+
+  /// No description provided for @hourKindPracticalShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Lab'**
+  String get hourKindPracticalShort;
+
+  /// No description provided for @pdfPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This PDF is encrypted'**
+  String get pdfPasswordTitle;
+
+  /// No description provided for @pdfPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get pdfPasswordLabel;
+
+  /// No description provided for @pdfPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Password for this PDF'**
+  String get pdfPasswordHint;
+
+  /// No description provided for @pdfPasswordUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get pdfPasswordUnlock;
+
+  /// No description provided for @pdfPasswordFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The password is wrong or the PDF could not be opened.'**
+  String get pdfPasswordFailed;
+
+  /// No description provided for @lessonProfessor.
+  ///
+  /// In en, this message translates to:
+  /// **'Professor'**
+  String get lessonProfessor;
+
+  /// No description provided for @lessonProfessorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Prof. Müller'**
+  String get lessonProfessorHint;
+
+  /// No description provided for @lessonWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get lessonWebsite;
+
+  /// No description provided for @lessonWebsiteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. university.edu/...'**
+  String get lessonWebsiteHint;
+
+  /// No description provided for @openLessonWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Open website'**
+  String get openLessonWebsite;
+
   /// No description provided for @weekWeeklyShort.
   ///
   /// In en, this message translates to:

@@ -4686,6 +4686,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importTimetableFailed => 'The timetable could not be read.';
 
   @override
+  String get lessonHourKind => 'Class type';
+
+  @override
+  String get hourKindLecture => 'Lecture';
+
+  @override
+  String get hourKindSeminar => 'Seminar';
+
+  @override
+  String get hourKindExercise => 'Exercise';
+
+  @override
+  String get hourKindPractical => 'Lab';
+
+  @override
+  String get hourKindLectureShort => 'Lec';
+
+  @override
+  String get hourKindSeminarShort => 'Sem';
+
+  @override
+  String get hourKindExerciseShort => 'Ex';
+
+  @override
+  String get hourKindPracticalShort => 'Lab';
+
+  @override
+  String get pdfPasswordTitle => 'This PDF is encrypted';
+
+  @override
+  String get pdfPasswordLabel => 'Password';
+
+  @override
+  String get pdfPasswordHint => 'Password for this PDF';
+
+  @override
+  String get pdfPasswordUnlock => 'Unlock';
+
+  @override
+  String get pdfPasswordFailed =>
+      'The password is wrong or the PDF could not be opened.';
+
+  @override
+  String get lessonProfessor => 'Professor';
+
+  @override
+  String get lessonProfessorHint => 'e.g. Prof. Müller';
+
+  @override
+  String get lessonWebsite => 'Website';
+
+  @override
+  String get lessonWebsiteHint => 'e.g. university.edu/...';
+
+  @override
+  String get openLessonWebsite => 'Open website';
+
+  @override
   String get weekWeeklyShort => 'weekly';
 
   @override
